@@ -1,0 +1,220 @@
+/* Gossoko — global reset + design tokens.
+   Dark industrial base, hi-vis safety orange accents.
+   Mobile-first; desktop just centres the same column.
+*/
+
+:root {
+  --bg: #0a0908;
+  --bg-elev: #0f0d0b;
+  --surface: #15110d;
+  --surface-alt: #1a1612;
+  --surface-hi: #221c17;
+  --border: #2a2520;
+  --border-strong: #3a3530;
+
+  --text: #f5f1ec;
+  --text-secondary: #a89e92;
+  --text-muted: #6b645c;
+
+  --orange: #FF7A00;
+  --orange-bright: #FF9533;
+  --orange-hot: #FF5500;
+  --orange-dim: rgba(255, 122, 0, 0.18);
+  --orange-faint: rgba(255, 122, 0, 0.08);
+
+  --hi-vis-green: #A8E000;
+  --hi-vis-yellow: #F2C200;
+  --red: #E63946;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --bottom-nav-h: 64px;
+  --app-max: 480px;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgba(255, 122, 0, 0.06), transparent 60%),
+    var(--bg);
+}
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+
+/* App scaffold — single centred column on desktop */
+.app-frame {
+  max-width: var(--app-max);
+  margin: 0 auto;
+  min-height: 100dvh;
+  position: relative;
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  background: var(--bg);
+}
+
+.app-content {
+  padding: 0 16px;
+  padding-top: max(env(safe-area-inset-top, 0px), 8px);
+}
+
+/* Top bar — shared by most screens */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0 12px;
+  gap: 12px;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  letter-spacing: 0.01em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.top-bar .top-bar__sub {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.wordmark__brand { color: var(--text); }
+.wordmark__dot { color: var(--orange); }
+
+/* Hazard strip — bookends a section */
+.hazard-strip {
+  height: 6px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, var(--orange) 0 10px, #111 10px 20px);
+}
+
+/* Section spacing helpers */
+.section { margin-top: 18px; }
+.section + .section { margin-top: 22px; }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px 0;
+}
+.section-title h2 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+.section-title a {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Mono utility chip — for stats, labels */
+.mono-chip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* Pulse — live "open now" indicator */
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168, 224, 0, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(168, 224, 0, 0); }
+}
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--hi-vis-green);
+  animation: pulseGreen 2s ease-out infinite;
+  display: inline-block;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #15110d 0%, #221c17 50%, #15110d 100%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Buttons */
+.btn {
+  appearance: none;
+  border: 1.5px solid var(--orange);
+  background: var(--bg-elev);
+  color: var(--orange);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 120ms ease, transform 80ms ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn--solid { background: var(--orange); color: #0a0908; }
+.btn--ghost { border-color: var(--border-strong); color: var(--text); }
+
+/* Scrollers */
+.h-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 4px 16px 8px;
+  scroll-snap-type: x mandatory;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+.h-scroll > * { scroll-snap-align: start; }
