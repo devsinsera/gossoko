@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og';
 import { IconArt } from '@/lib/icon-art';
 
-// Cache the generated PNG aggressively — the icon never changes per request.
-export const runtime = 'edge';
+// Pre-render at build time — the icon never changes per request, so generate
+// once and let the CDN serve it (the Cache-Control header below makes it
+// effectively immutable at the edge).
 export const dynamic = 'force-static';
 
 export async function GET() {

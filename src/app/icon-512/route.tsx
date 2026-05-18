@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { IconArt } from '@/lib/icon-art';
 
-export const runtime = 'edge';
 export const dynamic = 'force-static';
 
 export async function GET() {
