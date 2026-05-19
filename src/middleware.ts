@@ -1,38 +1,33 @@
-// src/middleware.ts
-// Middleware for security headers, rate limiting, and request routing
-// Processes all API requests and enforces security policies
+// Middleware: Supabase session refresh + rate limiting + security headers.
+//
+// Order matters:
+//   1. Supabase session refresh runs first so subsequent code (and the page
+//      it ultimately lands on) sees a fresh auth.uid().
+//   2. Rate limiting on /api/* + /auth/* per RATE_LIMITS config.
+//   3. Security headers applied to every response.
+//
+// The matcher covers all page + API routes and excludes static assets.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { rateLimiter } from '@/lib/security/rate-limiter';
 import { getSecurityHeaders } from '@/lib/security/headers-config';
 import { RATE_LIMITS } from '@/config/security';
 
-/**
- * Extract user identifier from request
- * Prioritizes authenticated user ID, falls back to IP address
- * Uses JWT payload extraction for user ID (no hashing needed - JWT is already unique)
- */
 function getUserIdentifier(request: NextRequest): string {
-  // Try to extract user ID from auth header (JWT)
   const authHeader = request.headers.get('authorization');
   if (authHeader) {
     try {
-      // Extract token from "Bearer <token>" format
       const token = authHeader.replace('Bearer ', '');
       const parts = token.split('.');
-
-      // JWT format: header.payload.signature
       if (parts.length === 3) {
         try {
-          // Decode JWT payload (base64url decode)
           const payload = JSON.parse(
             Buffer.from(parts[1], 'base64').toString('utf-8')
           );
-
-          // Use user_id, sub, or oid claim as unique identifier
           if (payload.user_id) return `user:${payload.user_id}`;
           if (payload.sub) return `user:${payload.sub}`;
-          if (payload.oid) return `user:${payload.oid}`; // Microsoft Azure claim
+          if (payload.oid) return `user:${payload.oid}`;
         } catch (decodeError) {
           console.debug('Failed to decode JWT payload:', decodeError);
         }
@@ -42,44 +37,24 @@ function getUserIdentifier(request: NextRequest): string {
     }
   }
 
-  // Fall back to IP address
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0] ||
     request.headers.get('x-real-ip') ||
     'anonymous';
-
   return `ip:${ip}`;
 }
 
-/**
- * Determine rate limit type from request path
- */
 function getRateLimitType(pathname: string): keyof typeof RATE_LIMITS | null {
-  if (pathname.startsWith('/api/auth')) {
-    return 'auth';
-  }
-  if (pathname.startsWith('/api/upload')) {
-    return 'uploads';
-  }
-  if (
-    pathname.startsWith('/api/reviews') ||
-    pathname.startsWith('/api/comments')
-  ) {
+  if (pathname.startsWith('/api/auth')) return 'auth';
+  if (pathname.startsWith('/api/upload')) return 'uploads';
+  if (pathname.startsWith('/api/reviews') || pathname.startsWith('/api/comments')) {
     return 'contentCreation';
   }
-  if (pathname.startsWith('/api/reports')) {
-    return 'reportSubmission';
-  }
-  if (pathname.startsWith('/api')) {
-    return 'api';
-  }
-
+  if (pathname.startsWith('/api/reports')) return 'reportSubmission';
+  if (pathname.startsWith('/api')) return 'api';
   return null;
 }
 
-/**
- * Apply security headers to response
- */
 function applySecurityHeaders(response: NextResponse): NextResponse {
   const securityHeaders = getSecurityHeaders();
   Object.entries(securityHeaders).forEach(([key, value]) => {
@@ -88,36 +63,47 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-/**
- * Main middleware function
- */
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  // --- 1. Supabase session refresh ----------------------------------------
+  let response = NextResponse.next({ request });
 
-  // Determine if this request needs rate limiting
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+  // Touching getUser() forces refresh-token rotation when needed.
+  await supabase.auth.getUser();
+
+  // --- 2. Rate limiting ---------------------------------------------------
+  const { pathname } = request.nextUrl;
   const rateLimitType = getRateLimitType(pathname);
 
-  // Check rate limit if applicable
   if (rateLimitType) {
     const identifier = getUserIdentifier(request);
     const result = await rateLimiter.checkLimit(rateLimitType, identifier);
 
-    // Add rate limit headers to response
-    const response = NextResponse.next();
-    response.headers.set(
-      'X-RateLimit-Limit',
-      RATE_LIMITS[rateLimitType].max.toString()
-    );
+    response.headers.set('X-RateLimit-Limit', RATE_LIMITS[rateLimitType].max.toString());
     response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
     response.headers.set('X-RateLimit-Reset', result.resetAt.toISOString());
 
-    // If limit exceeded, return 429
     if (!result.allowed) {
-      response.headers.set(
-        'Retry-After',
-        result.retryAfter?.toString() || '60'
-      );
-
+      // Carry Supabase's session-refresh cookies across into the 429 response.
       const errorResponse = new NextResponse(
         JSON.stringify({
           error: 'Too Many Requests',
@@ -125,31 +111,23 @@ export async function middleware(request: NextRequest) {
           retryAfter: result.retryAfter,
           resetAt: result.resetAt.toISOString(),
         }),
-        {
-          status: 429,
-          headers: response.headers,
-        }
+        { status: 429, headers: response.headers },
       );
-
+      errorResponse.headers.set('Retry-After', result.retryAfter?.toString() || '60');
+      for (const cookie of response.cookies.getAll()) {
+        errorResponse.cookies.set(cookie);
+      }
       return applySecurityHeaders(errorResponse);
     }
-
-    return applySecurityHeaders(response);
   }
 
-  // For non-rate-limited requests, still apply security headers
-  const response = NextResponse.next();
+  // --- 3. Security headers on the final response -------------------------
   return applySecurityHeaders(response);
 }
 
-/**
- * Configure which routes this middleware applies to
- */
 export const config = {
   matcher: [
-    // Match all API routes
-    '/api/:path*',
-    // Match auth routes if not under /api
-    '/auth/:path*',
+    // Run on every request EXCEPT Next.js internals and static assets.
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

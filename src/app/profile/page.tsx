@@ -2,10 +2,15 @@ import Link from 'next/link';
 import { CURRENT_USER } from '@/lib/seed/users';
 import { REVIEWS } from '@/lib/seed/reviews';
 import { VENUE_BY_ID } from '@/lib/seed/venues';
-import { COLORS, HAZARD_STRIPES } from '@/lib/theme';
+import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
 import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon } from '@/components/icons';
+import { getCurrentUser } from '@/lib/auth/permissions';
+import { signOutAction } from '../_auth/sign-out';
 
-export default function ProfilePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ProfilePage() {
+  const authUser = await getCurrentUser();
   const u = CURRENT_USER;
   const myReviews = REVIEWS.filter((r) => r.user_handle === u.handle).slice(0, 6);
 
@@ -187,6 +192,86 @@ export default function ProfilePage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Account block — real Supabase session */}
+      <section className="section">
+        <div className="section-title"><h2>Account</h2></div>
+        {authUser ? (
+          <div style={{
+            background: COLORS.surface,
+            border: `1.5px solid ${COLORS.border}`,
+            borderRadius: RADIUS.lg,
+            padding: SPACE.lg,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: SPACE.md,
+          }}>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary }}>
+              Signed in as
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
+              {authUser.email}
+            </div>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                style={{
+                  background: 'transparent',
+                  color: COLORS.red,
+                  border: `1.5px solid ${COLORS.red}`,
+                  borderRadius: RADIUS.md,
+                  padding: '10px 16px',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  letterSpacing: 0.5,
+                }}
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div style={{
+            background: COLORS.surface,
+            border: `1.5px solid ${COLORS.border}`,
+            borderRadius: RADIUS.lg,
+            padding: SPACE.lg,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: SPACE.sm,
+          }}>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary }}>
+              Not signed in — the data above is demo content.
+            </div>
+            <div style={{ display: 'flex', gap: SPACE.sm }}>
+              <Link
+                href="/login"
+                style={{
+                  flex: 1, textAlign: 'center',
+                  background: COLORS.orange, color: '#0a0908',
+                  borderRadius: RADIUS.md, padding: '10px 12px',
+                  fontWeight: 800, textDecoration: 'none', fontSize: 14,
+                }}
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                style={{
+                  flex: 1, textAlign: 'center',
+                  background: 'transparent', color: COLORS.orange,
+                  border: `1.5px solid ${COLORS.orange}`,
+                  borderRadius: RADIUS.md, padding: '10px 12px',
+                  fontWeight: 800, textDecoration: 'none', fontSize: 14,
+                }}
+              >
+                Create account
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="hazard-strip" style={{ marginTop: 28 }} />
