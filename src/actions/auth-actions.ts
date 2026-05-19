@@ -1,10 +1,10 @@
 'use server';
 
+import { createClient } from '@/lib/supabase/server';
 import {
   enforcePasswordPolicy,
-  hashPassword,
   recordFailedLoginAttempt,
-  validateSession,
+  resetFailedLoginAttempts,
 } from '@/lib/security/auth-hardener';
 
 export interface SignupResult {
@@ -12,6 +12,7 @@ export interface SignupResult {
   errors?: string[];
   email?: string;
   username?: string;
+  needsEmailConfirmation?: boolean;
 }
 
 export interface LoginResult {
@@ -22,76 +23,82 @@ export interface LoginResult {
     email: string;
     username: string;
   };
-  sessionToken?: string;
 }
 
 export interface SessionValidationResult {
   valid: boolean;
   userId?: string;
-  expiresAt?: Date;
+  email?: string;
   reason?: string;
 }
 
 /**
- * Sign up a new user with password policy enforcement.
- * @param email - User email
- * @param password - User password
- * @param username - User username
- * @returns Signup result with validation errors or success
+ * Sign up a new user via Supabase Auth, then create a matching profile row.
+ * Password policy is enforced client- and server-side; Supabase Auth handles
+ * password hashing internally.
  */
 export async function signupUser(
   email: string,
   password: string,
   username: string
 ): Promise<SignupResult> {
-  // 1. Validate password policy
-  const passwordValidation = enforcePasswordPolicy(password);
-  if (!passwordValidation.valid) {
-    return { success: false, errors: passwordValidation.errors };
-  }
-
-  // 2. Validate email format
   if (!isValidEmail(email)) {
     return { success: false, errors: ['Invalid email format'] };
   }
-
-  // 3. Validate username
   if (!isValidUsername(username)) {
     return {
       success: false,
       errors: ['Username must be 3-32 characters, alphanumeric with underscores'],
     };
   }
+  const passwordValidation = enforcePasswordPolicy(password);
+  if (!passwordValidation.valid) {
+    return { success: false, errors: passwordValidation.errors };
+  }
 
-  // 4. Hash password
-  // TODO: hash + persist via Supabase auth.signUp once DB integration lands
-  // const hashedPassword = await hashPassword(password);
-  void hashPassword; // retain import until DB wiring
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username } },
+  });
 
-  // TODO: Create user in database
-  // const { data, error } = await supabase.auth.signUp({
-  //   email,
-  //   password: hashedPassword,
-  // });
-  //
-  // if (error) {
-  //   return { success: false, errors: [error.message] };
-  // }
+  if (error) {
+    return { success: false, errors: [error.message] };
+  }
+  if (!data.user) {
+    return { success: false, errors: ['Signup failed: no user returned'] };
+  }
 
-  return { success: true, email, username };
+  // Create profile row. RLS allows users to insert their own profile when
+  // role = 'user'. If a server-side trigger is added later this becomes a noop
+  // via the unique-id conflict and can be removed.
+  const { error: profileError } = await supabase.from('profiles').insert({
+    id: data.user.id,
+    email,
+    username,
+    role: 'user',
+  });
+  if (profileError && !profileError.message.includes('duplicate')) {
+    console.error('[gossoko] profile creation failed:', profileError.message);
+  }
+
+  return {
+    success: true,
+    email,
+    username,
+    needsEmailConfirmation: !data.session,
+  };
 }
 
 /**
- * Log in a user with account lockout protection.
- * @param email - User email
- * @param password - User password
- * @returns Login result with session token or error
+ * Log in via Supabase Auth (email + password). Account-lockout + failed-attempt
+ * tracking from auth-hardener wrap the call for defense in depth.
  */
 export async function loginUser(
   email: string,
-  _password: string
+  password: string
 ): Promise<LoginResult> {
-  // 1. Check account lockout
   const lockoutStatus = await recordFailedLoginAttempt(email);
   if (lockoutStatus.locked) {
     return {
@@ -100,145 +107,115 @@ export async function loginUser(
     };
   }
 
-  // TODO: Fetch user from database
-  // const user = await db.users.findByEmail(email);
-  // if (!user) {
-  //   return { success: false, error: 'Invalid email or password' };
-  // }
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  // TODO: Verify password hash
-  // const passwordMatch = await verifyPassword(password, user.passwordHash);
-  // if (!passwordMatch) {
-  //   return { success: false, error: 'Invalid email or password' };
-  // }
+  if (error || !data.user) {
+    return { success: false, error: error?.message ?? 'Invalid email or password' };
+  }
 
-  // TODO: Reset failed attempts on success
-  // await resetFailedLoginAttempts(email);
+  await resetFailedLoginAttempts(email);
 
-  // TODO: Create session
-  // const sessionToken = createSessionToken(user.id);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', data.user.id)
+    .maybeSingle();
 
-  // Mock implementation for now
   return {
-    success: false,
-    error: 'User authentication not yet implemented',
+    success: true,
+    user: {
+      id: data.user.id,
+      email: data.user.email ?? email,
+      username: (profile?.username as string | undefined) ?? '',
+    },
   };
 }
 
 /**
- * Validate an existing session.
- * @param userId - User ID from token
- * @param sessionToken - Session token to validate
- * @returns Validation result
+ * Validate the current session by asking Supabase for the signed-in user.
+ * The `_userId` and `_sessionToken` parameters are retained for API
+ * compatibility — Supabase reads the session from request cookies.
  */
 export async function validateUserSession(
-  userId: string,
-  sessionToken: string
+  _userId: string,
+  _sessionToken: string
 ): Promise<SessionValidationResult> {
-  const result = await validateSession(userId, sessionToken);
-  return {
-    valid: result.valid,
-    userId: result.userId,
-    expiresAt: result.expiresAt,
-    reason: result.reason,
-  };
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    return { valid: false, reason: error?.message ?? 'no session' };
+  }
+  return { valid: true, userId: user.id, email: user.email };
 }
 
 /**
- * Log out a user by invalidating session.
- * @param sessionToken - Session token to invalidate
- * @returns Success status
+ * Log out the current user via Supabase Auth. The `_sessionToken` parameter
+ * is retained for API compatibility — Supabase clears the session cookie.
  */
-export async function logoutUser(_sessionToken: string): Promise<{ success: boolean }> {
-  // TODO: Implement session invalidation in database
-  // await db.sessions.delete(sessionToken);
-
+export async function logoutUser(_sessionToken?: string): Promise<{ success: boolean }> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
   return { success: true };
 }
 
 /**
- * Request password reset with secure token.
- * @param email - User email
- * @returns Success status
+ * Send a password-reset email via Supabase Auth.
  */
 export async function requestPasswordReset(
   email: string
 ): Promise<{ success: boolean; message?: string }> {
-  // Validate email format
   if (!isValidEmail(email)) {
     return { success: false, message: 'Invalid email format' };
   }
 
-  // TODO: Implement password reset flow
-  // 1. Check if user exists
-  // 2. Generate reset token
-  // 3. Store token with expiration (15 minutes)
-  // 4. Send email with reset link
-  // const resetToken = generatePasswordResetToken();
-  // await db.passwordResets.create({
-  //   email,
-  //   token: resetToken,
-  //   expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-  // });
-
-  return { success: true, message: 'Password reset link sent to email' };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${publicSiteUrl()}/auth/reset`,
+  });
+  if (error) {
+    // Don't reveal whether the email exists — return generic success either way.
+    console.warn('[gossoko] password reset request failed:', error.message);
+  }
+  return { success: true, message: 'If that email exists, a reset link has been sent.' };
 }
 
 /**
- * Reset password with valid token.
- * @param email - User email
- * @param resetToken - Reset token from email
- * @param newPassword - New password
- * @returns Success status with errors
+ * Complete a password reset. The caller must already be signed in via the
+ * recovery link from email (Supabase exchanges the token for a session).
  */
 export async function resetPassword(
   _email: string,
   _resetToken: string,
   newPassword: string
 ): Promise<{ success: boolean; errors?: string[] }> {
-  // 1. Validate new password policy
   const validation = enforcePasswordPolicy(newPassword);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
 
-  // TODO: Implement password reset
-  // 1. Verify reset token is valid and not expired
-  // 2. Verify email matches token
-  // 3. Hash new password
-  // 4. Update user password
-  // 5. Delete reset token
-  // const resetRecord = await db.passwordResets.findByToken(resetToken);
-  // if (!resetRecord || resetRecord.expiresAt < new Date()) {
-  //   return { success: false, errors: ['Reset token expired'] };
-  // }
-  //
-  // const hashedPassword = await hashPassword(newPassword);
-  // await db.users.updatePassword(email, hashedPassword);
-  // await db.passwordResets.delete(resetToken);
-
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    return { success: false, errors: [error.message] };
+  }
   return { success: true };
 }
 
 /**
- * Change password for authenticated user.
- * @param userId - User ID
- * @param currentPassword - Current password
- * @param newPassword - New password
- * @returns Success status with errors
+ * Change password for the authenticated user. Supabase requires a current
+ * session; we additionally verify the current password by attempting a
+ * re-authentication so a stolen cookie can't rotate the password silently.
  */
 export async function changePassword(
   _userId: string,
   currentPassword: string,
   newPassword: string
 ): Promise<{ success: boolean; errors?: string[] }> {
-  // 1. Validate new password policy
   const validation = enforcePasswordPolicy(newPassword);
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
-
-  // 2. Prevent reusing current password
   if (currentPassword === newPassword) {
     return {
       success: false,
@@ -246,32 +223,46 @@ export async function changePassword(
     };
   }
 
-  // TODO: Implement password change
-  // 1. Fetch user
-  // 2. Verify current password
-  // 3. Hash new password
-  // 4. Update user password
-  // 5. Invalidate all sessions
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { success: false, errors: ['Not signed in'] };
+  }
 
+  // Re-authenticate to verify the current password.
+  const { error: reauthError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (reauthError) {
+    return { success: false, errors: ['Current password is incorrect'] };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    return { success: false, errors: [error.message] };
+  }
   return { success: true };
 }
 
 // ============================================================================
-// Helper Functions
+// Helpers
 // ============================================================================
 
-/**
- * Validate email format.
- */
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email) && email.length <= 254;
 }
 
-/**
- * Validate username format.
- */
 function isValidUsername(username: string): boolean {
   const usernameRegex = /^[a-zA-Z0-9_]{3,32}$/;
   return usernameRegex.test(username);
+}
+
+function publicSiteUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL
+    ?? process.env.VERCEL_URL?.replace(/^/, 'https://')
+    ?? 'http://localhost:3000'
+  );
 }
