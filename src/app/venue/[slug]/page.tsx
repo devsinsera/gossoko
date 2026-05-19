@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { VENUE_BY_ID, VENUES } from '@/lib/seed/venues';
+import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
 import { REVIEWS_BY_VENUE } from '@/lib/seed/reviews';
 import { USER_BY_HANDLE } from '@/lib/seed/users';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
+import type { VenueType } from '@/lib/seed/types';
 import { COLORS } from '@/lib/theme';
 import { RatingBars } from '@/components/RatingBars';
 import { VenueCard } from '@/components/VenueCard';
@@ -12,25 +13,23 @@ import {
   TruckIcon, CoffeeIcon, HardHatIcon, FlameIcon,
 } from '@/components/icons';
 
-export function generateStaticParams() {
-  return VENUES.map((v) => ({ id: v.id }));
-}
-
-function venueIconFor(type: ReturnType<typeof VENUE_BY_ID.get> extends infer V
-  ? V extends { venue_type: infer T } ? T : never : never) {
+function venueIconFor(type: VenueType) {
   if (type === 'gossoko_van') return HardHatIcon;
   if (type === 'food_truck' || type === 'cafe_and_food_truck') return TruckIcon;
   return CoffeeIcon;
 }
 
-export default async function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const venue = VENUE_BY_ID.get(id);
+export default async function VenueDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
 
-  const reviews = REVIEWS_BY_VENUE[venue.id] ?? [];
+  // Reviews are still seeded statically (no review rows in DB yet); look up
+  // by the seed-data id keyed off slug so the demo still renders comments.
+  const reviews = REVIEWS_BY_VENUE[`v_${slug.replace(/-/g, '').slice(0, 8)}`] ?? [];
   const HeroIcon = venueIconFor(venue.venue_type);
-  const similar = VENUES
+  const allVenues = await getAllVenues();
+  const similar = allVenues
     .filter((v) => v.id !== venue.id && v.venue_type === venue.venue_type)
     .slice(0, 4);
 

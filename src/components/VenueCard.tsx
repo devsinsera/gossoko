@@ -18,7 +18,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
 
   return (
     <Link
-      href={`/venue/${venue.id}`}
+      href={`/venue/${venue.slug}`}
       style={{
         display: 'block',
         background: COLORS.surface,

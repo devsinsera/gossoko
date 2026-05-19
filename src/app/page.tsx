@@ -1,18 +1,24 @@
 import { VenueCard } from '@/components/VenueCard';
 import { FilterChips } from '@/components/FilterChips';
-import { TRENDING_VENUES, OPEN_NOW_VENUES, TOP_RATED_VENUES, VENUES } from '@/lib/seed/venues';
+import { getAllVenues } from '@/lib/queries/venues';
 import { RECENT_REVIEWS } from '@/lib/seed/reviews';
-import { VENUE_BY_ID } from '@/lib/seed/venues';
 import { USER_BY_HANDLE } from '@/lib/seed/users';
+import type { Venue } from '@/lib/seed/types';
 import { COLORS } from '@/lib/theme';
 import { StarIcon, FlameIcon, MapPinIcon } from '@/components/icons';
 import Link from 'next/link';
 
-export default function FeedPage() {
-  const featured = TOP_RATED_VENUES[0];
-  const open = OPEN_NOW_VENUES.slice(0, 6);
-  const trending = TRENDING_VENUES;
-  const nearMe = [...VENUES].sort((a, b) => a.distance_km - b.distance_km).slice(0, 6);
+export default async function FeedPage() {
+  const allVenues = await getAllVenues();
+  // Top-rated first for the hero; the other slices apply different orderings.
+  const topRated = [...allVenues].sort((a, b) => b.overall - a.overall);
+  const featured = topRated[0];
+  const open = allVenues.filter((v) => v.open_now).slice(0, 6);
+  const trending = allVenues.filter((v) => v.trending);
+  const nearMe = [...allVenues].sort((a, b) => a.distance_km - b.distance_km).slice(0, 6);
+  // Recent reviews still come from static seed (no review rows in DB yet);
+  // their venue_id refs the old static IDs, so resolve by slug via name match.
+  const venuesByLegacyId = new Map(allVenues.map((v) => [`v_${v.slug.replace(/-/g, '').slice(0, 8)}`, v]));
   const recentReviews = RECENT_REVIEWS.slice(0, 4);
 
   return (
@@ -108,13 +114,13 @@ export default function FeedPage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {recentReviews.map((r) => {
-            const v = VENUE_BY_ID.get(r.venue_id);
+            const v = venuesByLegacyId.get(r.venue_id);
             const u = USER_BY_HANDLE.get(r.user_handle);
             if (!v || !u) return null;
             return (
               <Link
                 key={r.id}
-                href={`/venue/${v.id}`}
+                href={`/venue/${v.slug}`}
                 style={{
                   display: 'block',
                   background: COLORS.surface,
@@ -175,10 +181,10 @@ export default function FeedPage() {
   );
 }
 
-function FeaturedVenue({ venue }: { venue: typeof TOP_RATED_VENUES[0] }) {
+function FeaturedVenue({ venue }: { venue: Venue }) {
   return (
     <Link
-      href={`/venue/${venue.id}`}
+      href={`/venue/${venue.slug}`}
       style={{
         display: 'block',
         position: 'relative',

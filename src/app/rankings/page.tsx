@@ -87,7 +87,7 @@ export default async function RankingsPage({
             return (
               <Link
                 key={v.id}
-                href={`/venue/${v.id}`}
+                href={`/venue/${v.slug}`}
                 style={{
                   display: 'block',
                   background: `linear-gradient(180deg, ${v.hero_color}, #0a0908)`,
@@ -156,7 +156,7 @@ export default async function RankingsPage({
             return (
               <Link
                 key={v.id}
-                href={`/venue/${v.id}`}
+                href={`/venue/${v.slug}`}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '36px 1fr auto auto',

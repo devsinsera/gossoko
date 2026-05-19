@@ -1,3 +1,6 @@
+-- Apply Gossoko schema namespace to all subsequent DDL.
+SET search_path TO gossoko, public, extensions, auth;
+
 -- Gossoko Row Level Security Policies
 -- Enforce data isolation and access control at the database level
 
@@ -539,19 +542,17 @@ CREATE POLICY "System can log activity" ON user_activity
   FOR INSERT WITH CHECK (TRUE);
 
 -- ============================================================================
--- HELPER FUNCTION: Check user role
+-- HELPER FUNCTIONS: live in `gossoko` schema (Supabase locks down `auth`,
+-- so user-defined helpers can't be created there). Callers reference them
+-- as gossoko.user_role()/is_admin()/is_moderator() OR rely on search_path.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION auth.user_role()
+CREATE OR REPLACE FUNCTION gossoko.user_role()
 RETURNS user_role AS $$
 SELECT role FROM profiles WHERE id = auth.uid()
 $$ LANGUAGE sql STABLE;
 
--- ============================================================================
--- HELPER FUNCTION: Check if user is admin
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION auth.is_admin()
+CREATE OR REPLACE FUNCTION gossoko.is_admin()
 RETURNS BOOLEAN AS $$
 SELECT EXISTS (
   SELECT 1 FROM profiles
@@ -559,11 +560,7 @@ SELECT EXISTS (
 )
 $$ LANGUAGE sql STABLE;
 
--- ============================================================================
--- HELPER FUNCTION: Check if user is moderator
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION auth.is_moderator()
+CREATE OR REPLACE FUNCTION gossoko.is_moderator()
 RETURNS BOOLEAN AS $$
 SELECT EXISTS (
   SELECT 1 FROM profiles

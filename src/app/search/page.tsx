@@ -150,7 +150,7 @@ export default function SearchPage() {
               {results.map((v) => (
                 <Link
                   key={v.id}
-                  href={`/venue/${v.id}`}
+                  href={`/venue/${v.slug}`}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'auto 1fr auto auto',

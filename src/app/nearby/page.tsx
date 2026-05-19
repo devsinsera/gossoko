@@ -55,7 +55,7 @@ export default function NearbyPage() {
               }}>
                 {v.distance_km}km
               </div>
-              <a href={`/venue/${v.id}`} style={{ minWidth: 0 }}>
+              <a href={`/venue/${v.slug}`} style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: COLORS.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {v.name}
                 </div>

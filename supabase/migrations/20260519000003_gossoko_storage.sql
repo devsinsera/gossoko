@@ -1,3 +1,6 @@
+-- Apply Gossoko schema namespace to all subsequent DDL.
+SET search_path TO gossoko, public, extensions, auth;
+
 -- Gossoko Storage Configuration
 -- Bucket policies and file upload management
 

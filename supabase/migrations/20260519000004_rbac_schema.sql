@@ -1,3 +1,6 @@
+-- Apply Gossoko schema namespace to all subsequent DDL.
+SET search_path TO gossoko, public, extensions, auth;
+
 -- Gossoko RBAC & Moderation Schema Extension
 -- Extends the core schema with role-based access control and moderation infrastructure
 -- Last Updated: 2026-05-17
@@ -160,10 +163,12 @@ CREATE TABLE user_suspensions (
   appeal_notes TEXT,
 
   resolved_at TIMESTAMP WITH TIME ZONE,
-  resolved_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-
-  UNIQUE(user_id) WHERE resolved_at IS NULL
+  resolved_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
+
+CREATE UNIQUE INDEX unique_active_user_suspension
+  ON user_suspensions (user_id)
+  WHERE resolved_at IS NULL;
 
 CREATE INDEX idx_user_suspensions_user_id ON user_suspensions(user_id);
 CREATE INDEX idx_user_suspensions_suspended_until ON user_suspensions(suspended_until);

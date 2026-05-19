@@ -1,3 +1,6 @@
+-- Apply Gossoko schema namespace to all subsequent DDL.
+SET search_path TO gossoko, public, extensions, auth;
+
 -- RLS Policies for RBAC and Moderation System
 -- Adds row-level security policies for audit logs, suspensions, moderation queue, and venue claims
 

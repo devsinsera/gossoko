@@ -164,7 +164,7 @@ export function MapShell({ venues }: { venues: Venue[] }) {
       {/* Selected venue panel */}
       {sel && (
         <Link
-          href={`/venue/${sel.id}`}
+          href={`/venue/${sel.slug}`}
           style={{
             display: 'block',
             padding: '14px 14px',

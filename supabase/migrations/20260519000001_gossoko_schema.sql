@@ -1,8 +1,32 @@
 -- Gossoko Database Schema - Production Ready
 -- Supabase PostgreSQL with Row Level Security
 -- Last Updated: 2026-05-17
+--
+-- All Gossoko tables live in their own `gossoko` schema so they coexist
+-- cleanly with the existing Sinsera Core tables in `public`. Identity is
+-- shared via auth.users; cross-app data linkage is by FK on auth.uid().
 
--- Enable required extensions
+CREATE SCHEMA IF NOT EXISTS gossoko;
+
+-- Make Gossoko's schema usable from the Supabase Postgres roles.
+GRANT USAGE ON SCHEMA gossoko TO postgres, anon, authenticated, service_role;
+
+-- Defaults so new objects in gossoko are reachable from the API roles.
+ALTER DEFAULT PRIVILEGES IN SCHEMA gossoko
+  GRANT SELECT ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA gossoko
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA gossoko
+  GRANT ALL ON TABLES TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA gossoko
+  GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
+
+-- Route subsequent DDL into gossoko by default; fall back to public for
+-- shared things and auth for auth.uid() etc.
+SET search_path TO gossoko, public, extensions, auth;
+
+-- Enable required extensions (these live in `extensions` schema by default
+-- in Supabase, but we declare here for portability).
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -173,10 +197,12 @@ CREATE TABLE venue_claims (
   verified_at TIMESTAMP WITH TIME ZONE,
   verified_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
 
-  rejection_reason TEXT,
-
-  CONSTRAINT unique_active_claim UNIQUE (venue_id) WHERE deleted_at IS NULL AND status = 'approved'
+  rejection_reason TEXT
 );
+
+CREATE UNIQUE INDEX unique_active_claim
+  ON venue_claims (venue_id)
+  WHERE deleted_at IS NULL AND status = 'approved';
 
 CREATE TABLE venue_specials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -192,9 +218,9 @@ CREATE TABLE venue_specials (
   start_date TIMESTAMP WITH TIME ZONE,
   end_date TIMESTAMP WITH TIME ZONE,
 
-  is_active BOOLEAN GENERATED ALWAYS AS (
-    start_date IS NULL OR start_date <= CURRENT_TIMESTAMP
-  ) STORED,
+  -- is_active is derived at query time: start_date IS NULL OR start_date <= now()
+  -- (originally a STORED generated column, but generated cols cannot use
+  -- non-immutable functions like CURRENT_TIMESTAMP)
 
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL
 );
@@ -212,10 +238,12 @@ CREATE TABLE venue_hours (
   closes_at TIME,
   is_closed BOOLEAN DEFAULT FALSE,
 
-  updated_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-
-  UNIQUE (venue_id, day_of_week) WHERE deleted_at IS NULL
+  updated_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
+
+CREATE UNIQUE INDEX unique_active_venue_hours
+  ON venue_hours (venue_id, day_of_week)
+  WHERE deleted_at IS NULL;
 
 -- ============================================================================
 -- 6. REVIEWS & RATINGS
@@ -242,14 +270,17 @@ CREATE TABLE reviews (
   -- Overall rating (calculated)
   overall_rating DECIMAL(3, 2) GENERATED ALWAYS AS (
     ROUND(
-      COALESCE(coffee_strength_rating, 0) +
-      COALESCE(feed_size_rating, 0) +
-      COALESCE(bang_for_buck_rating, 0) +
-      COALESCE(speed_rating, 0) +
-      COALESCE(ute_parking_rating, 0) +
-      COALESCE(early_open_rating, 0) +
-      COALESCE(service_rating, 0)
-    )::DECIMAL / 7, 2
+      (
+        COALESCE(coffee_strength_rating, 0) +
+        COALESCE(feed_size_rating, 0) +
+        COALESCE(bang_for_buck_rating, 0) +
+        COALESCE(speed_rating, 0) +
+        COALESCE(ute_parking_rating, 0) +
+        COALESCE(early_open_rating, 0) +
+        COALESCE(service_rating, 0)
+      )::DECIMAL / 7,
+      2
+    )
   ) STORED,
 
   -- Text review
@@ -262,10 +293,12 @@ CREATE TABLE reviews (
   comment_count INT DEFAULT 0,
 
   -- Moderation
-  moderation_status moderation_status DEFAULT 'pending',
-
-  UNIQUE (venue_id, user_id) WHERE deleted_at IS NULL
+  moderation_status moderation_status DEFAULT 'pending'
 );
+
+CREATE UNIQUE INDEX unique_active_review_per_user_per_venue
+  ON reviews (venue_id, user_id)
+  WHERE deleted_at IS NULL;
 
 CREATE TABLE review_photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -319,10 +352,12 @@ CREATE TABLE likes (
 
   -- Polymorphic relationship: can like reviews, comments
   likeble_type TEXT NOT NULL CHECK (likeble_type IN ('review', 'comment')),
-  likeble_id UUID NOT NULL,
-
-  UNIQUE (user_id, likeble_type, likeble_id) WHERE deleted_at IS NULL
+  likeble_id UUID NOT NULL
 );
+
+CREATE UNIQUE INDEX unique_active_like
+  ON likes (user_id, likeble_type, likeble_id)
+  WHERE deleted_at IS NULL;
 
 -- ============================================================================
 -- 8. FAVORITES & FOLLOWS
@@ -334,10 +369,12 @@ CREATE TABLE favourites (
   deleted_at TIMESTAMP WITH TIME ZONE,
 
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
-
-  UNIQUE (user_id, venue_id) WHERE deleted_at IS NULL
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX unique_active_favourite
+  ON favourites (user_id, venue_id)
+  WHERE deleted_at IS NULL;
 
 CREATE TABLE follows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -347,9 +384,12 @@ CREATE TABLE follows (
   follower_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   following_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
 
-  CHECK (follower_id != following_id),
-  UNIQUE (follower_id, following_id) WHERE deleted_at IS NULL
+  CHECK (follower_id != following_id)
 );
+
+CREATE UNIQUE INDEX unique_active_follow
+  ON follows (follower_id, following_id)
+  WHERE deleted_at IS NULL;
 
 -- ============================================================================
 -- 9. BADGES & GAMIFICATION
@@ -380,10 +420,12 @@ CREATE TABLE user_badges (
   badge_id UUID NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
 
   awarded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  awarded_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-
-  UNIQUE (user_id, badge_id) WHERE deleted_at IS NULL
+  awarded_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
+
+CREATE UNIQUE INDEX unique_active_user_badge
+  ON user_badges (user_id, badge_id)
+  WHERE deleted_at IS NULL;
 
 -- ============================================================================
 -- 10. NOTIFICATIONS & ACTIVITY
@@ -495,10 +537,12 @@ CREATE TABLE featured_venues (
   total_impressions INT DEFAULT 0,
   total_clicks INT DEFAULT 0,
 
-  created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL,
-
-  UNIQUE (venue_id) WHERE deleted_at IS NULL
+  created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL
 );
+
+CREATE UNIQUE INDEX unique_active_featured_venue
+  ON featured_venues (venue_id)
+  WHERE deleted_at IS NULL;
 
 CREATE TABLE sponsored_campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -522,9 +566,9 @@ CREATE TABLE sponsored_campaigns (
   clicks INT DEFAULT 0,
   conversions INT DEFAULT 0,
 
-  is_active BOOLEAN GENERATED ALWAYS AS (
-    start_date <= CURRENT_TIMESTAMP AND end_date > CURRENT_TIMESTAMP
-  ) STORED,
+  -- is_active is derived at query time: start_date <= now() AND end_date > now()
+  -- (originally a STORED generated column, but generated cols cannot use
+  -- non-immutable functions like CURRENT_TIMESTAMP)
 
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL
 );
@@ -644,7 +688,11 @@ CREATE INDEX idx_moderation_actions_taken_by ON moderation_actions(taken_by);
 
 -- Featured/Sponsored
 CREATE INDEX idx_featured_venues_end_date ON featured_venues(end_date) WHERE deleted_at IS NULL;
-CREATE INDEX idx_sponsored_campaigns_is_active ON sponsored_campaigns(is_active) WHERE deleted_at IS NULL;
+-- sponsored_campaigns.is_active was a generated column dropped above (not
+-- immutable); querying activity now uses the start_date/end_date range.
+CREATE INDEX idx_sponsored_campaigns_date_range
+  ON sponsored_campaigns(start_date, end_date)
+  WHERE deleted_at IS NULL;
 
 -- Analytics
 CREATE INDEX idx_venue_analytics_date ON venue_analytics(date DESC);

@@ -137,7 +137,7 @@ export default function ProfilePage() {
             return (
               <Link
                 key={r.id}
-                href={`/venue/${v.id}`}
+                href={`/venue/${v.slug}`}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr auto auto',
