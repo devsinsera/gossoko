@@ -45,10 +45,11 @@ export async function signupUser(
   if (!isValidEmail(email)) {
     return { success: false, errors: ['Invalid email format'] };
   }
-  if (!isValidUsername(username)) {
+  const cleanUsername = normalizeUsername(username);
+  if (!isValidUsername(cleanUsername)) {
     return {
       success: false,
-      errors: ['Username must be 3-32 characters, alphanumeric with underscores'],
+      errors: ['Username must be 3-32 characters · letters, numbers, spaces, underscores'],
     };
   }
   const passwordValidation = enforcePasswordPolicy(password);
@@ -60,7 +61,7 @@ export async function signupUser(
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username } },
+    options: { data: { username: cleanUsername } },
   });
 
   if (error) {
@@ -76,7 +77,7 @@ export async function signupUser(
   const { error: profileError } = await supabase.from('profiles').insert({
     id: data.user.id,
     email,
-    username,
+    username: cleanUsername,
     role: 'user',
   });
   if (profileError && !profileError.message.includes('duplicate')) {
@@ -86,7 +87,7 @@ export async function signupUser(
   return {
     success: true,
     email,
-    username,
+    username: cleanUsername,
     needsEmailConfirmation: !data.session,
   };
 }
@@ -254,9 +255,15 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email) && email.length <= 254;
 }
 
+function normalizeUsername(username: string): string {
+  // Trim ends and collapse runs of internal whitespace to a single space.
+  return username.trim().replace(/\s+/g, ' ');
+}
+
 function isValidUsername(username: string): boolean {
-  const usernameRegex = /^[a-zA-Z0-9_]{3,32}$/;
-  return usernameRegex.test(username);
+  // Letters, numbers, spaces (single, internal only — normalize first), underscores.
+  const usernameRegex = /^[a-zA-Z0-9_](?:[a-zA-Z0-9_ ]{1,30}[a-zA-Z0-9_])?$/;
+  return usernameRegex.test(username) && username.length >= 3 && username.length <= 32;
 }
 
 function publicSiteUrl(): string {

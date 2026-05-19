@@ -25,7 +25,7 @@ export default async function SignupPage({
           defaultValue={username ?? ''}
           required
           minLength={3}
-          hint="3–32 chars · letters, numbers, underscore"
+          hint="3–32 chars · letters, numbers, spaces, underscore"
         />
         <Field
           label="Password"
