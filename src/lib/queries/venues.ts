@@ -103,7 +103,13 @@ export async function getAllVenues(): Promise<Venue[]> {
     console.error('[gossoko] getAllVenues failed:', error.message);
     return [];
   }
-  return ((data as unknown) as VenueRow[]).map(rowToVenue);
+  const venues = ((data as unknown) as VenueRow[]).map(rowToVenue);
+  const { getAggregatedRatingsForVenues } = await import('@/lib/queries/reviews');
+  const aggregated = await getAggregatedRatingsForVenues(venues.map((v) => v.id));
+  return venues.map((v) => {
+    const real = aggregated.get(v.id);
+    return real ? { ...v, ratings: real } : v;
+  });
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {
@@ -119,5 +125,10 @@ export async function getVenueBySlug(slug: string): Promise<Venue | null> {
     console.error('[gossoko] getVenueBySlug failed:', error.message);
     return null;
   }
-  return data ? rowToVenue(data as unknown as VenueRow) : null;
+  if (!data) return null;
+  const venue = rowToVenue(data as unknown as VenueRow);
+  const { getAggregatedRatingsForVenues } = await import('@/lib/queries/reviews');
+  const aggregated = await getAggregatedRatingsForVenues([venue.id]);
+  const real = aggregated.get(venue.id);
+  return real ? { ...venue, ratings: real } : venue;
 }

@@ -422,22 +422,27 @@ export default async function VenueDetailPage({
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
+                  gap: 8,
+                  flexWrap: 'wrap',
                 }}>
                   <span>{r.helpful_count} found helpful</span>
-                  <button style={{
-                    background: 'transparent',
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 6,
-                    color: COLORS.text,
-                    padding: '6px 10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 11,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                  }}>
-                    Helpful
-                  </button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button style={{
+                      background: 'transparent',
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 6,
+                      color: COLORS.text,
+                      padding: '6px 10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 11,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                    }}>
+                      Helpful
+                    </button>
+                    <ReportButton reportableType="review" reportableId={r.id} back={`/venue/${venue.slug}`} />
+                  </div>
                 </footer>
               </article>
             ))
