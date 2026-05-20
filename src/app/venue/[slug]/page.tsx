@@ -27,6 +27,7 @@ const REPORT_BANNER: Record<string, { color: string; text: string }> = {
 
 const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
   submitted: { color: COLORS.hiVisGreen, text: 'Review posted. Cheers for the rundown.' },
+  updated:   { color: COLORS.hiVisGreen, text: 'Review updated.' },
 };
 
 export default async function VenueDetailPage({

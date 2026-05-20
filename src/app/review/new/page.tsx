@@ -36,6 +36,7 @@ export default async function NewReviewPage({
   }
 
   const existing = await getReviewByUserAndVenue(user.id, venue.id);
+  const editMode = !!existing;
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -60,7 +61,9 @@ export default async function NewReviewPage({
       }}>
         <div aria-hidden style={{ height: 6, background: HAZARD_STRIPES }} />
         <div style={{ padding: SPACE.lg }}>
-          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.5 }}>WRITE A REVIEW</h1>
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.5 }}>
+            {editMode ? 'EDIT YOUR REVIEW' : 'WRITE A REVIEW'}
+          </h1>
           <p style={{ margin: `${SPACE.xs}px 0 ${SPACE.lg}px`, color: COLORS.textSecondary, fontSize: 13 }}>
             Rate {venue.name} on the seven axes. Be honest — your crew is reading.
           </p>
@@ -78,7 +81,7 @@ export default async function NewReviewPage({
             </div>
           )}
 
-          {existing && (
+          {editMode && existing && (
             <div style={{
               marginBottom: SPACE.md,
               padding: '10px 12px',
@@ -87,13 +90,14 @@ export default async function NewReviewPage({
               borderRadius: RADIUS.md,
               color: COLORS.text, fontSize: 13,
             }}>
-              You already reviewed this venue {new Date(existing.posted_at).toLocaleDateString()}. Editing is coming — for now, this form will reject a duplicate.
+              Editing your review from {new Date(existing.posted_at).toLocaleDateString()}.
             </div>
           )}
 
           <form action={submitReview} style={{ display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
             <input type="hidden" name="venue_id" value={venue.id} />
             <input type="hidden" name="venue_slug" value={venue.slug} />
+            {existing && <input type="hidden" name="review_id" value={existing.id} />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
               {RATING_ORDER.map((axis) => (
@@ -102,11 +106,20 @@ export default async function NewReviewPage({
                   axis={axis}
                   label={RATING_LABELS[axis]}
                   colName={AXIS_TO_COL[axis]}
+                  defaultValue={existing?.ratings[axis]}
                 />
               ))}
             </div>
 
-            <Field label="Title" name="title" placeholder="One line that sums it up" required minLength={3} maxLength={120} />
+            <Field
+              label="Title"
+              name="title"
+              placeholder="One line that sums it up"
+              required
+              minLength={3}
+              maxLength={120}
+              defaultValue={existing?.title}
+            />
             <Field
               label="Body"
               name="body"
@@ -115,6 +128,7 @@ export default async function NewReviewPage({
               minLength={10}
               maxLength={2000}
               textarea
+              defaultValue={existing?.body}
             />
 
             <button
@@ -132,7 +146,7 @@ export default async function NewReviewPage({
                 marginTop: SPACE.sm,
               }}
             >
-              Post review
+              {editMode ? 'Update review' : 'Post review'}
             </button>
           </form>
         </div>
@@ -141,7 +155,7 @@ export default async function NewReviewPage({
   );
 }
 
-function AxisField({ axis, label, colName }: { axis: string; label: string; colName: string }) {
+function AxisField({ axis, label, colName, defaultValue }: { axis: string; label: string; colName: string; defaultValue?: number }) {
   return (
     <div>
       <div style={{
@@ -174,6 +188,7 @@ function AxisField({ axis, label, colName }: { axis: string; label: string; colN
               name={colName}
               value={n}
               required
+              defaultChecked={defaultValue === n}
               data-axis={axis}
               style={{
                 position: 'absolute', opacity: 0, pointerEvents: 'none',
@@ -188,7 +203,7 @@ function AxisField({ axis, label, colName }: { axis: string; label: string; colN
 }
 
 function Field({
-  label, name, placeholder, required, minLength, maxLength, textarea,
+  label, name, placeholder, required, minLength, maxLength, textarea, defaultValue,
 }: {
   label: string;
   name: string;
@@ -197,6 +212,7 @@ function Field({
   minLength?: number;
   maxLength?: number;
   textarea?: boolean;
+  defaultValue?: string;
 }) {
   const baseStyle: React.CSSProperties = {
     background: COLORS.bgElev,
@@ -224,6 +240,7 @@ function Field({
           minLength={minLength}
           maxLength={maxLength}
           rows={5}
+          defaultValue={defaultValue}
           style={{ ...baseStyle, resize: 'vertical', minHeight: 110 }}
         />
       ) : (
@@ -234,6 +251,7 @@ function Field({
           required={required}
           minLength={minLength}
           maxLength={maxLength}
+          defaultValue={defaultValue}
           style={baseStyle}
         />
       )}

@@ -13,6 +13,7 @@ const AXIS_COLS = [
 export async function submitReview(formData: FormData): Promise<void> {
   const venueId = String(formData.get('venue_id') ?? '');
   const venueSlug = String(formData.get('venue_slug') ?? '');
+  const reviewId = String(formData.get('review_id') ?? '') || null;
   const title = String(formData.get('title') ?? '').trim();
   const body = String(formData.get('body') ?? '').trim();
 
@@ -42,24 +43,42 @@ export async function submitReview(formData: FormData): Promise<void> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from('reviews').insert({
-    venue_id: venueId,
-    user_id: user.id,
-    title,
-    body,
-    ...ratings,
-    // Auto-approve until pre-moderation flow lands; reports still create
-    // a moderation_queue entry, so abuse is still caught reactively.
-    moderation_status: 'approved',
-  });
+  let dbError: { message: string } | null;
 
-  if (error) {
-    const msg = error.message.includes('unique')
-      ? 'You already reviewed this venue. Edit your existing review instead.'
-      : error.message;
+  if (reviewId) {
+    // Edit existing review. RLS already restricts UPDATE to auth.uid() = user_id.
+    const { error } = await supabase
+      .from('reviews')
+      .update({
+        title,
+        body,
+        ...ratings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', reviewId)
+      .eq('user_id', user.id);
+    dbError = error;
+  } else {
+    const { error } = await supabase.from('reviews').insert({
+      venue_id: venueId,
+      user_id: user.id,
+      title,
+      body,
+      ...ratings,
+      // Auto-approve until pre-moderation flow lands; reports still create
+      // a moderation_queue entry, so abuse is still caught reactively.
+      moderation_status: 'approved',
+    });
+    dbError = error;
+  }
+
+  if (dbError) {
+    const msg = dbError.message.includes('unique')
+      ? 'You already reviewed this venue. Reload the page to edit.'
+      : dbError.message;
     redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent(msg));
   }
 
   revalidatePath(`/venue/${venueSlug}`);
-  redirect(`/venue/${venueSlug}?review=submitted`);
+  redirect(`/venue/${venueSlug}?review=${reviewId ? 'updated' : 'submitted'}`);
 }

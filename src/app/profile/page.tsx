@@ -5,21 +5,92 @@ import { VENUE_BY_ID } from '@/lib/seed/venues';
 import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
 import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon } from '@/components/icons';
 import { getCurrentUser } from '@/lib/auth/permissions';
+import { getOwnProfile, initialsFromName } from '@/lib/queries/profile';
+import { getReviewsByUserId } from '@/lib/queries/reviews';
 import { signOutAction } from '../_auth/sign-out';
 
 export const dynamic = 'force-dynamic';
 
+interface ProfileView {
+  handle: string;
+  display_name: string;
+  trade: string;
+  suburb: string;
+  avatar_color: string;
+  initials: string;
+  bio: string;
+  role?: 'user' | 'moderator' | 'admin' | 'business';
+  stats: {
+    reviews: number;
+    helpful_marks: number;
+    venues_visited: number;
+    streak_days: number;
+  };
+  badges: { code: string; label: string; color: string }[];
+}
+
+interface ReviewRowView {
+  id: string;
+  title: string;
+  venue_slug: string;
+  venue_name: string;
+  overall: number;
+}
+
 export default async function ProfilePage() {
   const authUser = await getCurrentUser();
-  const u = CURRENT_USER;
-  const myReviews = REVIEWS.filter((r) => r.user_handle === u.handle).slice(0, 6);
+  const profile = authUser ? await getOwnProfile(authUser.id) : null;
+  const realReviews = profile ? await getReviewsByUserId(profile.id) : [];
+
+  let u: ProfileView;
+  let myReviews: ReviewRowView[];
+
+  if (authUser && profile) {
+    u = {
+      handle: profile.username,
+      display_name: profile.full_name || profile.username,
+      trade: profile.trade_type ?? 'tradie',
+      suburb: 'Brisbane',
+      avatar_color: COLORS.orange,
+      initials: initialsFromName(profile.full_name || profile.username),
+      bio: profile.bio || 'No bio yet. Add one from settings (coming soon).',
+      role: profile.role,
+      stats: {
+        reviews: profile.reviews_count || realReviews.length,
+        helpful_marks: realReviews.reduce((sum, r) => sum + r.helpful_count, 0),
+        venues_visited: new Set(realReviews.map((r) => r.venue_id)).size,
+        streak_days: 0,
+      },
+      badges: profile.is_verified ? [{ code: 'verified', label: 'Verified', color: COLORS.orange }] : [],
+    };
+    myReviews = realReviews.slice(0, 6).map((r) => ({
+      id: r.id,
+      title: r.title,
+      venue_slug: r.venue_slug,
+      venue_name: r.venue_name,
+      overall: r.overall,
+    }));
+  } else {
+    const s = CURRENT_USER;
+    u = { ...s };
+    myReviews = REVIEWS
+      .filter((r) => r.user_handle === s.handle)
+      .slice(0, 6)
+      .map((r) => {
+        const v = VENUE_BY_ID.get(r.venue_id);
+        return v ? { id: r.id, title: r.title, venue_slug: v.slug, venue_name: v.name, overall: r.overall } : null;
+      })
+      .filter((r): r is ReviewRowView => r !== null);
+  }
 
   return (
     <>
       <header className="top-bar">
         <div>
           <h1>PROFILE</h1>
-          <p className="top-bar__sub">Signed in · {u.suburb.toUpperCase()}</p>
+          <p className="top-bar__sub">
+            {authUser ? 'Signed in' : 'Demo · sign in to see your own'} · {u.suburb.toUpperCase()}
+          </p>
         </div>
       </header>
 
@@ -66,9 +137,19 @@ export default async function ProfilePage() {
                 fontSize: 12,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
               }}>
                 <HardHatIcon size={14} /> @{u.handle} · {u.trade}
+                {u.role && u.role !== 'user' && (
+                  <span style={{
+                    color: '#0a0908',
+                    background: COLORS.hiVisYellow,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    letterSpacing: '0.1em',
+                    fontWeight: 800,
+                  }}>{u.role}</span>
+                )}
               </p>
             </div>
           </div>
@@ -124,8 +205,8 @@ export default async function ProfilePage() {
       {/* Actions */}
       <section className="section">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <ActionTile icon={<FlameIcon size={20} />} label="Write a Review" hint="Earn helpful marks" />
-          <ActionTile icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Help the crew" />
+          <ActionTile href="/" icon={<FlameIcon size={20} />} label="Write a Review" hint="Pick a venue first" />
+          <ActionTile href="/" icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Coming soon" />
         </div>
       </section>
 
@@ -136,13 +217,23 @@ export default async function ProfilePage() {
           <span className="mono-chip">{u.stats.reviews} total</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {myReviews.map((r) => {
-            const v = VENUE_BY_ID.get(r.venue_id);
-            if (!v) return null;
-            return (
+          {myReviews.length === 0 ? (
+            <div style={{
+              padding: '14px 16px',
+              background: COLORS.surface,
+              border: `1px dashed ${COLORS.border}`,
+              borderRadius: 10,
+              color: COLORS.textMuted,
+              fontSize: 13,
+              textAlign: 'center',
+            }}>
+              No reviews yet — pick a venue and write your first.
+            </div>
+          ) : (
+            myReviews.map((r) => (
               <Link
                 key={r.id}
-                href={`/venue/${v.slug}`}
+                href={`/venue/${r.venue_slug}`}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr auto auto',
@@ -173,7 +264,7 @@ export default async function ProfilePage() {
                     textTransform: 'uppercase',
                     marginTop: 2,
                   }}>
-                    on {v.name}
+                    on {r.venue_name}
                   </div>
                 </div>
                 <span style={{
@@ -189,8 +280,8 @@ export default async function ProfilePage() {
                 </span>
                 <ChevronRightIcon size={16} style={{ color: COLORS.textMuted }} />
               </Link>
-            );
-          })}
+            ))
+          )}
         </div>
       </section>
 
@@ -304,9 +395,9 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
   );
 }
 
-function ActionTile({ icon, label, hint }: { icon: React.ReactNode; label: string; hint: string }) {
+function ActionTile({ icon, label, hint, href }: { icon: React.ReactNode; label: string; hint: string; href: string }) {
   return (
-    <button style={{
+    <Link href={href} style={{
       display: 'flex',
       flexDirection: 'column',
       gap: 6,
@@ -316,7 +407,7 @@ function ActionTile({ icon, label, hint }: { icon: React.ReactNode; label: strin
       borderRadius: 10,
       color: COLORS.text,
       textAlign: 'left',
-      cursor: 'pointer',
+      textDecoration: 'none',
       minHeight: 80,
     }}>
       <span style={{ color: COLORS.orange }}>{icon}</span>
@@ -330,6 +421,6 @@ function ActionTile({ icon, label, hint }: { icon: React.ReactNode; label: strin
       }}>
         {hint}
       </span>
-    </button>
+    </Link>
   );
 }

@@ -189,6 +189,55 @@ export async function getReviewsByVenueId(venueId: string, limit = 25): Promise<
   return ((data as unknown) as ReviewRow[]).map(rowToReview);
 }
 
+export interface UserReviewSummary {
+  id: string;
+  venue_id: string;
+  venue_slug: string;
+  venue_name: string;
+  title: string;
+  body: string;
+  overall: number;
+  posted_at: string;
+  helpful_count: number;
+}
+
+export async function getReviewsByUserId(userId: string, limit = 25): Promise<UserReviewSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(`
+      id, venue_id, title, body, overall_rating, created_at, helpful_count,
+      venue:venues ( slug, name )
+    `)
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[gossoko] getReviewsByUserId failed:', error.message);
+    return [];
+  }
+
+  type Row = {
+    id: string; venue_id: string; title: string | null; body: string | null;
+    overall_rating: number | null; created_at: string; helpful_count: number;
+    venue: { slug: string; name: string } | null;
+  };
+
+  return (data as unknown as Row[]).map((r) => ({
+    id: r.id,
+    venue_id: r.venue_id,
+    venue_slug: r.venue?.slug ?? '',
+    venue_name: r.venue?.name ?? 'Venue',
+    title: r.title ?? '',
+    body: r.body ?? '',
+    overall: Number(r.overall_rating ?? 0),
+    posted_at: r.created_at,
+    helpful_count: r.helpful_count ?? 0,
+  }));
+}
+
 export async function getReviewByUserAndVenue(userId: string, venueId: string): Promise<VenueReview | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
