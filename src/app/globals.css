@@ -218,3 +218,13 @@ button { font: inherit; color: inherit; }
 }
 .h-scroll::-webkit-scrollbar { display: none; }
 .h-scroll > * { scroll-snap-align: start; }
+
+/* Review-axis radio buttons — checked state */
+.review-axis-btn:has(input:checked) {
+  background: var(--orange);
+  color: #0a0908;
+  border-color: var(--orange);
+}
+.review-axis-btn:hover {
+  border-color: var(--orange);
+}

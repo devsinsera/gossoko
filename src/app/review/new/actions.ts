@@ -1,0 +1,65 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth/permissions';
+
+const AXIS_COLS = [
+  'coffee_strength_rating', 'feed_size_rating', 'bang_for_buck_rating',
+  'speed_rating', 'ute_parking_rating', 'early_open_rating', 'service_rating',
+] as const;
+
+export async function submitReview(formData: FormData): Promise<void> {
+  const venueId = String(formData.get('venue_id') ?? '');
+  const venueSlug = String(formData.get('venue_slug') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  const body = String(formData.get('body') ?? '').trim();
+
+  if (!venueId || !venueSlug) {
+    redirect('/?error=' + encodeURIComponent('Missing venue'));
+  }
+  if (title.length < 3 || body.length < 10) {
+    redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent('Title and body required'));
+  }
+
+  const ratings: Record<string, number> = {};
+  for (const col of AXIS_COLS) {
+    const raw = formData.get(col);
+    if (raw === null || raw === '') {
+      redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent('Please rate every axis'));
+    }
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 5) {
+      redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent('Ratings must be 1-5'));
+    }
+    ratings[col] = n;
+  }
+
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/review/new?venue=${venueSlug}`)}`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('reviews').insert({
+    venue_id: venueId,
+    user_id: user.id,
+    title,
+    body,
+    ...ratings,
+    // Auto-approve until pre-moderation flow lands; reports still create
+    // a moderation_queue entry, so abuse is still caught reactively.
+    moderation_status: 'approved',
+  });
+
+  if (error) {
+    const msg = error.message.includes('unique')
+      ? 'You already reviewed this venue. Edit your existing review instead.'
+      : error.message;
+    redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent(msg));
+  }
+
+  revalidatePath(`/venue/${venueSlug}`);
+  redirect(`/venue/${venueSlug}?review=submitted`);
+}

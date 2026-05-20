@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
-import { REVIEWS_BY_VENUE } from '@/lib/seed/reviews';
-import { USER_BY_HANDLE } from '@/lib/seed/users';
+import { getReviewsByVenueId } from '@/lib/queries/reviews';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
 import type { VenueType } from '@/lib/seed/types';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
@@ -26,22 +25,25 @@ const REPORT_BANNER: Record<string, { color: string; text: string }> = {
   error:     { color: COLORS.red,         text: 'Something went wrong saving the report. Try again.' },
 };
 
+const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
+  submitted: { color: COLORS.hiVisGreen, text: 'Review posted. Cheers for the rundown.' },
+};
+
 export default async function VenueDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ report?: string }>;
+  searchParams: Promise<{ report?: string; review?: string }>;
 }) {
   const { slug } = await params;
-  const { report } = await searchParams;
+  const { report, review } = await searchParams;
   const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
   const reportBanner = report ? REPORT_BANNER[report] : null;
+  const reviewBanner = review ? REVIEW_BANNER[review] : null;
 
-  // Reviews are still seeded statically (no review rows in DB yet); look up
-  // by the seed-data id keyed off slug so the demo still renders comments.
-  const reviews = REVIEWS_BY_VENUE[`v_${slug.replace(/-/g, '').slice(0, 8)}`] ?? [];
+  const reviews = await getReviewsByVenueId(venue.id);
   const HeroIcon = venueIconFor(venue.venue_type);
   const allVenues = await getAllVenues();
   const similar = allVenues
@@ -197,6 +199,23 @@ export default async function VenueDetailPage({
         </section>
       )}
 
+      {/* Review-result banner */}
+      {reviewBanner && (
+        <section className="section">
+          <div style={{
+            padding: '10px 14px',
+            background: COLORS.surface,
+            border: `1px solid ${reviewBanner.color}`,
+            borderLeft: `4px solid ${reviewBanner.color}`,
+            borderRadius: RADIUS.md,
+            color: COLORS.text,
+            fontSize: 13,
+          }}>
+            {reviewBanner.text}
+          </div>
+        </section>
+      )}
+
       {/* Address line */}
       <section className="section">
         <div style={{
@@ -343,90 +362,103 @@ export default async function VenueDetailPage({
               No reviews yet — be the first.
             </div>
           ) : (
-            reviews.map((r) => {
-              const u = USER_BY_HANDLE.get(r.user_handle);
-              if (!u) return null;
-              return (
-                <article
-                  key={r.id}
-                  style={{
-                    background: COLORS.surface,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                  }}
-                >
-                  <header style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{
-                      width: 32, height: 32, borderRadius: '50%',
-                      background: u.avatar_color, color: '#0a0908',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: 12,
-                    }}>
-                      {u.initials}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: COLORS.text }}>
-                        @{u.handle}
-                      </div>
-                      <div style={{
-                        fontSize: 11,
-                        color: COLORS.textMuted,
-                        fontFamily: 'var(--font-mono)',
-                        letterSpacing: '0.06em',
-                        textTransform: 'uppercase',
-                      }}>
-                        {u.trade} · {r.posted_at.slice(0, 10)}
-                      </div>
-                    </div>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      color: COLORS.orange,
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      fontSize: 13,
-                    }}>
-                      <StarIcon size={12} filled /> {r.overall.toFixed(1)}
-                    </span>
-                  </header>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.text }}>
-                    {r.title}
-                  </h4>
-                  <p style={{ margin: '6px 0 8px', color: COLORS.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>
-                    {r.body}
-                  </p>
-                  <footer style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: COLORS.textMuted,
-                    fontSize: 11.5,
-                    fontFamily: 'var(--font-mono)',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
+            reviews.map((r) => (
+              <article
+                key={r.id}
+                style={{
+                  background: COLORS.surface,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                }}
+              >
+                <header style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <span style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: COLORS.orange, color: '#0a0908',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, fontSize: 12,
                   }}>
-                    <span>{r.helpful_count} found helpful</span>
-                    <button style={{
-                      background: 'transparent',
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 6,
-                      color: COLORS.text,
-                      padding: '6px 10px',
-                      fontFamily: 'var(--font-mono)',
+                    {r.user.initials}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: COLORS.text }}>
+                      @{r.user.username}
+                    </div>
+                    <div style={{
                       fontSize: 11,
-                      letterSpacing: '0.1em',
+                      color: COLORS.textMuted,
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.06em',
                       textTransform: 'uppercase',
-                      cursor: 'pointer',
                     }}>
-                      Helpful
-                    </button>
-                  </footer>
-                </article>
-              );
-            })
+                      {r.user.trade} · {r.posted_at.slice(0, 10)}
+                    </div>
+                  </div>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    color: COLORS.orange,
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}>
+                    <StarIcon size={12} filled /> {r.overall.toFixed(1)}
+                  </span>
+                </header>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.text }}>
+                  {r.title}
+                </h4>
+                <p style={{ margin: '6px 0 8px', color: COLORS.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>
+                  {r.body}
+                </p>
+                <footer style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  color: COLORS.textMuted,
+                  fontSize: 11.5,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}>
+                  <span>{r.helpful_count} found helpful</span>
+                  <button style={{
+                    background: 'transparent',
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 6,
+                    color: COLORS.text,
+                    padding: '6px 10px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}>
+                    Helpful
+                  </button>
+                </footer>
+              </article>
+            ))
           )}
+          <Link
+            href={`/review/new?venue=${venue.slug}`}
+            style={{
+              marginTop: SPACE.sm,
+              textAlign: 'center',
+              background: COLORS.orange,
+              color: '#0a0908',
+              borderRadius: RADIUS.md,
+              padding: 12,
+              fontWeight: 800,
+              fontSize: 14,
+              textDecoration: 'none',
+              letterSpacing: 0.5,
+            }}
+          >
+            Write a review
+          </Link>
         </div>
       </section>
 
