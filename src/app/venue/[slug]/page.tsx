@@ -5,9 +5,10 @@ import { REVIEWS_BY_VENUE } from '@/lib/seed/reviews';
 import { USER_BY_HANDLE } from '@/lib/seed/users';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
 import type { VenueType } from '@/lib/seed/types';
-import { COLORS } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE } from '@/lib/theme';
 import { RatingBars } from '@/components/RatingBars';
 import { VenueCard } from '@/components/VenueCard';
+import { ReportButton } from '../../_report/ReportButton';
 import {
   StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon, HeartIcon,
   TruckIcon, CoffeeIcon, HardHatIcon, FlameIcon,
@@ -19,10 +20,24 @@ function venueIconFor(type: VenueType) {
   return CoffeeIcon;
 }
 
-export default async function VenueDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+const REPORT_BANNER: Record<string, { color: string; text: string }> = {
+  submitted: { color: COLORS.hiVisGreen, text: 'Report sent. Moderators will take a look.' },
+  invalid:   { color: COLORS.red,         text: 'Report could not be sent — please pick a reason and add a detail.' },
+  error:     { color: COLORS.red,         text: 'Something went wrong saving the report. Try again.' },
+};
+
+export default async function VenueDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ report?: string }>;
+}) {
   const { slug } = await params;
+  const { report } = await searchParams;
   const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
+  const reportBanner = report ? REPORT_BANNER[report] : null;
 
   // Reviews are still seeded statically (no review rows in DB yet); look up
   // by the seed-data id keyed off slug so the demo still renders comments.
@@ -164,6 +179,23 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
           </div>
         </div>
       </section>
+
+      {/* Report-result banner */}
+      {reportBanner && (
+        <section className="section">
+          <div style={{
+            padding: '10px 14px',
+            background: COLORS.surface,
+            border: `1px solid ${reportBanner.color}`,
+            borderLeft: `4px solid ${reportBanner.color}`,
+            borderRadius: RADIUS.md,
+            color: COLORS.text,
+            fontSize: 13,
+          }}>
+            {reportBanner.text}
+          </div>
+        </section>
+      )}
 
       {/* Address line */}
       <section className="section">
@@ -395,6 +427,14 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
               );
             })
           )}
+        </div>
+      </section>
+
+      {/* Report this venue */}
+      <section className="section">
+        <div className="section-title"><h2>Something off about this listing?</h2></div>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: SPACE.sm }}>
+          <ReportButton reportableType="venue" reportableId={venue.id} back={`/venue/${venue.slug}`} />
         </div>
       </section>
 
