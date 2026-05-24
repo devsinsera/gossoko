@@ -33,11 +33,10 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 - Set `GOSSOKO_REVIEW_PREMODERATION=true` in Vercel envs to require admin approval before new reviews go public. Default is off (auto-approve).
 - `/admin/moderation` now has a "Pending Reviews" section with Approve/Reject; RLS makes the user see their own pending review but others don't until approved.
 
-### 4. "Helpful" button actually works *(~30 min)*
-- Currently a dead `<button>` on every review card.
-- Needs a small schema addition: `review_likes (review_id, user_id, created_at, PK (review_id, user_id))`.
-- Server action `toggleHelpful(reviewId)` inserts or deletes a row + trigger updates `reviews.helpful_count`.
-- Button becomes a `'use client'` component with optimistic UI.
+### 4. "Helpful" button actually works ✅ *(shipped — needs DB migration applied)*
+- Migration: `supabase/migrations/20260525000001_review_likes.sql` (run once on prod via Supabase SQL editor).
+- `toggleHelpful` server action + `HelpfulButton` client component with optimistic UI.
+- DB trigger keeps `reviews.helpful_count` in sync on insert/delete.
 
 ### 5. Comments on reviews *(~45 min)*
 - Schema already exists (`comments` table). No UI yet.

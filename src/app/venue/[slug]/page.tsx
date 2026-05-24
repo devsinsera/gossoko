@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
-import { getReviewsByVenueId } from '@/lib/queries/reviews';
+import { getReviewsByVenueId, getUserLikedReviewIds } from '@/lib/queries/reviews';
+import { getCurrentUser } from '@/lib/auth/permissions';
+import { HelpfulButton } from '../../_likes/HelpfulButton';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
 import type { VenueType } from '@/lib/seed/types';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
@@ -45,6 +47,10 @@ export default async function VenueDetailPage({
   const reviewBanner = review ? REVIEW_BANNER[review] : null;
 
   const reviews = await getReviewsByVenueId(venue.id);
+  const currentUser = await getCurrentUser();
+  const likedSet = currentUser
+    ? await getUserLikedReviewIds(currentUser.id, reviews.map((r) => r.id))
+    : new Set<string>();
   const HeroIcon = venueIconFor(venue.venue_type);
   const allVenues = await getAllVenues();
   const similar = allVenues
@@ -428,20 +434,13 @@ export default async function VenueDetailPage({
                 }}>
                   <span>{r.helpful_count} found helpful</span>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button style={{
-                      background: 'transparent',
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 6,
-                      color: COLORS.text,
-                      padding: '6px 10px',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 11,
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                    }}>
-                      Helpful
-                    </button>
+                    <HelpfulButton
+                      reviewId={r.id}
+                      initialLiked={likedSet.has(r.id)}
+                      initialCount={r.helpful_count}
+                      venueSlug={venue.slug}
+                      isSignedIn={!!currentUser}
+                    />
                     <ReportButton reportableType="review" reportableId={r.id} back={`/venue/${venue.slug}`} />
                   </div>
                 </footer>

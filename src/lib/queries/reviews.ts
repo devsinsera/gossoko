@@ -238,6 +238,28 @@ export async function getReviewsByUserId(userId: string, limit = 25): Promise<Us
   }));
 }
 
+/**
+ * For a set of review IDs, return the subset the given user has marked Helpful.
+ * Used to render the toggled state of the Helpful button on the venue page.
+ */
+export async function getUserLikedReviewIds(
+  userId: string,
+  reviewIds: string[],
+): Promise<Set<string>> {
+  if (reviewIds.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('review_likes')
+    .select('review_id')
+    .eq('user_id', userId)
+    .in('review_id', reviewIds);
+  if (error) {
+    console.error('[gossoko] getUserLikedReviewIds failed:', error.message);
+    return new Set();
+  }
+  return new Set((data as { review_id: string }[]).map((r) => r.review_id));
+}
+
 export async function getReviewByUserAndVenue(userId: string, venueId: string): Promise<VenueReview | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
