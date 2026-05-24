@@ -6,6 +6,46 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { requirePermission } from '@/lib/auth/permissions';
 
 type Decision = 'approved' | 'rejected' | 'hidden';
+type VenueDecision = 'approved' | 'rejected';
+
+export async function resolveVenueSubmission(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  const decision = String(formData.get('decision') ?? '') as VenueDecision;
+
+  if (!id || !['approved', 'rejected'].includes(decision)) {
+    throw new Error('Invalid venue moderation request');
+  }
+
+  const user = await requirePermission('approve_venue');
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('venues')
+    .update({ moderation_status: decision, last_updated_by: user.id })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[gossoko] resolveVenueSubmission failed:', error.message);
+    throw new Error(`Could not update venue: ${error.message}`);
+  }
+
+  const admin = getAdminClient();
+  if (admin) {
+    const { error: auditErr } = await admin.from('audit_logs').insert({
+      actor_id: user.id,
+      action_type: `venue.${decision}`,
+      resource_type: 'venues',
+      resource_id: id,
+      new_values: { moderation_status: decision },
+    });
+    if (auditErr) {
+      console.warn('[gossoko] audit_log write failed:', auditErr.message);
+    }
+  }
+
+  revalidatePath('/admin/moderation');
+  revalidatePath('/');
+}
 
 export async function resolveQueueItem(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');

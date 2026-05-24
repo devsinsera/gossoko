@@ -206,7 +206,7 @@ export default async function ProfilePage() {
       <section className="section">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <ActionTile href="/" icon={<FlameIcon size={20} />} label="Write a Review" hint="Pick a venue first" />
-          <ActionTile href="/" icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Coming soon" />
+          <ActionTile href="/venue/new" icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Suggest a new spot" />
         </div>
       </section>
 

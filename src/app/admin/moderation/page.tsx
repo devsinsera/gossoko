@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
-import { resolveQueueItem } from './actions';
+import { resolveQueueItem, resolveVenueSubmission } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,27 +28,112 @@ const PRIORITY_COLOR: Record<QueueRow['priority'], string> = {
   low: COLORS.textMuted,
 };
 
+type PendingVenue = {
+  id: string;
+  name: string;
+  suburb: string;
+  state: string;
+  address: string;
+  type: string;
+  tagline: string | null;
+  created_at: string;
+  created_by: string | null;
+};
+
 export default async function ModerationPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('moderation_queue')
-    .select(`
-      id, created_at, content_type, content_id, priority,
-      auto_flagged, auto_flag_reason, status, resolution_notes,
-      content_reports ( reason, report_type, reportable_type )
-    `)
-    .eq('status', 'pending')
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: true })
-    .limit(50);
+  const [{ data, error }, venueRes] = await Promise.all([
+    supabase
+      .from('moderation_queue')
+      .select(`
+        id, created_at, content_type, content_id, priority,
+        auto_flagged, auto_flag_reason, status, resolution_notes,
+        content_reports ( reason, report_type, reportable_type )
+      `)
+      .eq('status', 'pending')
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(50),
+    supabase
+      .from('venues')
+      .select('id, name, suburb, state, address, type, tagline, created_at, created_by')
+      .eq('moderation_status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(50),
+  ]);
 
   const items = (data ?? []) as unknown as QueueRow[];
+  const pendingVenues = (venueRes.data ?? []) as unknown as PendingVenue[];
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, margin: `${SPACE.md}px 0 ${SPACE.lg}px` }}>
         Moderation Queue
       </h1>
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Pending Venues
+      </h2>
+
+      {venueRes.error && (
+        <div style={{
+          background: COLORS.orangeFaint, border: `1px solid ${COLORS.orange}`,
+          borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
+        }}>
+          Couldn’t load pending venues: {venueRes.error.message}
+        </div>
+      )}
+
+      {pendingVenues.length === 0 && !venueRes.error && (
+        <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
+          No venue submissions waiting.
+        </p>
+      )}
+
+      {pendingVenues.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: `0 0 ${SPACE.xl}px`, display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
+          {pendingVenues.map((v) => (
+            <li key={v.id} style={{
+              background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: RADIUS.lg,
+              padding: SPACE.lg,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.xs, flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: 15 }}>{v.name}</strong>
+                <span style={{ fontSize: 12, color: COLORS.textMuted }}>
+                  {v.type} · submitted {new Date(v.created_at).toLocaleString()}
+                </span>
+              </div>
+              {v.tagline && (
+                <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACE.xs }}>
+                  {v.tagline}
+                </div>
+              )}
+              <div style={{ fontSize: 13, marginBottom: SPACE.md }}>
+                {v.address}, {v.suburb} {v.state}
+              </div>
+              <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
+                <form action={resolveVenueSubmission}>
+                  <input type="hidden" name="id" value={v.id} />
+                  <input type="hidden" name="decision" value="approved" />
+                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                </form>
+                <form action={resolveVenueSubmission}>
+                  <input type="hidden" name="id" value={v.id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Report Queue
+      </h2>
 
       {error && (
         <div style={{
