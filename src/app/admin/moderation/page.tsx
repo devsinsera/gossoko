@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
-import { resolveQueueItem, resolveVenueSubmission } from './actions';
+import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,9 +40,19 @@ type PendingVenue = {
   created_by: string | null;
 };
 
+type PendingReview = {
+  id: string;
+  created_at: string;
+  title: string | null;
+  body: string | null;
+  overall_rating: number | null;
+  venue: { name: string; slug: string } | null;
+  profile: { username: string | null; full_name: string | null } | null;
+};
+
 export default async function ModerationPage() {
   const supabase = await createClient();
-  const [{ data, error }, venueRes] = await Promise.all([
+  const [{ data, error }, venueRes, reviewRes] = await Promise.all([
     supabase
       .from('moderation_queue')
       .select(`
@@ -61,10 +71,22 @@ export default async function ModerationPage() {
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(50),
+    supabase
+      .from('reviews')
+      .select(`
+        id, created_at, title, body, overall_rating,
+        venue:venues ( name, slug ),
+        profile:profiles ( username, full_name )
+      `)
+      .eq('moderation_status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(50),
   ]);
 
   const items = (data ?? []) as unknown as QueueRow[];
   const pendingVenues = (venueRes.data ?? []) as unknown as PendingVenue[];
+  const pendingReviews = (reviewRes.data ?? []) as unknown as PendingReview[];
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -122,6 +144,64 @@ export default async function ModerationPage() {
                 </form>
                 <form action={resolveVenueSubmission}>
                   <input type="hidden" name="id" value={v.id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Pending Reviews
+      </h2>
+
+      {reviewRes.error && (
+        <div style={{
+          background: COLORS.orangeFaint, border: `1px solid ${COLORS.orange}`,
+          borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
+        }}>
+          Couldn’t load pending reviews: {reviewRes.error.message}
+        </div>
+      )}
+
+      {pendingReviews.length === 0 && !reviewRes.error && (
+        <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
+          No reviews waiting. (Pre-moderation only kicks in when GOSSOKO_REVIEW_PREMODERATION=true.)
+        </p>
+      )}
+
+      {pendingReviews.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: `0 0 ${SPACE.xl}px`, display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
+          {pendingReviews.map((r) => (
+            <li key={r.id} style={{
+              background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: RADIUS.lg,
+              padding: SPACE.lg,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.xs, flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: 15 }}>{r.title || '(no title)'}</strong>
+                <span style={{ fontSize: 12, color: COLORS.textMuted }}>
+                  on {r.venue?.name ?? '?'} · by @{r.profile?.username ?? r.profile?.full_name ?? '?'}
+                  {' · '}{new Date(r.created_at).toLocaleString()}
+                  {' · '}{Number(r.overall_rating ?? 0).toFixed(1)}★
+                </span>
+              </div>
+              {r.body && (
+                <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACE.md, whiteSpace: 'pre-wrap' }}>
+                  {r.body}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
+                <form action={resolveReviewSubmission}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="decision" value="approved" />
+                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                </form>
+                <form action={resolveReviewSubmission}>
+                  <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="decision" value="rejected" />
                   <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
                 </form>

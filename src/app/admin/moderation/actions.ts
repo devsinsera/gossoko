@@ -7,6 +7,45 @@ import { requirePermission } from '@/lib/auth/permissions';
 
 type Decision = 'approved' | 'rejected' | 'hidden';
 type VenueDecision = 'approved' | 'rejected';
+type ReviewDecision = 'approved' | 'rejected';
+
+export async function resolveReviewSubmission(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  const decision = String(formData.get('decision') ?? '') as ReviewDecision;
+
+  if (!id || !['approved', 'rejected'].includes(decision)) {
+    throw new Error('Invalid review moderation request');
+  }
+
+  const user = await requirePermission('approve_content');
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('reviews')
+    .update({ moderation_status: decision })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[gossoko] resolveReviewSubmission failed:', error.message);
+    throw new Error(`Could not update review: ${error.message}`);
+  }
+
+  const admin = getAdminClient();
+  if (admin) {
+    const { error: auditErr } = await admin.from('audit_logs').insert({
+      actor_id: user.id,
+      action_type: `review.${decision}`,
+      resource_type: 'reviews',
+      resource_id: id,
+      new_values: { moderation_status: decision },
+    });
+    if (auditErr) {
+      console.warn('[gossoko] audit_log write failed:', auditErr.message);
+    }
+  }
+
+  revalidatePath('/admin/moderation');
+}
 
 export async function resolveVenueSubmission(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');

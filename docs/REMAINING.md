@@ -19,22 +19,19 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 
 ## B. Code work — ranked by impact
 
-### 1. User-submitted venues *(biggest remaining surface gap, ~1 hour)*
-- New `/venue/new` form: name, suburb, address, lat/lng (pin on a map or paste coords), venue_type, tagline, opens_at, closes_at, price_level.
-- Server action `submitVenue` → inserts a row in `gossoko.venues` with `moderation_status='pending'` and `created_by=auth.uid()`.
-- Submissions surface in `/admin/moderation` via a new "Pending venues" tab, with approve/reject actions that flip `moderation_status`.
-- Profile page "Add a Venue" tile becomes a real link.
+### 1. User-submitted venues ✅ *(shipped)*
+- `/venue/new` form (paste lat/lng with Google Maps helper link) → `submitVenue` inserts with `moderation_status='pending'`.
+- Admin `/admin/moderation` has a "Pending Venues" section with Approve/Reject.
+- Profile "Add a Venue" tile now links to `/venue/new`.
 
 ### 2. Distance from geolocation *(~30 min)*
 - Replace `venues.distance_km` static-column reads with `getCurrentPosition()` → compute haversine distance per venue.
 - Lives in a client wrapper (e.g. `src/components/DistanceProvider.tsx`) that hydrates after page load and updates the home/nearby/rankings lists.
 - Graceful fallback: if geo denied, show the static column value (current behaviour).
 
-### 3. Pre-moderation toggle *(~15 min)*
-- Currently `submitReview` inserts with `moderation_status='approved'`.
-- Add a per-project flag (env var `GOSSOKO_REVIEW_PREMODERATION=true`) that flips new reviews to `pending`.
-- Reviews-list query already filters to `approved` for non-authors, so the user sees their own pending review but others don't until an admin approves it.
-- Admin moderation page already supports approve/hide/reject — it just needs a "Pending reviews" view alongside the report queue.
+### 3. Pre-moderation toggle ✅ *(shipped)*
+- Set `GOSSOKO_REVIEW_PREMODERATION=true` in Vercel envs to require admin approval before new reviews go public. Default is off (auto-approve).
+- `/admin/moderation` now has a "Pending Reviews" section with Approve/Reject; RLS makes the user see their own pending review but others don't until approved.
 
 ### 4. "Helpful" button actually works *(~30 min)*
 - Currently a dead `<button>` on every review card.

@@ -59,15 +59,17 @@ export async function submitReview(formData: FormData): Promise<void> {
       .eq('user_id', user.id);
     dbError = error;
   } else {
+    // When GOSSOKO_REVIEW_PREMODERATION=true, new reviews land in 'pending'
+    // and only the author + admins/moderators can see them (enforced by RLS)
+    // until an admin approves them on /admin/moderation.
+    const premoderate = process.env.GOSSOKO_REVIEW_PREMODERATION === 'true';
     const { error } = await supabase.from('reviews').insert({
       venue_id: venueId,
       user_id: user.id,
       title,
       body,
       ...ratings,
-      // Auto-approve until pre-moderation flow lands; reports still create
-      // a moderation_queue entry, so abuse is still caught reactively.
-      moderation_status: 'approved',
+      moderation_status: premoderate ? 'pending' : 'approved',
     });
     dbError = error;
   }
