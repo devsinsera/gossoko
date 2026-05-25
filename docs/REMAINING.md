@@ -1,9 +1,18 @@
 # Gossoko — remaining work
 
-Last updated: 2026-05-20 · branch `main` · latest commit `699b4bc`.
+Last updated: 2026-05-25 · branch `main` · latest commit `7664a61`.
 
 Use this as the live "what's next" punch list. Tick items off as they ship.
 Sections are roughly ordered by impact, not by sequence — see "Recommended order" at the bottom.
+
+---
+
+## Live URLs
+
+- **App (production):** <https://gossoko.vercel.app>
+- **Supabase dashboard:** <https://supabase.com/dashboard/project/lkhtgkmivqwgnvzmjbhr>
+- **GitHub repo:** <https://github.com/devsinsera/gossoko>
+- `sinsera.co/gossoko` is currently a HostGator placeholder page, *not* the app. See §D below for the fix.
 
 ---
 
@@ -14,6 +23,7 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 - [ ] **`SUPABASE_SERVICE_ROLE_KEY` on Vercel.** Without it, the deployed site's Report button silently fails to push items into the moderation queue (the report itself is saved; only the queue insert is skipped). Get the key from <https://supabase.com/dashboard/project/lkhtgkmivqwgnvzmjbhr/settings/api-keys>, then Vercel project → Settings → Environment Variables → add for **Production**, **Preview**, **Development** → Redeploy.
 - [ ] **Supabase Auth → URL Configuration.** Required for email confirmation and password reset to point at the right domain. Set Site URL + add Redirect URLs (`/auth/reset`, `/auth/confirm` on both prod and `localhost:3000`). Currently optional because you're not relying on those flows yet, but blocking once you do.
 - [ ] **First admin promotion is manual.** After signup, run `UPDATE gossoko.profiles SET role = 'admin' WHERE email = 'you@example.com';` to reach `/admin/moderation`. No UI for promoting other admins yet (see §B-7 below).
+- [ ] **(Optional) Enable pre-moderation.** Add `GOSSOKO_REVIEW_PREMODERATION=true` to Vercel envs to require admin approval before new reviews go public. Default is off (auto-approve). Turn on once you have real signups so spam doesn't ship instantly.
 
 ---
 
@@ -24,17 +34,17 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 - Admin `/admin/moderation` has a "Pending Venues" section with Approve/Reject.
 - Profile "Add a Venue" tile now links to `/venue/new`.
 
-### 2. Distance from geolocation *(~30 min)*
+### 2. Distance from geolocation *(~30 min — next up)*
 - Replace `venues.distance_km` static-column reads with `getCurrentPosition()` → compute haversine distance per venue.
 - Lives in a client wrapper (e.g. `src/components/DistanceProvider.tsx`) that hydrates after page load and updates the home/nearby/rankings lists.
 - Graceful fallback: if geo denied, show the static column value (current behaviour).
 
 ### 3. Pre-moderation toggle ✅ *(shipped)*
-- Set `GOSSOKO_REVIEW_PREMODERATION=true` in Vercel envs to require admin approval before new reviews go public. Default is off (auto-approve).
-- `/admin/moderation` now has a "Pending Reviews" section with Approve/Reject; RLS makes the user see their own pending review but others don't until approved.
+- Code-side complete. Flip the `GOSSOKO_REVIEW_PREMODERATION=true` env var on Vercel when you're ready to require admin approval before new reviews go public.
+- `/admin/moderation` has a "Pending Reviews" section with Approve/Reject; RLS makes the author see their own pending review but others don't until approved.
 
-### 4. "Helpful" button actually works ✅ *(shipped — needs DB migration applied)*
-- Migration: `supabase/migrations/20260525000001_review_likes.sql` (run once on prod via Supabase SQL editor).
+### 4. "Helpful" button actually works ✅ *(shipped, migration applied)*
+- Migration `supabase/migrations/20260525000001_review_likes.sql` — applied to prod.
 - `toggleHelpful` server action + `HelpfulButton` client component with optimistic UI.
 - DB trigger keeps `reviews.helpful_count` in sync on insert/delete.
 
@@ -68,24 +78,25 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 
 ## C. Recommended order
 
-Two reasonable sequences depending on your goal:
+Path A (real-world usable) is now mostly shipped — only §A-1 (service-role key) is still pending on your side. From here either path works:
 
-**Path A — fastest path to "real-world usable":**
-1. §1 Add a Venue (without this, the catalogue can't grow)
-2. §A-1 Service-role key on Vercel (otherwise §1's admin queue is silent on prod)
-3. §3 Pre-moderation toggle (turn on once you have real signups so spam doesn't ship instantly)
-4. §4 Helpful button (small but the dead button is a credibility hit)
+**Path A — finish hardening:**
+1. ✅ ~~§1 Add a Venue~~
+2. ⬜ §A-1 Service-role key on Vercel — *you*
+3. ✅ ~~§3 Pre-moderation toggle~~ (flip env var when ready)
+4. ✅ ~~§4 Helpful button~~
+5. §6 Edit/delete polish (quick wins)
+6. §7 Admin user/role management
 
 **Path B — best demo experience:**
 1. §2 Distance from geo (lights up "5km away" everywhere — feels real)
-2. §1 Add a Venue
-3. §5 Comments
-4. §4 Helpful
+2. §5 Comments
+3. §9 Venue claims (now unblocked by §1)
 
 ---
 
 ## D. Open architectural questions
 
+- **`gossoko.sinsera.co` subdomain.** Your other two apps use this pattern (`cutlass.sinsera.co`, `garage.sinsera.co`) wired as Vercel aliases. To do the same for Gossoko: add a `gossoko` CNAME at the registrar pointing to `cname.vercel-dns.com`, then run `vercel alias set gossoko.vercel.app gossoko.sinsera.co`. Alternative: keep the HostGator proxy and set `basePath: '/gossoko'` in `next.config.mjs`.
 - **Single shared Supabase project with Sinsera Core, or split?** Currently you use one project + `gossoko.*` schema. Works fine, but means a Sinsera Core RLS bug could in theory expose Gossoko data and vice versa. Consider splitting once both apps have meaningful PII.
-- **Where does `sinsera.co/gossoko` actually live?** Today it's a static "under dev" page served from HostGator. The real Gossoko app is on Vercel. Decide whether you want to (a) point a subdomain like `gossoko.sinsera.co` at the Vercel deployment, or (b) keep the HostGator proxy and configure `basePath: '/gossoko'` in `next.config.mjs` so the app works under that path.
 - **Per-axis aggregation strategy.** Currently aggregates client-side in TS over all review rows for the venues being listed. Fine for ~hundreds of venues × ~tens of reviews each. Past that, move to a Postgres view (`gossoko.venue_axis_averages`) or a `STORED` generated column per axis on `venues` that a trigger keeps fresh.
