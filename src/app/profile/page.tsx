@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth/permissions';
 import { getOwnProfile, initialsFromName } from '@/lib/queries/profile';
 import { getReviewsByUserId } from '@/lib/queries/reviews';
 import { signOutAction } from '../_auth/sign-out';
+import { DeleteReviewButton } from './DeleteReviewButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,55 +232,95 @@ export default async function ProfilePage() {
             </div>
           ) : (
             myReviews.map((r) => (
-              <Link
+              <div
                 key={r.id}
-                href={`/venue/${r.venue_slug}`}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto auto',
-                  gap: 10,
-                  alignItems: 'center',
                   padding: '12px 14px',
                   background: COLORS.surface,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
                 }}
               >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{
-                    fontWeight: 700,
-                    fontSize: 14,
-                    color: COLORS.text,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {r.title}
+                {/* Top row: review info + star rating + venue link chevron */}
+                <Link
+                  href={`/venue/${r.venue_slug}`}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto',
+                    gap: 10,
+                    alignItems: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontWeight: 700,
+                      fontSize: 14,
+                      color: COLORS.text,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {r.title}
+                    </div>
+                    <div style={{
+                      color: COLORS.textSecondary,
+                      fontSize: 12,
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      marginTop: 2,
+                    }}>
+                      on {r.venue_name}
+                    </div>
                   </div>
-                  <div style={{
-                    color: COLORS.textSecondary,
-                    fontSize: 12,
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    color: COLORS.orange,
                     fontFamily: 'var(--font-mono)',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    marginTop: 2,
+                    fontWeight: 700,
+                    fontSize: 13,
                   }}>
-                    on {r.venue_name}
-                  </div>
+                    <StarIcon size={12} filled /> {r.overall.toFixed(1)}
+                  </span>
+                  <ChevronRightIcon size={16} style={{ color: COLORS.textMuted }} />
+                </Link>
+
+                {/* Bottom row: Edit shortcut + Delete */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Link
+                    href={`/review/new?venue=${r.venue_slug}`}
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 6,
+                      color: COLORS.textSecondary,
+                      padding: '5px 10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 11,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Edit
+                  </Link>
+                  {authUser && (
+                    <DeleteReviewButton
+                      reviewId={r.id}
+                      venueSlug={r.venue_slug}
+                      reviewTitle={r.title}
+                    />
+                  )}
                 </div>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  color: COLORS.orange,
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  fontSize: 13,
-                }}>
-                  <StarIcon size={12} filled /> {r.overall.toFixed(1)}
-                </span>
-                <ChevronRightIcon size={16} style={{ color: COLORS.textMuted }} />
-              </Link>
+              </div>
             ))
           )}
         </div>
