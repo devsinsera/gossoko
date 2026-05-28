@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
-import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission } from './actions';
+import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission, resolveVenueClaim } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,9 +50,16 @@ type PendingReview = {
   profile: { username: string | null; full_name: string | null } | null;
 };
 
+type PendingClaim = {
+  id: string;
+  created_at: string;
+  venue: { name: string; slug: string } | null;
+  profile: { username: string | null; full_name: string | null } | null;
+};
+
 export default async function ModerationPage() {
   const supabase = await createClient();
-  const [{ data, error }, venueRes, reviewRes] = await Promise.all([
+  const [{ data, error }, venueRes, reviewRes, claimRes] = await Promise.all([
     supabase
       .from('moderation_queue')
       .select(`
@@ -82,11 +89,23 @@ export default async function ModerationPage() {
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(50),
+    supabase
+      .from('venue_claims')
+      .select(`
+        id, created_at,
+        venue:venues ( name, slug ),
+        profile:profiles ( username, full_name )
+      `)
+      .eq('status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(50),
   ]);
 
   const items = (data ?? []) as unknown as QueueRow[];
   const pendingVenues = (venueRes.data ?? []) as unknown as PendingVenue[];
   const pendingReviews = (reviewRes.data ?? []) as unknown as PendingReview[];
+  const pendingClaims = (claimRes.data ?? []) as unknown as PendingClaim[];
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -202,6 +221,58 @@ export default async function ModerationPage() {
                 </form>
                 <form action={resolveReviewSubmission}>
                   <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Pending Venue Claims
+      </h2>
+
+      {claimRes.error && (
+        <div style={{
+          background: COLORS.orangeFaint, border: `1px solid ${COLORS.orange}`,
+          borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
+        }}>
+          Couldn’t load venue claims: {claimRes.error.message}
+        </div>
+      )}
+
+      {pendingClaims.length === 0 && !claimRes.error && (
+        <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
+          No venue claims waiting.
+        </p>
+      )}
+
+      {pendingClaims.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: `0 0 ${SPACE.xl}px`, display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
+          {pendingClaims.map((c) => (
+            <li key={c.id} style={{
+              background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: RADIUS.lg,
+              padding: SPACE.lg,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.md, flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: 15 }}>{c.venue?.name ?? '(unknown venue)'}</strong>
+                <span style={{ fontSize: 12, color: COLORS.textMuted }}>
+                  claimed by @{c.profile?.username ?? c.profile?.full_name ?? '?'}
+                  {' · '}{new Date(c.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
+                <form action={resolveVenueClaim}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="decision" value="approved" />
+                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                </form>
+                <form action={resolveVenueClaim}>
+                  <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="decision" value="rejected" />
                   <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
                 </form>

@@ -4,6 +4,8 @@ import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
 import { getReviewsByVenueId, getUserLikedReviewIds } from '@/lib/queries/reviews';
 import { getCommentsByReviewIds } from '@/lib/queries/comments';
 import { getCurrentUser } from '@/lib/auth/permissions';
+import { createClient } from '@/lib/supabase/server';
+import { claimVenue } from '../../_claims/actions';
 import { HelpfulButton } from '../../_likes/HelpfulButton';
 import { CommentsSection } from '../../_comments/CommentsSection';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
@@ -35,22 +37,53 @@ const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
   updated:   { color: COLORS.hiVisGreen, text: 'Review updated.' },
 };
 
+const CLAIM_BANNER: Record<string, { color: string; text: string }> = {
+  submitted: { color: COLORS.hiVisGreen, text: 'Claim submitted. An admin will review it shortly.' },
+  exists:    { color: COLORS.hiVisYellow, text: 'You already have a claim pending review for this venue.' },
+  owner:     { color: COLORS.hiVisGreen, text: 'You already manage this venue.' },
+  error:     { color: COLORS.red,         text: 'Something went wrong saving your claim. Try again.' },
+};
+
 export default async function VenueDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ report?: string; review?: string }>;
+  searchParams: Promise<{ report?: string; review?: string; claim?: string }>;
 }) {
   const { slug } = await params;
-  const { report, review } = await searchParams;
+  const { report, review, claim } = await searchParams;
   const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
   const reportBanner = report ? REPORT_BANNER[report] : null;
   const reviewBanner = review ? REVIEW_BANNER[review] : null;
+  const claimBanner = claim ? CLAIM_BANNER[claim] : null;
 
   const reviews = await getReviewsByVenueId(venue.id);
   const currentUser = await getCurrentUser();
+
+  // Lightweight claim-state lookup: who owns the venue, and whether the
+  // current user already has a live claim for it. Drives which affordance the
+  // claim block renders. (getVenueBySlug doesn't select created_by.)
+  const supabase = await createClient();
+  const { data: venueOwner } = await supabase
+    .from('venues')
+    .select('created_by')
+    .eq('id', venue.id)
+    .maybeSingle();
+  const ownsVenue = !!currentUser && venueOwner?.created_by === currentUser.id;
+
+  let userClaimStatus: string | null = null;
+  if (currentUser && !ownsVenue) {
+    const { data: myClaim } = await supabase
+      .from('venue_claims')
+      .select('status')
+      .eq('venue_id', venue.id)
+      .eq('user_id', currentUser.id)
+      .is('deleted_at', null)
+      .maybeSingle();
+    userClaimStatus = myClaim?.status ?? null;
+  }
   const [likedSet, commentsMap] = await Promise.all([
     currentUser
       ? getUserLikedReviewIds(currentUser.id, reviews.map((r) => r.id))
@@ -225,6 +258,23 @@ export default async function VenueDetailPage({
             fontSize: 13,
           }}>
             {reviewBanner.text}
+          </div>
+        </section>
+      )}
+
+      {/* Claim-result banner */}
+      {claimBanner && (
+        <section className="section">
+          <div style={{
+            padding: '10px 14px',
+            background: COLORS.surface,
+            border: `1px solid ${claimBanner.color}`,
+            borderLeft: `4px solid ${claimBanner.color}`,
+            borderRadius: RADIUS.md,
+            color: COLORS.text,
+            fontSize: 13,
+          }}>
+            {claimBanner.text}
           </div>
         </section>
       )}
@@ -476,6 +526,84 @@ export default async function VenueDetailPage({
           >
             Write a review
           </Link>
+        </div>
+      </section>
+
+      {/* Claim this venue */}
+      <section className="section">
+        <div className="section-title"><h2>Own this venue?</h2></div>
+        <div style={{
+          padding: '14px 16px',
+          background: COLORS.surface,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}>
+          {ownsVenue ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisGreen, fontSize: 13.5, fontWeight: 700 }}>
+              <VerifiedIcon size={16} />
+              You manage this venue.
+            </div>
+          ) : userClaimStatus === 'pending' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisYellow, fontSize: 13.5, fontWeight: 700 }}>
+              <span className="pulse-dot" />
+              Claim pending review.
+            </div>
+          ) : userClaimStatus === 'rejected' ? (
+            <div style={{ color: COLORS.textSecondary, fontSize: 13 }}>
+              Your previous claim for this venue was declined. Get in touch if you think that&apos;s wrong.
+            </div>
+          ) : !currentUser ? (
+            <>
+              <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13, lineHeight: 1.5 }}>
+                Run this gossoko van, food truck or café? Sign in to claim it and keep its listing accurate.
+              </p>
+              <Link
+                href={`/login?next=${encodeURIComponent(`/venue/${venue.slug}`)}`}
+                style={{
+                  alignSelf: 'flex-start',
+                  background: COLORS.orange,
+                  color: '#0a0908',
+                  borderRadius: RADIUS.md,
+                  padding: '10px 16px',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  letterSpacing: 0.5,
+                }}
+              >
+                Sign in to claim
+              </Link>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13, lineHeight: 1.5 }}>
+                Run this gossoko van, food truck or café? Claim it and an admin will verify you as the owner.
+              </p>
+              <form action={claimVenue} style={{ alignSelf: 'flex-start' }}>
+                <input type="hidden" name="venueId" value={venue.id} />
+                <input type="hidden" name="venueSlug" value={venue.slug} />
+                <button
+                  type="submit"
+                  style={{
+                    background: COLORS.orange,
+                    color: '#0a0908',
+                    border: 'none',
+                    borderRadius: RADIUS.md,
+                    padding: '10px 16px',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Claim this venue
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </section>
 
