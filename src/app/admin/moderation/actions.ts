@@ -259,10 +259,16 @@ export async function resolveQueueItem(formData: FormData): Promise<void> {
   // Apply the decision to the reported content so the queue actually moderates.
   // Only review/comment carry a moderation_status we flip here; 'user' reports
   // go through the suspension flow, not this one. Best-effort: a failure (RLS,
-  // or the pre-existing venue->'review' content_type quirk pointing at a
-  // non-review id → 0 rows) is logged, not fatal — the resolved queue row is the
-  // authoritative record. Relies on the admin/moderator UPDATE policy on
-  // reviews/comments (migration 20260528000001).
+  // or the pre-existing venue-report quirk → 0 rows) is logged, not fatal — the
+  // resolved queue row is the authoritative record. Relies on the
+  // admin/moderator UPDATE policy on reviews/comments (migration 20260528000001).
+  //
+  // KNOWN GAP: venue reports never reach this branch as venues. _report/actions.ts
+  // maps reportableType 'venue' -> content_type 'review' (likely to satisfy the
+  // moderation_queue.content_type CHECK), so a venue report's content_id is a
+  // venue UUID that matches no review -> harmless 0-row no-op, but the reported
+  // venue is never hidden. Fixing it needs the CHECK widened to allow 'venue'
+  // plus a venues branch here. Tracked in REMAINING.md §C2.
   const contentTable: 'reviews' | 'comments' | null =
     queued.content_type === 'review' ? 'reviews'
     : queued.content_type === 'comment' ? 'comments'

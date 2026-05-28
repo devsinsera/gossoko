@@ -81,19 +81,26 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 
 All §B code items are shipped on `finish-punch-list`. What's left is config (you) + optional follow-ups:
 
-**Still on you (config, not code):**
-1. ⬜ §A-1 `SUPABASE_SERVICE_ROLE_KEY` on Vercel — unblocks the report→queue insert AND `/admin/users` role changes AND venue-claim/role audit logging.
-2. ⬜ §A-2 Supabase Auth URL config (needed before relying on email confirm / password reset).
-3. ⬜ §A-3 First admin promotion via SQL.
-4. ⬜ §A-4 Flip `GOSSOKO_REVIEW_PREMODERATION=true` when ready (note the comment-moderation follow-up below before doing so).
+**Still on you (config / SQL, not code):**
+1. ⬜ **§A-0 Run migration `supabase/migrations/20260528000001_moderation_update_policies.sql`** in the Supabase SQL editor (do NOT `db push` — shared Supabase history; apply manually, batch with any other pending SQL). Adds admin/moderator UPDATE RLS on `reviews`/`comments`. **Until this runs, all moderation approvals/rejections (reviews, comments, and the report queue acting on content) are silent no-ops** — the cookie-aware client is blocked by the owner-only policy and updates 0 rows without erroring.
+2. ⬜ §A-1 `SUPABASE_SERVICE_ROLE_KEY` on Vercel — unblocks the report→queue insert AND `/admin/users` role changes AND audit logging.
+3. ⬜ §A-2 Supabase Auth URL config (needed before relying on email confirm / password reset).
+4. ⬜ §A-3 First admin promotion via SQL.
+5. ⬜ §A-4 Flip `GOSSOKO_REVIEW_PREMODERATION=true` when ready (now safe to enable — comment moderation surface exists; do §A-0 first).
 
 **Done:** §1, §2, §3, §4, §5, §6, §7, §8, §9.
 
-## C2. Follow-ups identified during the 2026-05-28 pass
+## C2. Follow-ups
 
-- **Pending-comment moderation surface.** With pre-moderation ON, new comments land `pending` and are visible only to author/admins, but `/admin/moderation` has no "Pending Comments" section to approve them. NOT a trivial mirror of "Pending Reviews": `comments` (and `reviews`) only have an **owner-only** UPDATE RLS policy — there is no admin/moderator UPDATE policy — so an admin approving someone else's pending comment must either go through the service-role client (`getAdminClient`, like `/admin/users`, so it'd need §A-1) OR a new RLS migration adding an admin-UPDATE policy. Decide which before enabling §A-4. (Same caveat quietly applies to the existing reviews approval path — worth verifying it actually works under RLS once a real signup exists.)
-- **Queue resolution doesn't act on the reported content.** `resolveQueueItem` marks the `moderation_queue` row resolved but doesn't hide/approve the underlying review or comment. Pre-existing for reviews; now also applies to reported comments (§5 made comments reportable).
-- **§10 email defaults** (real SMTP provider) still pending — only matters once email confirmation is turned on.
+**Resolved 2026-05-28 (commit on `finish-punch-list`):**
+- ✅ **Admin/moderator UPDATE RLS for reviews & comments** — migration `20260528000001` adds the missing admin/mod UPDATE policy (the base policy was owner-only, so review pre-moderation never actually worked under RLS and comments had no path). Run via §A-0. This also fixes the existing review-approval path.
+- ✅ **Pending-comment moderation surface** — `resolveCommentSubmission` + a "Pending Comments" section on `/admin/moderation`.
+- ✅ **Queue resolution acts on reported content** — `resolveQueueItem` now flips the reported review/comment's `moderation_status` (approve→approved, hide→flagged, reject→rejected).
+
+**Still open:**
+- **Venue reports don't moderate the venue.** `_report/actions.ts` maps reportableType `venue` → content_type `'review'` (likely to satisfy the `moderation_queue.content_type` CHECK), so resolving a venue report is a harmless 0-row no-op — the venue is never hidden. Fix needs the CHECK widened to allow `'venue'` (a migration) + a venues branch in `resolveQueueItem`. (Pre-existing; inherited, not introduced by this pass.)
+- **RLS integration test.** The moderator-can-update / user-cannot-update behavior on reviews/comments that migration `20260528000001` creates is only verified by reasoning — no automated check (the 335-test suite is pure-logic, no DB harness). Add an RLS integration test against a local Supabase if/when a harness exists.
+- **§10 email defaults** (real SMTP provider) — only matters once email confirmation is turned on.
 
 ### Polish done 2026-05-28 (post-PR, on `finish-punch-list`)
 - `/admin` "Users" nav link is now hidden from moderators (gated on `view_users`) instead of showing a link that just bounces to `/`.
