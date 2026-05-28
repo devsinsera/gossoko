@@ -22,6 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/moderation" style={{ color: COLORS.text, textDecoration: 'none' }}>
             Moderation
           </Link>
+          <Link href="/admin/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
+            Users
+          </Link>
         </nav>
       </header>
       <main style={{ padding: 16, paddingBottom: 80 }}>{children}</main>
