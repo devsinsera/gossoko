@@ -21,6 +21,46 @@ Sections are roughly ordered by impact, not by sequence — see "Recommended ord
 
 ---
 
+## 🔴 HIGH PRIORITY BUG — RLS infinite recursion breaks data loading
+
+Found 2026-05-28 by running the dev server locally against the shared Supabase.
+Venue/review reads fail:
+
+```
+[gossoko] getAllVenues failed: infinite recursion detected in policy for relation "profiles"
+[gossoko] getVenueBySlug failed: infinite recursion detected in policy for relation "profiles"
+```
+
+**Root cause:** the `profiles` SELECT policy ("Public profiles are viewable by everyone",
+migration `20260519000002`) checks the caller's role with an inline
+`EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','moderator'))`.
+That subquery on `profiles` re-triggers the same `profiles` policy → Postgres aborts with
+"infinite recursion". Any policy that does the same inline role check on its own table's
+read path inherits it (venues, reviews, comments SELECT policies all do). The helper
+functions `gossoko.user_role()/is_admin()/is_moderator()` exist but are `LANGUAGE sql
+STABLE` (NOT `SECURITY DEFINER`), so they DON'T bypass RLS and would recurse too.
+
+**Impact:** likely affects the LIVE app (local uses the same shared project) — venue lists,
+venue detail, rankings, search may be loading empty. App returns HTTP 200 because the
+query layer swallows the error and returns []. Also means my new admin moderation UPDATE
+policies (`20260528000001`) will recurse the moment an admin actually approves/rejects.
+
+**Fix (do carefully next session, with review — it's security-critical RLS on a SHARED
+Supabase; do NOT rush):**
+1. Make `gossoko.user_role()/is_admin()/is_moderator()` `SECURITY DEFINER` (+ `SET search_path`)
+   so their internal `SELECT FROM profiles` bypasses RLS and can't recurse.
+2. Rewrite every policy that inlines `EXISTS (SELECT … FROM profiles … role …)` to call
+   `is_admin()`/`is_moderator()` instead — profiles, venues, reviews, comments,
+   review_photos, venue_claims, moderation_queue, AND the two policies migration
+   `20260528000001` added.
+3. Verify locally (dev server) that getAllVenues/getVenueBySlug return rows, then have the
+   user apply the SQL via the Supabase editor.
+
+NOTE: not introduced by this session's feature work — the venues→profiles→profiles recursion
+predates it. But it must be fixed before launch (and before relying on moderation).
+
+---
+
 ## A. Setup steps you need to do (not code)
 
 These don't require any code changes — they're config/env tweaks on Supabase or Vercel.
