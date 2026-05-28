@@ -1,6 +1,11 @@
 # Gossoko — remaining work
 
-Last updated: 2026-05-25 · branch `main` · latest commit `7664a61`.
+Last updated: 2026-05-28 · branch `finish-punch-list` (off `main`).
+
+> 2026-05-28: §2, §5, §6, §7, §8, §9 all shipped on `finish-punch-list`
+> (typecheck + build clean, 335 tests passing). Remaining work is now the
+> §A config items (which need you, not code) and the follow-ups noted at the
+> bottom. Earlier status (below) preserved for context.
 
 Use this as the live "what's next" punch list. Tick items off as they ship.
 Sections are roughly ordered by impact, not by sequence — see "Recommended order" at the bottom.
@@ -34,10 +39,9 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 - Admin `/admin/moderation` has a "Pending Venues" section with Approve/Reject.
 - Profile "Add a Venue" tile now links to `/venue/new`.
 
-### 2. Distance from geolocation *(~30 min — next up)*
-- Replace `venues.distance_km` static-column reads with `getCurrentPosition()` → compute haversine distance per venue.
-- Lives in a client wrapper (e.g. `src/components/DistanceProvider.tsx`) that hydrates after page load and updates the home/nearby/rankings lists.
-- Graceful fallback: if geo denied, show the static column value (current behaviour).
+### 2. Distance from geolocation ✅ *(shipped)*
+- `src/lib/geo.ts` (haversine + format, unit-tested), `src/components/DistanceProvider.tsx` (post-hydration `getCurrentPosition`, never blocks render), `VenueDistance` display component, and `nearby/NearbyList.tsx` (re-sorts/filters by real distance when coords are available).
+- Graceful fallback to the static `distance_km` column on denial/timeout/unsupported.
 
 ### 3. Pre-moderation toggle ✅ *(shipped)*
 - Code-side complete. Flip the `GOSSOKO_REVIEW_PREMODERATION=true` env var on Vercel when you're ready to require admin approval before new reviews go public.
@@ -48,27 +52,24 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 - `toggleHelpful` server action + `HelpfulButton` client component with optimistic UI.
 - DB trigger keeps `reviews.helpful_count` in sync on insert/delete.
 
-### 5. Comments on reviews *(~45 min)*
-- Schema already exists (`comments` table). No UI yet.
-- Below each review card on the venue page: expandable "Add a comment" textarea + comments list.
-- Same moderation rules as reviews (auto-approve, reportable).
+### 5. Comments on reviews ✅ *(shipped)*
+- `src/app/_comments/*` (action + `CommentsSection`) + `src/lib/queries/comments.ts`. Expandable add-comment + list under each review card on the venue page.
+- Same moderation rules as reviews (`GOSSOKO_REVIEW_PREMODERATION`), reportable via the existing `ReportButton` (`reportableType="comment"`).
+- NOTE: when pre-moderation is ON, pending comments have no approve surface in `/admin/moderation` yet (reviews do) — see follow-ups below.
 
-### 6. Edit/delete-your-review polish *(~15 min)*
-- Profile "My Recent Reviews" rows could link to `/review/new?venue=<slug>` (which already auto-detects existing) instead of just the venue page — saves a click.
-- Add a small Delete action next to Edit, with a soft-delete (`deleted_at`).
+### 6. Edit/delete-your-review polish ✅ *(shipped)*
+- Profile "My Recent Reviews" rows now have an Edit shortcut to `/review/new?venue=<slug>` and a soft-delete (`reviews.deleted_at`) with confirmation. Controls are gated to the signed-in owner.
 
-### 7. Admin user/role management *(~45 min)*
-- Today: only SQL can change a profile's role.
-- Build `/admin/users` — list of profiles with role dropdown for admins (`edit_user_role` permission already exists in the RBAC schema).
-- Audit-log each role change (already supported by the existing `audit_logs` table).
+### 7. Admin user/role management ✅ *(shipped)*
+- `/admin/users` lists profiles with a role dropdown (admins only, `edit_user_role`), audit-logs each change, prevents self-lockout.
+- NOTE: changing another user's role needs the service-role client (no RLS UPDATE policy lets an admin change others' roles), so it requires `SUPABASE_SERVICE_ROLE_KEY` (§A-1). Without it the action shows a clear "configure service key" banner instead of failing silently.
 
-### 8. `tests/security/*` unused-import cleanup *(~5 min)*
-- 9 pre-existing TS6133 errors in `tests/security/*` — unused `beforeEach`, `vi`, `NextRequest`, `script`, `max`, `key` imports.
-- Easy win, makes `tsc --noEmit` clean across the whole tree.
+### 8. `tests/security/*` unused-import cleanup ✅ *(shipped)*
+- Removed the 9 TS6133 errors; `tsc --noEmit` is now clean across the whole tree.
 
-### 9. Venue claims flow *(~1 hour, builds on §1)*
-- `venue_claims` table already exists with `verification_type` ('email' | 'evidence'), `evidence_storage_path`, appeal tracking.
-- UI: "Claim this venue" button on venue page → form (proof type, email or evidence upload to storage bucket already provisioned in migration 003) → admin verifies in `/admin/moderation` → on approval, `venue.created_by` updates to the claimant.
+### 9. Venue claims flow ✅ *(shipped — schema-faithful subset)*
+- "Claim this venue" on the venue page (contextual states: manage / pending / declined / sign-in) → creates a pending `venue_claims` row → admin Approve/Reject in `/admin/moderation` → on approval `venues.created_by` transfers to the claimant.
+- NOTE: the real `venue_claims` table has NO `verification_type` / `evidence_storage_path` / appeal columns, so this is the email-less, evidence-upload-less subset. Evidence upload / email verification would need a migration first — out of scope for this pass.
 
 ### 10. Email confirmation defaults *(~10 min, when you turn email confirmation on)*
 - The `/auth/confirm` route handler exists and works.
@@ -78,20 +79,21 @@ These don't require any code changes — they're config/env tweaks on Supabase o
 
 ## C. Recommended order
 
-Path A (real-world usable) is now mostly shipped — only §A-1 (service-role key) is still pending on your side. From here either path works:
+All §B code items are shipped on `finish-punch-list`. What's left is config (you) + optional follow-ups:
 
-**Path A — finish hardening:**
-1. ✅ ~~§1 Add a Venue~~
-2. ⬜ §A-1 Service-role key on Vercel — *you*
-3. ✅ ~~§3 Pre-moderation toggle~~ (flip env var when ready)
-4. ✅ ~~§4 Helpful button~~
-5. §6 Edit/delete polish (quick wins)
-6. §7 Admin user/role management
+**Still on you (config, not code):**
+1. ⬜ §A-1 `SUPABASE_SERVICE_ROLE_KEY` on Vercel — unblocks the report→queue insert AND `/admin/users` role changes AND venue-claim/role audit logging.
+2. ⬜ §A-2 Supabase Auth URL config (needed before relying on email confirm / password reset).
+3. ⬜ §A-3 First admin promotion via SQL.
+4. ⬜ §A-4 Flip `GOSSOKO_REVIEW_PREMODERATION=true` when ready (note the comment-moderation follow-up below before doing so).
 
-**Path B — best demo experience:**
-1. §2 Distance from geo (lights up "5km away" everywhere — feels real)
-2. §5 Comments
-3. §9 Venue claims (now unblocked by §1)
+**Done:** §1, §2, §3, §4, §5, §6, §7, §8, §9.
+
+## C2. Follow-ups identified during the 2026-05-28 pass
+
+- **Pending-comment moderation surface.** With pre-moderation ON, new comments land `pending` and are visible only to author/admins, but `/admin/moderation` has no "Pending Comments" section to approve them (reviews/venues/claims do). Add one before enabling §A-4.
+- **Queue resolution doesn't act on the reported content.** `resolveQueueItem` marks the `moderation_queue` row resolved but doesn't hide/approve the underlying review or comment. Pre-existing for reviews; now also applies to reported comments (§5 made comments reportable).
+- **§10 email defaults** (real SMTP provider) still pending — only matters once email confirmation is turned on.
 
 ---
 
