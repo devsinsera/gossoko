@@ -1,6 +1,7 @@
 // src/types/rbac.ts
 
-export type UserRole = 'user' | 'moderator' | 'admin' | 'business';
+export const USER_ROLES = ['user', 'moderator', 'admin', 'business'] as const;
+export type UserRole = typeof USER_ROLES[number];
 
 export type Permission =
   | 'view_pending_content'

@@ -1,38 +1,32 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requirePermission } from '@/lib/auth/permissions';
+import { USER_ROLES, type UserRole } from '@/types/rbac';
 
-const VALID_ROLES = ['user', 'moderator', 'admin', 'business'] as const;
-type UserRole = typeof VALID_ROLES[number];
+function back(status: string): never {
+  revalidatePath('/admin/users');
+  redirect(`/admin/users?status=${status}`);
+}
 
 export async function updateUserRole(formData: FormData): Promise<void> {
-  const user = await requirePermission('edit_user_role');
+  const user = await requirePermission('edit_user_role', '/admin/users');
 
   const targetUserId = String(formData.get('userId') ?? '').trim();
-  const newRole = String(formData.get('role') ?? '').trim() as UserRole;
+  const submittedRole = String(formData.get('role') ?? '').trim();
 
-  if (!targetUserId) {
-    throw new Error('Missing target user ID.');
-  }
-
-  if (!VALID_ROLES.includes(newRole)) {
-    throw new Error(`Invalid role: "${newRole}". Must be one of: ${VALID_ROLES.join(', ')}.`);
-  }
+  if (!targetUserId) back('missing_user');
+  if (!USER_ROLES.includes(submittedRole as UserRole)) back('invalid_role');
+  const newRole = submittedRole as UserRole;
 
   // Self-lockout guard: admins may not change their own role.
-  if (targetUserId === user.id) {
-    throw new Error('You cannot change your own role.');
-  }
+  if (targetUserId === user.id) back('self');
 
   const admin = getAdminClient();
-  if (!admin) {
-    throw new Error(
-      'Role changes require SUPABASE_SERVICE_ROLE_KEY to be configured on the server.'
-    );
-  }
+  if (!admin) back('no_service_key');
 
   // Read the target profile to capture old role for audit logging.
   const supabase = await createClient();
@@ -42,17 +36,10 @@ export async function updateUserRole(formData: FormData): Promise<void> {
     .eq('id', targetUserId)
     .single();
 
-  if (fetchErr || !target) {
-    throw new Error(`Could not fetch user profile: ${fetchErr?.message ?? 'not found'}`);
-  }
+  if (fetchErr || !target) back('not_found');
 
-  const oldRole = target.role as string;
-
-  if (oldRole === newRole) {
-    // No change needed — silently succeed.
-    revalidatePath('/admin/users');
-    return;
-  }
+  const oldRole = target.role as UserRole;
+  if (oldRole === newRole) back('nochange');
 
   // Update the profile role via the service-role client (bypasses RLS —
   // there is no RLS UPDATE policy permitting an admin to change another user's role).
@@ -62,7 +49,8 @@ export async function updateUserRole(formData: FormData): Promise<void> {
     .eq('id', targetUserId);
 
   if (updateErr) {
-    throw new Error(`Could not update role: ${updateErr.message}`);
+    console.error('[gossoko] updateUserRole failed:', updateErr.message);
+    back('update_failed');
   }
 
   // Audit log via service-role client (audit_logs INSERT policy requires auth.uid() IS NULL).
@@ -79,5 +67,5 @@ export async function updateUserRole(formData: FormData): Promise<void> {
     console.warn('[gossoko] audit_log write failed (role change):', auditErr.message);
   }
 
-  revalidatePath('/admin/users');
+  back('updated');
 }

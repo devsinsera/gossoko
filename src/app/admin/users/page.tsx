@@ -1,12 +1,24 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/auth/permissions';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { USER_ROLES, type UserRole } from '@/types/rbac';
 import { updateUserRole } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-const ROLES = ['user', 'moderator', 'admin', 'business'] as const;
-type UserRole = typeof ROLES[number];
+const STATUS_MESSAGES: Record<string, { text: string; ok: boolean }> = {
+  updated: { text: 'Role updated and audit-logged.', ok: true },
+  nochange: { text: 'No change — that user already has that role.', ok: true },
+  self: { text: 'You cannot change your own role.', ok: false },
+  invalid_role: { text: 'That role is not valid.', ok: false },
+  missing_user: { text: 'No user was specified.', ok: false },
+  not_found: { text: 'That user could not be found.', ok: false },
+  update_failed: { text: 'The role change failed. Please try again.', ok: false },
+  no_service_key: {
+    text: 'Role changes require SUPABASE_SERVICE_ROLE_KEY to be set on the server (see deploy config).',
+    ok: false,
+  },
+};
 
 type ProfileRow = {
   id: string;
@@ -25,8 +37,14 @@ const ROLE_COLOR: Record<UserRole, string> = {
   user: COLORS.textMuted,
 };
 
-export default async function AdminUsersPage() {
-  const currentUser = await requirePermission('view_users');
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const currentUser = await requirePermission('view_users', '/admin/users');
+  const { status } = await searchParams;
+  const statusMsg = status ? STATUS_MESSAGES[status] : undefined;
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -45,6 +63,16 @@ export default async function AdminUsersPage() {
       <p style={{ fontSize: 13, color: COLORS.textSecondary, margin: `0 0 ${SPACE.xl}px` }}>
         {profiles.length} user{profiles.length !== 1 ? 's' : ''}. Use the dropdown to change a role — each change is audit-logged.
       </p>
+
+      {statusMsg && (
+        <div role="status" style={{
+          background: statusMsg.ok ? COLORS.surface : COLORS.orangeFaint,
+          border: `1px solid ${statusMsg.ok ? COLORS.hiVisGreen : COLORS.orange}`,
+          borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
+        }}>
+          {statusMsg.text}
+        </div>
+      )}
 
       {error && (
         <div style={{
@@ -128,6 +156,7 @@ export default async function AdminUsersPage() {
                   <select
                     name="role"
                     defaultValue={profile.role}
+                    aria-label={`Change role for ${displayName}`}
                     style={{
                       background: COLORS.surfaceAlt,
                       color: COLORS.text,
@@ -139,7 +168,7 @@ export default async function AdminUsersPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {ROLES.map((r) => (
+                    {USER_ROLES.map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>

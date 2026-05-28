@@ -32,9 +32,9 @@ export async function hasPermission(perm: Permission): Promise<boolean> {
  * Server-component guard. Redirects to /login if signed out, or to / if the
  * user lacks the required permission. Returns the authenticated user when ok.
  */
-export async function requirePermission(perm: Permission) {
+export async function requirePermission(perm: Permission, next: string = '/admin/moderation') {
   const user = await getCurrentUser();
-  if (!user) redirect('/login?next=/admin/moderation');
+  if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
 
   const allowed = await hasPermission(perm);
   if (!allowed) redirect('/');
