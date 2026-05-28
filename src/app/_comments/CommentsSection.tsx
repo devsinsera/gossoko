@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
 import { ReportButton } from '../_report/ReportButton';
 import { addComment } from './actions';
+import { MAX_COMMENT_LENGTH } from './constants';
 import type { ReviewComment } from '@/lib/queries/comments';
 
-const MAX_COMMENT_LENGTH = 1000;
+const COMMENT_WARN_THRESHOLD = Math.floor(MAX_COMMENT_LENGTH * 0.9);
 
 function relativeDate(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -81,6 +82,7 @@ export function CommentsSection({
       {/* Toggle row */}
       <button
         type="button"
+        aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
         style={{
           background: 'transparent',
@@ -202,6 +204,7 @@ export function CommentsSection({
           }}>
             <textarea
               value={body}
+              aria-label="Add a comment"
               onChange={(e) => {
                 setBody(e.target.value);
                 if (error) setError(null);
@@ -236,7 +239,7 @@ export function CommentsSection({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: SPACE.sm }}>
               <span style={{
                 fontSize: 10,
-                color: body.length > MAX_COMMENT_LENGTH ? COLORS.red : COLORS.textMuted,
+                color: body.length >= COMMENT_WARN_THRESHOLD ? COLORS.red : COLORS.textMuted,
                 fontFamily: 'var(--font-mono)',
               }}>
                 {body.length}/{MAX_COMMENT_LENGTH}

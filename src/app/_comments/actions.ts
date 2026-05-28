@@ -3,8 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/permissions';
-
-const MAX_COMMENT_LENGTH = 1000;
+import { MAX_COMMENT_LENGTH } from './constants';
 
 export type AddCommentResult =
   | { ok: true }
