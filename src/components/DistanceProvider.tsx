@@ -19,7 +19,7 @@ export function DistanceProvider({ children }: { children: React.ReactNode }) {
   const [coords, setCoords] = useState<Coords | null>(null);
 
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (!navigator.geolocation) return;
 
     let cancelled = false;
     navigator.geolocation.getCurrentPosition(

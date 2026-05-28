@@ -22,8 +22,18 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
   const coords = useCoords();
 
   const { sortedByDistance, nearAndTopRated } = useMemo(() => {
-    const distanceOf = (v: Venue) =>
-      coords ? haversineKm(coords.lat, coords.lng, v.lat, v.lng) : v.distance_km;
+    // Compute each venue's distance once; guard against non-finite lat/lng so a
+    // bad coordinate can't poison the sort with NaN comparisons.
+    const distances = new Map(
+      venues.map((v) => {
+        const live =
+          coords && Number.isFinite(v.lat) && Number.isFinite(v.lng)
+            ? haversineKm(coords.lat, coords.lng, v.lat, v.lng)
+            : v.distance_km;
+        return [v.id, live] as const;
+      }),
+    );
+    const distanceOf = (v: Venue) => distances.get(v.id) ?? v.distance_km;
 
     const sorted = [...venues].sort((a, b) => distanceOf(a) - distanceOf(b));
     const topNear = sorted
@@ -47,7 +57,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
               key={v.id}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '44px 1fr auto',
+                gridTemplateColumns: 'minmax(44px, auto) 1fr auto',
                 gap: 12,
                 alignItems: 'center',
                 padding: '12px 14px',
@@ -57,7 +67,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
               }}
             >
               <div style={{
-                width: 44, height: 44, borderRadius: 8,
+                minWidth: 44, height: 44, borderRadius: 8, padding: '0 6px',
                 background: `linear-gradient(135deg, ${v.hero_color}, #0a0908)`,
                 border: `1px solid ${v.hero_accent}`,
                 color: v.hero_accent,
@@ -66,6 +76,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
                 fontSize: 11,
                 fontWeight: 700,
                 letterSpacing: '0.06em',
+                whiteSpace: 'nowrap',
               }}>
                 <VenueDistance lat={v.lat} lng={v.lng} fallbackKm={v.distance_km} />
               </div>
