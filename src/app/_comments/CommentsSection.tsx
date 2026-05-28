@@ -250,7 +250,7 @@ export function CommentsSection({
                 disabled={pending}
                 style={{
                   background: COLORS.orange,
-                  color: '#0a0908',
+                  color: COLORS.bg,
                   border: 'none',
                   borderRadius: RADIUS.md,
                   padding: '8px 16px',

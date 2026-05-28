@@ -1,11 +1,14 @@
 import Link from 'next/link';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission, hasPermission } from '@/lib/auth/permissions';
 import { COLORS } from '@/lib/theme';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requirePermission('view_moderation_queue');
+  // Moderators reach this layout (view_moderation_queue) but lack view_users;
+  // hide the Users link from them rather than show a link that just bounces to /.
+  const canManageUsers = await hasPermission('view_users');
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text }}>
@@ -22,9 +25,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/moderation" style={{ color: COLORS.text, textDecoration: 'none' }}>
             Moderation
           </Link>
-          <Link href="/admin/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
-            Users
-          </Link>
+          {canManageUsers && (
+            <Link href="/admin/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
+              Users
+            </Link>
+          )}
         </nav>
       </header>
       <main style={{ padding: 16, paddingBottom: 80 }}>{children}</main>

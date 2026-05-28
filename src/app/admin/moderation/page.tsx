@@ -159,12 +159,12 @@ export default async function ModerationPage() {
                 <form action={resolveVenueSubmission}>
                   <input type="hidden" name="id" value={v.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve venue ${v.name}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
                 </form>
                 <form action={resolveVenueSubmission}>
                   <input type="hidden" name="id" value={v.id} />
                   <input type="hidden" name="decision" value="rejected" />
-                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                  <button type="submit" aria-label={`Reject venue ${v.name}`} style={btnStyle(COLORS.red)}>Reject</button>
                 </form>
               </div>
             </li>
@@ -217,12 +217,12 @@ export default async function ModerationPage() {
                 <form action={resolveReviewSubmission}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve review on ${r.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
                 </form>
                 <form action={resolveReviewSubmission}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="decision" value="rejected" />
-                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                  <button type="submit" aria-label={`Reject review on ${r.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.red)}>Reject</button>
                 </form>
               </div>
             </li>

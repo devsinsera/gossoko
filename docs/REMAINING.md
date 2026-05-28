@@ -91,9 +91,14 @@ All §B code items are shipped on `finish-punch-list`. What's left is config (yo
 
 ## C2. Follow-ups identified during the 2026-05-28 pass
 
-- **Pending-comment moderation surface.** With pre-moderation ON, new comments land `pending` and are visible only to author/admins, but `/admin/moderation` has no "Pending Comments" section to approve them (reviews/venues/claims do). Add one before enabling §A-4.
+- **Pending-comment moderation surface.** With pre-moderation ON, new comments land `pending` and are visible only to author/admins, but `/admin/moderation` has no "Pending Comments" section to approve them. NOT a trivial mirror of "Pending Reviews": `comments` (and `reviews`) only have an **owner-only** UPDATE RLS policy — there is no admin/moderator UPDATE policy — so an admin approving someone else's pending comment must either go through the service-role client (`getAdminClient`, like `/admin/users`, so it'd need §A-1) OR a new RLS migration adding an admin-UPDATE policy. Decide which before enabling §A-4. (Same caveat quietly applies to the existing reviews approval path — worth verifying it actually works under RLS once a real signup exists.)
 - **Queue resolution doesn't act on the reported content.** `resolveQueueItem` marks the `moderation_queue` row resolved but doesn't hide/approve the underlying review or comment. Pre-existing for reviews; now also applies to reported comments (§5 made comments reportable).
 - **§10 email defaults** (real SMTP provider) still pending — only matters once email confirmation is turned on.
+
+### Polish done 2026-05-28 (post-PR, on `finish-punch-list`)
+- `/admin` "Users" nav link is now hidden from moderators (gated on `view_users`) instead of showing a link that just bounces to `/`.
+- Added `aria-label`s to every Approve/Reject button on `/admin/moderation` (venues, reviews, claims) so screen readers can tell the repeated buttons apart.
+- Minor theme-token tidy in the comment Post button.
 
 ---
 
