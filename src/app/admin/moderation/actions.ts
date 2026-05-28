@@ -111,23 +111,12 @@ export async function resolveVenueClaim(formData: FormData): Promise<void> {
     throw new Error('Could not load venue claim');
   }
 
-  const { error } = await supabase
-    .from('venue_claims')
-    .update({
-      status: decision,
-      verified_at: new Date().toISOString(),
-      verified_by: user.id,
-      rejection_reason: decision === 'rejected' ? notes : null,
-    })
-    .eq('id', id);
-
-  if (error) {
-    console.error('[gossoko] resolveVenueClaim failed:', error.message);
-    throw new Error(`Could not update venue claim: ${error.message}`);
-  }
-
-  // On approval, hand the venue to the claimant. RLS lets an admin set
-  // venues.created_by; mirror resolveVenueSubmission by stamping last_updated_by.
+  // On approval, transfer the venue to the claimant FIRST, then mark the claim
+  // approved. If the venue update fails we abort before touching the claim, so
+  // the two records can't drift into an "approved-but-unlinked" state. The venue
+  // update is idempotent, so re-approving after a later failure is safe. RLS lets
+  // an admin set venues.created_by; mirror resolveVenueSubmission by stamping
+  // last_updated_by.
   let venueSlug: string | null = null;
   if (decision === 'approved') {
     const { data: venue, error: venueErr } = await supabase
@@ -142,6 +131,21 @@ export async function resolveVenueClaim(formData: FormData): Promise<void> {
       throw new Error(`Could not transfer venue: ${venueErr.message}`);
     }
     venueSlug = venue?.slug ?? null;
+  }
+
+  const { error } = await supabase
+    .from('venue_claims')
+    .update({
+      status: decision,
+      verified_at: new Date().toISOString(),
+      verified_by: user.id,
+      rejection_reason: decision === 'rejected' ? notes : null,
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[gossoko] resolveVenueClaim failed:', error.message);
+    throw new Error(`Could not update venue claim: ${error.message}`);
   }
 
   const admin = getAdminClient();

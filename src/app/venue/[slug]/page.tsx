@@ -62,27 +62,27 @@ export default async function VenueDetailPage({
   const reviews = await getReviewsByVenueId(venue.id);
   const currentUser = await getCurrentUser();
 
-  // Lightweight claim-state lookup: who owns the venue, and whether the
-  // current user already has a live claim for it. Drives which affordance the
-  // claim block renders. (getVenueBySlug doesn't select created_by.)
-  const supabase = await createClient();
-  const { data: venueOwner } = await supabase
-    .from('venues')
-    .select('created_by')
-    .eq('id', venue.id)
-    .maybeSingle();
-  const ownsVenue = !!currentUser && venueOwner?.created_by === currentUser.id;
-
+  // Claim-state lookup, only relevant to a signed-in user: does the user own
+  // this venue, and do they already have a live claim for it? Skipped entirely
+  // for anonymous visitors (who always see the "sign in to claim" affordance),
+  // and run as a single parallel round-trip. (getVenueBySlug doesn't select
+  // created_by.)
+  let ownsVenue = false;
   let userClaimStatus: string | null = null;
-  if (currentUser && !ownsVenue) {
-    const { data: myClaim } = await supabase
-      .from('venue_claims')
-      .select('status')
-      .eq('venue_id', venue.id)
-      .eq('user_id', currentUser.id)
-      .is('deleted_at', null)
-      .maybeSingle();
-    userClaimStatus = myClaim?.status ?? null;
+  if (currentUser) {
+    const supabase = await createClient();
+    const [ownerRes, claimRes] = await Promise.all([
+      supabase.from('venues').select('created_by').eq('id', venue.id).maybeSingle(),
+      supabase
+        .from('venue_claims')
+        .select('status')
+        .eq('venue_id', venue.id)
+        .eq('user_id', currentUser.id)
+        .is('deleted_at', null)
+        .maybeSingle(),
+    ]);
+    ownsVenue = ownerRes.data?.created_by === currentUser.id;
+    userClaimStatus = ownsVenue ? null : (claimRes.data?.status ?? null);
   }
   const [likedSet, commentsMap] = await Promise.all([
     currentUser
@@ -541,7 +541,7 @@ export default async function VenueDetailPage({
           flexDirection: 'column',
           gap: 10,
         }}>
-          {ownsVenue ? (
+          {ownsVenue || userClaimStatus === 'approved' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisGreen, fontSize: 13.5, fontWeight: 700 }}>
               <VerifiedIcon size={16} />
               You manage this venue.

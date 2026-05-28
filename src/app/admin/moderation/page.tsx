@@ -258,7 +258,7 @@ export default async function ModerationPage() {
               borderRadius: RADIUS.lg,
               padding: SPACE.lg,
             }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.md, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.xs, flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: 15 }}>{c.venue?.name ?? '(unknown venue)'}</strong>
                 <span style={{ fontSize: 12, color: COLORS.textMuted }}>
                   claimed by @{c.profile?.username ?? c.profile?.full_name ?? '?'}
@@ -269,12 +269,12 @@ export default async function ModerationPage() {
                 <form action={resolveVenueClaim}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve claim for ${c.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
                 </form>
                 <form action={resolveVenueClaim}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="decision" value="rejected" />
-                  <button type="submit" style={btnStyle(COLORS.red)}>Reject</button>
+                  <button type="submit" aria-label={`Reject claim for ${c.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.red)}>Reject</button>
                 </form>
               </div>
             </li>
