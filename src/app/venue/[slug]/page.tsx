@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
 import { getReviewsByVenueId, getUserLikedReviewIds } from '@/lib/queries/reviews';
+import { getCommentsByReviewIds } from '@/lib/queries/comments';
 import { getCurrentUser } from '@/lib/auth/permissions';
 import { HelpfulButton } from '../../_likes/HelpfulButton';
+import { CommentsSection } from '../../_comments/CommentsSection';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
 import type { VenueType } from '@/lib/seed/types';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
@@ -49,9 +51,12 @@ export default async function VenueDetailPage({
 
   const reviews = await getReviewsByVenueId(venue.id);
   const currentUser = await getCurrentUser();
-  const likedSet = currentUser
-    ? await getUserLikedReviewIds(currentUser.id, reviews.map((r) => r.id))
-    : new Set<string>();
+  const [likedSet, commentsMap] = await Promise.all([
+    currentUser
+      ? getUserLikedReviewIds(currentUser.id, reviews.map((r) => r.id))
+      : Promise.resolve(new Set<string>()),
+    getCommentsByReviewIds(reviews.map((r) => r.id)),
+  ]);
   const HeroIcon = venueIconFor(venue.venue_type);
   const allVenues = await getAllVenues();
   const similar = allVenues
@@ -445,6 +450,12 @@ export default async function VenueDetailPage({
                     <ReportButton reportableType="review" reportableId={r.id} back={`/venue/${venue.slug}`} />
                   </div>
                 </footer>
+                <CommentsSection
+                  reviewId={r.id}
+                  venueSlug={venue.slug}
+                  initialComments={commentsMap.get(r.id) ?? []}
+                  isSignedIn={!!currentUser}
+                />
               </article>
             ))
           )}
