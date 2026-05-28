@@ -61,6 +61,29 @@ predates it. But it must be fixed before launch (and before relying on moderatio
 
 ---
 
+## 🔎 Security/bug audit — 2026-05-28
+
+Full-codebase audit (6 parallel reviewers + verification). App-code fixes shipped
+on `finish-punch-list`; the security/RLS/infra items are deferred for a careful,
+reviewed pass (they touch the SHARED Supabase or need infra — do NOT rush).
+
+**Fixed (app code, commit `1c8c7d4`):** review-edit re-moderation bypass; raw DB
+error leak in submitReview/submitVenue; login account-enumeration; addComment now
+validates the parent review; auth/confirm OTP `type` allow-listed; home "Latest
+from the Crew" join (was always empty).
+
+**Deferred — need a reviewed migration / infra decision (ranked):**
+1. 🔴 RLS infinite recursion (profiles + ~25 policies) — see top section. Breaks live data loading.
+2. 🟠 **Venue-claim self-approval** — `venue_claims` owner UPDATE policy (`...0002:99`) has no `WITH CHECK`, so a claimant can set `status='approved'` directly via the anon key → gains venue_hours/specials/campaigns write (downstream approved-claim policies). Fix: restrict the owner UPDATE `WITH CHECK` so non-admins can't change `status`/`verified_*`.
+3. 🟠 **No brute-force protection** — rate-limiter never instantiates Redis (fails open, `rate-limiter.ts:30`), login is a server action so `/api/*`-only middleware never sees it, and `recordFailedLoginAttempt` is hardcoded to 1 (`auth-hardener.ts:195`). Needs a real rate-limit/lockout backend (Upstash/Redis) + wiring login through it.
+4. 🟠 Over-permissive INSERT policies — `notifications`/`user_activity`/`venue_analytics` use `WITH CHECK (TRUE)` (`...0002:373,531,541`); any user can spoof rows for any user_id. Restrict to `auth.uid() = user_id` (or service-role only).
+5. 🟠 Core pages read static seed, not live DB — `nearby`/`search`/`rankings` import from `@/lib/seed`. Convert to `getAllVenues()` (do AFTER the RLS fix, else they go empty).
+6. 🟡 Queries don't filter `moderation_status='approved'` (reviews/venues/comments) → author sees own pending content as live. 🟡 CSP allows `script-src 'unsafe-inline'` (`config/security.ts:65`) — move to nonces. 🟡 `resetPassword` doesn't require a recovery session. 🟡 upload-validator fails open on parse error / `text/plain` magic-byte skip (verify upload path is even wired).
+
+(Full detail with file:line is in the session notes / git history. Verified false positive: "security headers never applied" — they ARE, via `middleware.ts`.)
+
+---
+
 ## A. Setup steps you need to do (not code)
 
 These don't require any code changes — they're config/env tweaks on Supabase or Vercel.
