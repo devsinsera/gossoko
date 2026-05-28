@@ -42,6 +42,12 @@ export async function submitReview(formData: FormData): Promise<void> {
     redirect(`/login?next=${encodeURIComponent(`/review/new?venue=${venueSlug}`)}`);
   }
 
+  // When GOSSOKO_REVIEW_PREMODERATION=true, new AND edited reviews go back to
+  // 'pending' so they're re-reviewed before going public again — otherwise an
+  // approved review could be edited into anything and stay live.
+  const premoderate = process.env.GOSSOKO_REVIEW_PREMODERATION === 'true';
+  const moderationStatus = premoderate ? 'pending' : 'approved';
+
   const supabase = await createClient();
   let dbError: { message: string } | null;
 
@@ -53,31 +59,29 @@ export async function submitReview(formData: FormData): Promise<void> {
         title,
         body,
         ...ratings,
+        moderation_status: moderationStatus,
         updated_at: new Date().toISOString(),
       })
       .eq('id', reviewId)
       .eq('user_id', user.id);
     dbError = error;
   } else {
-    // When GOSSOKO_REVIEW_PREMODERATION=true, new reviews land in 'pending'
-    // and only the author + admins/moderators can see them (enforced by RLS)
-    // until an admin approves them on /admin/moderation.
-    const premoderate = process.env.GOSSOKO_REVIEW_PREMODERATION === 'true';
     const { error } = await supabase.from('reviews').insert({
       venue_id: venueId,
       user_id: user.id,
       title,
       body,
       ...ratings,
-      moderation_status: premoderate ? 'pending' : 'approved',
+      moderation_status: moderationStatus,
     });
     dbError = error;
   }
 
   if (dbError) {
+    console.error('[gossoko] submitReview failed:', dbError.message);
     const msg = dbError.message.includes('unique')
       ? 'You already reviewed this venue. Reload the page to edit.'
-      : dbError.message;
+      : 'Could not save your review. Please try again.';
     redirect(`/review/new?venue=${venueSlug}&error=` + encodeURIComponent(msg));
   }
 

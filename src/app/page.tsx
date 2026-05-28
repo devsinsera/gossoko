@@ -2,6 +2,7 @@ import { VenueCard } from '@/components/VenueCard';
 import { FilterChips } from '@/components/FilterChips';
 import { getAllVenues } from '@/lib/queries/venues';
 import { RECENT_REVIEWS } from '@/lib/seed/reviews';
+import { VENUES } from '@/lib/seed/venues';
 import { USER_BY_HANDLE } from '@/lib/seed/users';
 import type { Venue } from '@/lib/seed/types';
 import { COLORS } from '@/lib/theme';
@@ -115,7 +116,7 @@ export default async function FeedPage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {recentReviews.map((r) => {
-            const v = venuesByLegacyId.get(r.venue_id);
+            const v = venueBySlug.get(slugByLegacyId.get(r.venue_id) ?? '');
             const u = USER_BY_HANDLE.get(r.user_handle);
             if (!v || !u) return null;
             return (

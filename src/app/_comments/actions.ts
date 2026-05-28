@@ -27,6 +27,18 @@ export async function addComment(
   const premoderate = process.env.GOSSOKO_REVIEW_PREMODERATION === 'true';
 
   const supabase = await createClient();
+
+  // Don't trust the client-supplied reviewId: only allow comments on a review
+  // that exists, isn't soft-deleted, and is publicly approved.
+  const { data: parent } = await supabase
+    .from('reviews')
+    .select('id')
+    .eq('id', reviewId)
+    .eq('moderation_status', 'approved')
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (!parent) return { ok: false, error: 'That review is no longer available.' };
+
   const { error } = await supabase.from('comments').insert({
     review_id: reviewId,
     user_id: user.id,
