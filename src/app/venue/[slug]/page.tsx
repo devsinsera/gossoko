@@ -9,6 +9,7 @@ import type { VenueType } from '@/lib/seed/types';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
 import { RatingBars } from '@/components/RatingBars';
 import { VenueCard } from '@/components/VenueCard';
+import { VenueDistance } from '@/components/VenueDistance';
 import { ReportButton } from '../../_report/ReportButton';
 import {
   StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon, HeartIcon,
@@ -182,7 +183,7 @@ export default async function VenueDetailPage({
           }}>
             <Stat label="Overall" value={venue.overall.toFixed(1)} accent={COLORS.orange} />
             <Stat label="Reviews" value={String(venue.review_count)} />
-            <Stat label="Distance" value={`${venue.distance_km}km`} />
+            <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />} />
             <Stat label="Opens" value={venue.opens_at} />
             <Stat label="Closes" value={venue.closes_at} />
           </div>
@@ -492,7 +493,7 @@ export default async function VenueDetailPage({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
   return (
     <div>
       <div style={{

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { BottomNav } from '@/components/BottomNav';
+import { DistanceProvider } from '@/components/DistanceProvider';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import './globals.css';
 
@@ -34,10 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <div className="app-frame">
-          <main className="app-content">{children}</main>
-          <BottomNav />
-        </div>
+        <DistanceProvider>
+          <div className="app-frame">
+            <main className="app-content">{children}</main>
+            <BottomNav />
+          </div>
+        </DistanceProvider>
         <ServiceWorkerRegistrar />
       </body>
     </html>

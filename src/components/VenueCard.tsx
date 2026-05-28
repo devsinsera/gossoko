@@ -3,6 +3,7 @@ import type { Venue } from '@/lib/seed/types';
 import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
 import { COLORS, RADIUS } from '@/lib/theme';
 import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
+import { VenueDistance } from './VenueDistance';
 
 function venueIcon(type: Venue['venue_type']) {
   if (type === 'gossoko_van') return HardHatIcon;
@@ -143,7 +144,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: COLORS.textMuted }}>
-                {venue.distance_km}km
+                <VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>

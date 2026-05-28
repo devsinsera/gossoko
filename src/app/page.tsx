@@ -6,6 +6,7 @@ import { USER_BY_HANDLE } from '@/lib/seed/users';
 import type { Venue } from '@/lib/seed/types';
 import { COLORS } from '@/lib/theme';
 import { StarIcon, FlameIcon, MapPinIcon } from '@/components/icons';
+import { VenueDistance } from '@/components/VenueDistance';
 import Link from 'next/link';
 
 export default async function FeedPage() {
@@ -238,7 +239,7 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
         }}>
           <Stat label="Overall" value={venue.overall.toFixed(1)} accent={COLORS.orange} />
           <Stat label="Reviews" value={String(venue.review_count)} />
-          <Stat label="Distance" value={`${venue.distance_km}km`} />
+          <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />} />
           <Stat label="Opens" value={venue.opens_at} />
         </div>
       </div>
@@ -246,7 +247,7 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
   return (
     <div>
       <div style={{

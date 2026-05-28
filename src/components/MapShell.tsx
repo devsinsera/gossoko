@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Venue } from '@/lib/seed/types';
 import { COLORS } from '@/lib/theme';
 import { MapPinIcon, ChevronRightIcon, CompassIcon } from './icons';
+import { VenueDistance } from './VenueDistance';
 
 // Fake map. Real one comes later. For the shell we project the venue
 // lat/lng into the SVG viewport so the dots cluster the way Brisbane does,
@@ -204,7 +205,7 @@ export function MapShell({ venues }: { venues: Venue[] }) {
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
               }}>
-                {sel.suburb} · {sel.distance_km}km · ★ {sel.overall.toFixed(1)}
+                {sel.suburb} · <VenueDistance lat={sel.lat} lng={sel.lng} fallbackKm={sel.distance_km} /> · ★ {sel.overall.toFixed(1)}
               </p>
             </div>
             <ChevronRightIcon size={20} />

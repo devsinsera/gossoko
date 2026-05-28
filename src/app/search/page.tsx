@@ -6,6 +6,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { VENUES } from '@/lib/seed/venues';
 import { COLORS } from '@/lib/theme';
 import { ChevronRightIcon, MapPinIcon, StarIcon, SearchIcon } from '@/components/icons';
+import { VenueDistance } from '@/components/VenueDistance';
 
 const RECENT = ['the smoko stop', 'bowen hills', 'open before 5am', 'cheap lunch', 'ute parking'];
 const SUGGESTED_SUBURBS = ['Bowen Hills', 'Newstead', 'Eagle Farm', 'Hamilton', 'Stafford', 'Geebung', 'Salisbury'];
@@ -191,7 +192,7 @@ export default function SearchPage() {
                       color: COLORS.textMuted,
                       marginTop: 2,
                     }}>
-                      {v.suburb} · {v.distance_km}km
+                      {v.suburb} · <VenueDistance lat={v.lat} lng={v.lng} fallbackKm={v.distance_km} />
                     </div>
                   </div>
                   <span style={{
