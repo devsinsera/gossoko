@@ -66,7 +66,7 @@ class MockRedis {
 
   // Evaluate Lua script - simplified implementation for testing
   async eval(
-    script: string,
+    _script: string,
     numKeys: number,
     ...args: string[]
   ): Promise<[number, number]> {

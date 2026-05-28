@@ -1,8 +1,8 @@
 // tests/security/secure-headers.test.ts
 // Comprehensive test suite for security headers configuration and middleware integration
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { NextRequest, NextResponse } from 'next/server';
+import { describe, it, expect } from 'vitest';
+import { NextResponse } from 'next/server';
 import {
   getSecurityHeaders,
   serializeCSP,
@@ -25,7 +25,7 @@ describe('Security Headers Configuration', () => {
 
     it('should return all headers as strings', () => {
       const headers = getSecurityHeaders();
-      Object.entries(headers).forEach(([key, value]) => {
+      Object.entries(headers).forEach(([, value]) => {
         expect(typeof value).toBe('string');
         expect(value.length).toBeGreaterThan(0);
       });
@@ -33,7 +33,7 @@ describe('Security Headers Configuration', () => {
 
     it('should not contain undefined or null values', () => {
       const headers = getSecurityHeaders();
-      Object.entries(headers).forEach(([key, value]) => {
+      Object.entries(headers).forEach(([, value]) => {
         expect(value).not.toBeUndefined();
         expect(value).not.toBeNull();
       });

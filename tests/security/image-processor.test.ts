@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
 import {
   processImage,
@@ -55,7 +55,6 @@ describe('Image Processing & Restrictions', () => {
     });
 
     it('should accept borderline aspect ratios', () => {
-      const max = IMAGE_RESTRICTIONS.maxAspectRatio;
       const result = validateImageDimensions(4000, 1000); // 4:1
       expect(result.valid).toBe(true);
     });
