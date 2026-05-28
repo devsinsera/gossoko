@@ -36,7 +36,7 @@ export function DeleteReviewButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      aria-label="Delete review"
+      aria-label={`Delete review: ${reviewTitle}`}
       style={{
         background: 'transparent',
         border: `1px solid ${COLORS.red}`,

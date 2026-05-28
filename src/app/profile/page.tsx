@@ -291,7 +291,8 @@ export default async function ProfilePage() {
                   <ChevronRightIcon size={16} style={{ color: COLORS.textMuted }} />
                 </Link>
 
-                {/* Bottom row: Edit shortcut + Delete */}
+                {/* Bottom row: Edit shortcut + Delete — only for the signed-in owner */}
+                {authUser && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Link
                     href={`/review/new?venue=${r.venue_slug}`}
@@ -312,14 +313,13 @@ export default async function ProfilePage() {
                   >
                     Edit
                   </Link>
-                  {authUser && (
-                    <DeleteReviewButton
-                      reviewId={r.id}
-                      venueSlug={r.venue_slug}
-                      reviewTitle={r.title}
-                    />
-                  )}
+                  <DeleteReviewButton
+                    reviewId={r.id}
+                    venueSlug={r.venue_slug}
+                    reviewTitle={r.title}
+                  />
                 </div>
+                )}
               </div>
             ))
           )}
