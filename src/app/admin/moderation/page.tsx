@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
-import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission, resolveVenueClaim } from './actions';
+import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission, resolveCommentSubmission, resolveVenueClaim } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +50,14 @@ type PendingReview = {
   profile: { username: string | null; full_name: string | null } | null;
 };
 
+type PendingComment = {
+  id: string;
+  created_at: string;
+  body: string;
+  review: { title: string | null; venue: { name: string; slug: string } | null } | null;
+  profile: { username: string | null; full_name: string | null } | null;
+};
+
 type PendingClaim = {
   id: string;
   created_at: string;
@@ -59,7 +67,7 @@ type PendingClaim = {
 
 export default async function ModerationPage() {
   const supabase = await createClient();
-  const [{ data, error }, venueRes, reviewRes, claimRes] = await Promise.all([
+  const [{ data, error }, venueRes, reviewRes, commentRes, claimRes] = await Promise.all([
     supabase
       .from('moderation_queue')
       .select(`
@@ -90,6 +98,17 @@ export default async function ModerationPage() {
       .order('created_at', { ascending: true })
       .limit(50),
     supabase
+      .from('comments')
+      .select(`
+        id, created_at, body,
+        review:reviews ( title, venue:venues ( name, slug ) ),
+        profile:profiles ( username, full_name )
+      `)
+      .eq('moderation_status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(50),
+    supabase
       .from('venue_claims')
       .select(`
         id, created_at,
@@ -105,6 +124,7 @@ export default async function ModerationPage() {
   const items = (data ?? []) as unknown as QueueRow[];
   const pendingVenues = (venueRes.data ?? []) as unknown as PendingVenue[];
   const pendingReviews = (reviewRes.data ?? []) as unknown as PendingReview[];
+  const pendingComments = (commentRes.data ?? []) as unknown as PendingComment[];
   const pendingClaims = (claimRes.data ?? []) as unknown as PendingClaim[];
 
   return (
@@ -223,6 +243,60 @@ export default async function ModerationPage() {
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="decision" value="rejected" />
                   <button type="submit" aria-label={`Reject review on ${r.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.red)}>Reject</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Pending Comments
+      </h2>
+
+      {commentRes.error && (
+        <div style={{
+          background: COLORS.orangeFaint, border: `1px solid ${COLORS.orange}`,
+          borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
+        }}>
+          Couldn’t load pending comments: {commentRes.error.message}
+        </div>
+      )}
+
+      {pendingComments.length === 0 && !commentRes.error && (
+        <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
+          No comments waiting. (Pre-moderation only kicks in when GOSSOKO_REVIEW_PREMODERATION=true.)
+        </p>
+      )}
+
+      {pendingComments.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: `0 0 ${SPACE.xl}px`, display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
+          {pendingComments.map((c) => (
+            <li key={c.id} style={{
+              background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: RADIUS.lg,
+              padding: SPACE.lg,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE.sm, marginBottom: SPACE.xs, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: COLORS.textMuted }}>
+                  on “{c.review?.title || 'a review'}” · {c.review?.venue?.name ?? '?'} · by @{c.profile?.username ?? c.profile?.full_name ?? '?'}
+                  {' · '}{new Date(c.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACE.md, whiteSpace: 'pre-wrap' }}>
+                {c.body}
+              </div>
+              <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
+                <form action={resolveCommentSubmission}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="decision" value="approved" />
+                  <button type="submit" aria-label="Approve comment" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                </form>
+                <form action={resolveCommentSubmission}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <button type="submit" aria-label="Reject comment" style={btnStyle(COLORS.red)}>Reject</button>
                 </form>
               </div>
             </li>
