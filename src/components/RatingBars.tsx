@@ -1,5 +1,5 @@
-import type { Ratings } from '@/lib/seed/types';
-import { RATING_LABELS, RATING_ORDER } from '@/lib/seed/types';
+import type { Ratings } from '@/lib/types';
+import { RATING_LABELS, RATING_ORDER } from '@/lib/types';
 import { COLORS } from '@/lib/theme';
 
 // Horizontal-bar rating breakdown — one bar per axis.

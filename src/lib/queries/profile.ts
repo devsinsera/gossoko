@@ -1,6 +1,6 @@
 // Queries against gossoko.profiles for the signed-in user's identity card.
 
-import { createClient } from '@/lib/supabase/server';
+import { supabase as getSupabase } from '@/lib/supabase/client';
 
 export interface OwnProfile {
   id: string;
@@ -35,7 +35,7 @@ type Row = {
 };
 
 export async function getOwnProfile(userId: string): Promise<OwnProfile | null> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('profiles')
     .select('id, email, username, full_name, bio, avatar_url, trade_type, role, is_verified, reviews_count, followers_count, following_count, created_at')

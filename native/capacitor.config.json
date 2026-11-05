@@ -1,0 +1,13 @@
+{
+  "appId": "com.sinsera.gossoko",
+  "appName": "Gossoko",
+  "webDir": "www",
+  "server": {
+    "url": "https://sinsera.co/gossoko/",
+    "errorPath": "offline.html",
+    "allowNavigation": ["sinsera.co", "*.sinsera.co", "*.supabase.co", "127.0.0.1", "localhost"]
+  },
+  "backgroundColor": "#0a0908",
+  "ios": { "contentInset": "never", "backgroundColor": "#0a0908" },
+  "android": { "backgroundColor": "#0a0908" }
+}

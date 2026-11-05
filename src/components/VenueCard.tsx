@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import type { Venue } from '@/lib/seed/types';
-import { VENUE_TYPE_LABELS } from '@/lib/seed/types';
+import { Link } from '@/lib/nav';
+import type { Venue } from '@/lib/types';
+import { VENUE_TYPE_LABELS } from '@/lib/types';
 import { COLORS, RADIUS } from '@/lib/theme';
 import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
 import { VenueDistance } from './VenueDistance';

@@ -1,4 +1,3 @@
-'use client';
 
 import { formatKm } from '@/lib/geo';
 import { useDistanceKm } from './DistanceProvider';

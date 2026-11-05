@@ -1,8 +1,8 @@
 // Reviews queries. Returns DB rows shaped for the UI components that already
 // render seed reviews (Review type from lib/seed/types).
 
-import { createClient } from '@/lib/supabase/server';
-import type { RatingAxis, Ratings } from '@/lib/seed/types';
+import { supabase as getSupabase } from '@/lib/supabase/client';
+import type { RatingAxis, Ratings } from '@/lib/types';
 
 const AXIS_COLS = {
   coffee_strength: 'coffee_strength_rating',
@@ -33,7 +33,7 @@ type AggRow = {
  */
 export async function getAggregatedRatingsForVenues(venueIds: string[]): Promise<Map<string, Ratings>> {
   if (venueIds.length === 0) return new Map();
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('reviews')
     .select('venue_id, coffee_strength_rating, feed_size_rating, bang_for_buck_rating, speed_rating, ute_parking_rating, early_open_rating, service_rating')
@@ -86,7 +86,7 @@ const REVIEW_COLS = `
   coffee_strength_rating, feed_size_rating, bang_for_buck_rating,
   speed_rating, ute_parking_rating, early_open_rating, service_rating,
   overall_rating, title, body, helpful_count,
-  profile:profiles ( username, full_name, avatar_url, trade_type )
+  profile:profiles!reviews_user_id_fkey ( username, full_name, avatar_url, trade_type )
 `;
 
 type ReviewRow = {
@@ -173,7 +173,7 @@ function rowToReview(r: ReviewRow): VenueReview {
 }
 
 export async function getReviewsByVenueId(venueId: string, limit = 25): Promise<VenueReview[]> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('reviews')
     .select(REVIEW_COLS)
@@ -202,7 +202,7 @@ export interface UserReviewSummary {
 }
 
 export async function getReviewsByUserId(userId: string, limit = 25): Promise<UserReviewSummary[]> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('reviews')
     .select(`
@@ -247,7 +247,7 @@ export async function getUserLikedReviewIds(
   reviewIds: string[],
 ): Promise<Set<string>> {
   if (reviewIds.length === 0) return new Set();
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('review_likes')
     .select('review_id')
@@ -261,7 +261,7 @@ export async function getUserLikedReviewIds(
 }
 
 export async function getReviewByUserAndVenue(userId: string, venueId: string): Promise<VenueReview | null> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('reviews')
     .select(REVIEW_COLS)
@@ -275,4 +275,32 @@ export async function getReviewByUserAndVenue(userId: string, venueId: string): 
     return null;
   }
   return data ? rowToReview(data as unknown as ReviewRow) : null;
+}
+
+export interface RecentReview extends VenueReview {
+  venue_slug: string;
+  venue_name: string;
+}
+
+/** Newest public reviews across all venues, for the feed's "Latest from the Crew". */
+export async function getRecentReviews(limit = 4): Promise<RecentReview[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(`${REVIEW_COLS}, venue:venues ( slug, name )`)
+    .eq('moderation_status', 'approved')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[gossoko] getRecentReviews failed:', error.message);
+    return [];
+  }
+  type Row = ReviewRow & { venue: { slug: string; name: string } | null };
+  return (data as unknown as Row[]).map((r) => ({
+    ...rowToReview(r),
+    venue_slug: r.venue?.slug ?? '',
+    venue_name: r.venue?.name ?? 'Venue',
+  }));
 }

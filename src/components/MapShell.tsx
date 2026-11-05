@@ -1,8 +1,7 @@
-'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import type { Venue } from '@/lib/seed/types';
+import { Link } from '@/lib/nav';
+import type { Venue } from '@/lib/types';
 import { COLORS } from '@/lib/theme';
 import { MapPinIcon, ChevronRightIcon, CompassIcon } from './icons';
 import { VenueDistance } from './VenueDistance';

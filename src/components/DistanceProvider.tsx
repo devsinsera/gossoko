@@ -1,4 +1,3 @@
-'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { haversineKm } from '@/lib/geo';

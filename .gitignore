@@ -3,8 +3,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Next.js build output
-.next/
+# Build output
 out/
 
 # Production
@@ -14,7 +13,6 @@ dist/
 # Misc
 .DS_Store
 *.tsbuildinfo
-next-env.d.ts
 .serena/
 .cache/
 
@@ -46,4 +44,15 @@ supabase/.temp/
 # Apple OS junk
 .AppleDouble
 .LSOverride
-.vercel
+
+
+# Native shells
+native/node_modules/
+native/build/
+native/ios/App/Pods/
+native/android/.gradle/
+native/android/build/
+native/android/app/build/
+native/android/local.properties
+native/android/capacitor-cordova-android-plugins/
+.env.local

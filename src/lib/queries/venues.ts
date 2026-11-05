@@ -3,8 +3,9 @@
 // will eventually come from aggregated reviews — for now they're synthesized
 // from the venue's overall `rating` so the breakdown bars still render.
 
-import { createClient } from '@/lib/supabase/server';
-import type { Venue, RatingAxis } from '@/lib/seed/types';
+import { supabase as getSupabase } from '@/lib/supabase/client';
+import type { Venue, RatingAxis } from '@/lib/types';
+import { getAggregatedRatingsForVenues } from '@/lib/queries/reviews';
 
 type VenueRow = {
   id: string;
@@ -92,7 +93,7 @@ function isOpenNow(opens: string | null, closes: string | null): boolean {
 const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature';
 
 export async function getAllVenues(): Promise<Venue[]> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('venues')
     .select(VENUE_COLS)
@@ -104,7 +105,6 @@ export async function getAllVenues(): Promise<Venue[]> {
     return [];
   }
   const venues = ((data as unknown) as VenueRow[]).map(rowToVenue);
-  const { getAggregatedRatingsForVenues } = await import('@/lib/queries/reviews');
   const aggregated = await getAggregatedRatingsForVenues(venues.map((v) => v.id));
   return venues.map((v) => {
     const real = aggregated.get(v.id);
@@ -113,7 +113,7 @@ export async function getAllVenues(): Promise<Venue[]> {
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('venues')
     .select(VENUE_COLS)
@@ -127,7 +127,6 @@ export async function getVenueBySlug(slug: string): Promise<Venue | null> {
   }
   if (!data) return null;
   const venue = rowToVenue(data as unknown as VenueRow);
-  const { getAggregatedRatingsForVenues } = await import('@/lib/queries/reviews');
   const aggregated = await getAggregatedRatingsForVenues([venue.id]);
   const real = aggregated.get(venue.id);
   return real ? { ...venue, ratings: real } : venue;

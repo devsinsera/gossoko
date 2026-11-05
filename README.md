@@ -3,88 +3,71 @@
 > Find the best tradie feed near the site.
 
 Community review platform for cafés, coffee vans, servos, food trucks and
-bakeries — rated on what actually matters on a worksite: speed, feed size,
-ute parking, bang-for-buck, and an early open.
+bakeries — rated on what matters on a worksite: speed, feed size, ute parking,
+bang-for-buck, and an early open.
 
-Built with Next.js 15 (App Router), React 19, TypeScript, Supabase.
+One codebase, three surfaces:
 
----
+| Surface        | How                                                                 |
+|----------------|---------------------------------------------------------------------|
+| Web            | Vite + React SPA at <https://sinsera.co/gossoko/> (static, FTPS)    |
+| iPhone / iPad  | Capacitor shell (`native/ios`) loading the web app, Face ID + Keychain |
+| Android        | Capacitor shell (`native/android`), same web app                     |
 
-## Status
+No server of its own. Data is the shared Supabase project (schema `gossoko.*`,
+RLS-enforced). The three things that need the service-role key (queue a report,
+write an audit row, change a user's role) live in the `gossoko-admin` edge
+function — `supabase/functions/gossoko-admin`.
 
-**Initial app shell — pre-monetisation, pre-production.**
-
-What's in:
-- Mobile-first UI with bottom navigation
-- Feed, Nearby (map shell), Rankings, Profile, Search, Venue Detail screens
-- Seeded Brisbane venue dataset for development
-- Dark industrial aesthetic with safety-orange accents
-- Loading states + skeletons for every route
-- Security foundation: input validation, sanitiser, rate limiter, upload validator, auth hardener
-- Supabase schema + RLS policies for the production data model
-
-What's deliberately out (for now):
-- Monetisation / featured listings
-- Admin systems / moderation dashboards
-- Push notifications
-- Production infrastructure
-
----
-
-## Run locally
+## Run
 
 ```bash
 npm install
-npm run dev
+npm run dev          # http://127.0.0.1:4780/gossoko/
+npm test             # vitest
+npm run build        # tsc --noEmit + vite build -> dist/
+npm run deploy       # test + build + FTPS to sinsera.co/gossoko (TLS 1.2, size-checked)
 ```
 
-App runs at <http://localhost:3000>.
+`.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+optional `VITE_GOSSOKO_REVIEW_PREMODERATION=true`, and `SINSERA_FTP_*` for deploy.
+
+## Native
 
 ```bash
-npm run build      # production build (also type-checks)
-npm test           # vitest security suite
+cd native && npm install
+npx cap sync
+npm run build:ios-sim        # simulator build, no signing
+npm run open:ios             # Xcode (team 3R7FM9TSMX, com.sinsera.gossoko)
+npm run open:android         # needs a JDK + Android SDK
 ```
 
----
+The shells point at the live site (`capacitor.config.json` -> `server.url`), so a
+web deploy updates every app. `native/www/offline.html` is the no-network page.
+Icons come from one drawing: `python3 scripts/make_icons.py` writes
+`public/*`, `native/icon.png`, the iOS AppIcon and the Android launcher icons.
+
+## Sign-in (Sinsera rule)
+
+Remember me (session in Keychain on the phone), a Face ID / Touch ID / Optic ID
+offer after sign-in, biometric lock on reopen with device-passcode fallback and a
+full sign-in if it fails, Password AutoFill tied to `webcredentials:sinsera.co`
+(entitlement in `native/ios/App/App/App.entitlements`; the app id is in the
+Core AASA file).
 
 ## Routes
 
-| Path             | Purpose                                          |
-|------------------|--------------------------------------------------|
-| `/`              | Feed — featured, open now, trending, near me     |
-| `/nearby`        | Map shell + distance-sorted venue list           |
-| `/rankings`      | Leaderboards by overall / speed / feed / value   |
-| `/profile`       | Current user, badges, recent reviews             |
-| `/search`        | Free-text search with recents + popular searches |
-| `/venue/[id]`    | Single venue — about, ratings, reviews, similar  |
+`/` feed · `/nearby` · `/rankings` · `/search` · `/profile` · `/venue/:slug` ·
+`/venue/new` · `/review/new?venue=` · `/login` · `/signup` · `/auth/forgot` ·
+`/auth/reset` · `/auth/confirm` · `/admin/moderation` · `/admin/users`
 
----
-
-## Project layout
+## Layout
 
 ```
-src/
-├── app/             # Next.js App Router pages + loading states
-├── components/      # BottomNav, VenueCard, FilterChips, MapShell, etc.
-├── lib/
-│   ├── theme.ts     # Design tokens (colours, radii, spacing)
-│   └── seed/        # Brisbane venue / review / user fixtures
-├── actions/         # Server actions (auth)
-├── config/          # Security config
-├── types/           # Domain types (rbac, moderation)
-└── middleware.ts    # Edge middleware
-
-supabase/            # Schema, RLS, storage migrations
-tests/security/      # Vitest security suite
+src/pages/       route components (+ per-feature actions.ts: plain async functions)
+src/components/  BottomNav, VenueCard, ActionForm, LockScreen, BiometricOffer …
+src/lib/         supabase client, auth/session, bio (Keychain + biometrics), queries, api
+supabase/        schema + RLS migrations, functions/gossoko-admin
+native/          Capacitor iOS + Android shells
+tests/           vitest (security libs + auth/nav units)
 ```
-
----
-
-## Ecosystem
-
-Gossoko is part of the Sinsera ecosystem. A placeholder route exists at
-`sinsera.co/gossoko` until this app is deployed standalone.
-
-- Supabase is the canonical data home.
-- Apps and modules are UX surfaces over that data.
-- Cross-linking happens via foreign key, not duplicate tables.

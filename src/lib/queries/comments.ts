@@ -3,7 +3,7 @@
 // RLS already filters to: approved OR authored-by-self OR admin/moderator.
 // We additionally enforce deleted_at IS NULL and order by created_at ascending.
 
-import { createClient } from '@/lib/supabase/server';
+import { supabase as getSupabase } from '@/lib/supabase/client';
 
 const COMMENT_COLS = `
   id, created_at, review_id, user_id, body, moderation_status,
@@ -73,7 +73,7 @@ export async function getCommentsByReviewIds(
 ): Promise<Map<string, ReviewComment[]>> {
   if (reviewIds.length === 0) return new Map();
 
-  const supabase = await createClient();
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('comments')
     .select(COMMENT_COLS)

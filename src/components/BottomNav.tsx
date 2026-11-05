@@ -1,7 +1,6 @@
-'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from '@/lib/nav';
+import { useLocation } from 'react-router-dom';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
 import { COLORS, BOTTOM_NAV_HEIGHT } from '@/lib/theme';
 
@@ -21,7 +20,7 @@ const ITEMS: Item[] = [
 ];
 
 export function BottomNav() {
-  const pathname = usePathname() || '/';
+  const pathname = useLocation().pathname || '/';
 
   return (
     <nav
