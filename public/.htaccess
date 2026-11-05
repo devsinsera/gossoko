@@ -1,4 +1,6 @@
 # Gossoko SPA — serve index.html for any route that is not a real file.
+AddType application/manifest+json .webmanifest
+
 RewriteEngine On
 RewriteBase /gossoko/
 RewriteRule ^index\.html$ - [L]
