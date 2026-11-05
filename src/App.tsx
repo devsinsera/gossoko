@@ -22,6 +22,10 @@ const ProfilePage = lazy(() => import('./pages/profile/page'));
 const VenuePage = lazy(() => import('./pages/venue/[slug]/page'));
 const NewVenuePage = lazy(() => import('./pages/venue/new/page'));
 const NewReviewPage = lazy(() => import('./pages/review/new/page'));
+const DealsPage = lazy(() => import('./pages/deals/page'));
+const ManageIndexPage = lazy(() => import('./pages/manage/page'));
+const ManageVenuePage = lazy(() => import('./pages/manage/[slug]/page'));
+const AdminBusinessPage = lazy(() => import('./pages/admin/business/page'));
 const AdminLayout = lazy(() => import('./pages/admin/layout'));
 const ModerationPage = lazy(() => import('./pages/admin/moderation/page'));
 const AdminUsersPage = lazy(() => import('./pages/admin/users/page'));
@@ -70,6 +74,9 @@ export default function App() {
                   <Route path="rankings" element={<RankingsPage />} />
                   <Route path="search" element={<SearchPage />} />
                   <Route path="profile" element={<ProfilePage />} />
+                  <Route path="deals" element={<DealsPage />} />
+                  <Route path="manage" element={<ManageIndexPage />} />
+                  <Route path="manage/:slug" element={<ManageVenuePage />} />
                   <Route path="venue/new" element={<NewVenuePage />} />
                   <Route path="venue/:slug" element={<VenuePage />} />
                   <Route path="review/new" element={<NewReviewPage />} />
@@ -84,6 +91,7 @@ export default function App() {
                   <Route index element={<Navigate to="/admin/moderation" replace />} />
                   <Route path="moderation" element={<ModerationPage />} />
                   <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="business" element={<AdminBusinessPage />} />
                 </Route>
               </Routes>
             </Suspense>

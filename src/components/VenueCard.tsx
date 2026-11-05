@@ -2,7 +2,7 @@ import { Link } from '@/lib/nav';
 import type { Venue } from '@/lib/types';
 import { VENUE_TYPE_LABELS } from '@/lib/types';
 import { COLORS, RADIUS } from '@/lib/theme';
-import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
+import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, ZapIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
 import { VenueDistance } from './VenueDistance';
 import { displayScore, reviewCountLabel } from '@/lib/ranking';
 
@@ -80,6 +80,12 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
             <span style={pillStyle('#0a0908', COLORS.textMuted)}>
               <span style={{ width: 8, height: 8, borderRadius: 4, background: COLORS.textMuted, display: 'inline-block' }} />
               CLOSED
+            </span>
+          )}
+          {venue.has_deal && (
+            <span style={pillStyle('#0a0908', COLORS.orange)}>
+              <ZapIcon size={12} />
+              DEAL
             </span>
           )}
           {venue.trending && (

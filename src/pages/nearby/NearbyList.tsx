@@ -6,16 +6,15 @@ import { VenueCard } from '@/components/VenueCard';
 import { VenueDistance } from '@/components/VenueDistance';
 import { useCoords } from '@/components/DistanceProvider';
 import { haversineKm } from '@/lib/geo';
+import { Link } from '@/lib/nav';
+import { displayScore } from '@/lib/ranking';
 
-// The "within 10km" cut-off the static page used. When real coords are known
-// we apply it against the live haversine distance instead of the seed column.
 const NEAR_RADIUS_KM = 10;
 
 /**
- * Renders the two distance-dependent sections of the Nearby page:
- * "Closest First" and "Highest Rated Nearby". When device coords are available
- * it sorts and filters by REAL distance; otherwise it falls back to the static
- * `distance_km` ordering/filter (identical to the original server behaviour).
+ * The two lists on the Nearby page. With the phone's location they are
+ * "Closest First" and "Highest Rated Nearby" (within 10 km). Without it there is
+ * no honest way to say what is close, so it lists every venue, best-reviewed first.
  */
 export function NearbyList({ venues }: { venues: Venue[] }) {
   const coords = useCoords();
@@ -23,20 +22,18 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
   const { sortedByDistance, nearAndTopRated } = useMemo(() => {
     // Compute each venue's distance once; guard against non-finite lat/lng so a
     // bad coordinate can't poison the sort with NaN comparisons.
+    if (!coords) {
+      const byReviews = [...venues].sort((a, b) => b.overall * Math.min(b.review_count, 10) - a.overall * Math.min(a.review_count, 10) || a.name.localeCompare(b.name));
+      return { sortedByDistance: byReviews, nearAndTopRated: [] as Venue[] };
+    }
     const distances = new Map(
-      venues.map((v) => {
-        const live =
-          coords && Number.isFinite(v.lat) && Number.isFinite(v.lng)
-            ? haversineKm(coords.lat, coords.lng, v.lat, v.lng)
-            : v.distance_km;
-        return [v.id, live] as const;
-      }),
+      venues.map((v) => [v.id, Number.isFinite(v.lat) && Number.isFinite(v.lng) ? haversineKm(coords.lat, coords.lng, v.lat, v.lng) : 9999] as const),
     );
-    const distanceOf = (v: Venue) => distances.get(v.id) ?? v.distance_km;
+    const distanceOf = (v: Venue) => distances.get(v.id) ?? 9999;
 
     const sorted = [...venues].sort((a, b) => distanceOf(a) - distanceOf(b));
     const topNear = sorted
-      .filter((v) => distanceOf(v) < NEAR_RADIUS_KM)
+      .filter((v) => distanceOf(v) < NEAR_RADIUS_KM && v.review_count > 0)
       .sort((a, b) => b.overall - a.overall)
       .slice(0, 4);
 
@@ -47,7 +44,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
     <>
       <section className="section">
         <div className="section-title">
-          <h2>Closest First</h2>
+          <h2>{coords ? 'Closest First' : 'All Venues'}</h2>
           <span className="mono-chip">{sortedByDistance.length} results</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -79,14 +76,14 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
               }}>
                 <VenueDistance lat={v.lat} lng={v.lng} />
               </div>
-              <a href={`/venue/${v.slug}`} style={{ minWidth: 0 }}>
+              <Link href={`/venue/${v.slug}`} style={{ minWidth: 0, textDecoration: 'none' }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: COLORS.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {v.name}
                 </div>
                 <div style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 2 }}>
-                  {v.suburb} · {v.tagline}
+                  {v.suburb}{v.tagline ? ` · ${v.tagline}` : ''}
                 </div>
-              </a>
+              </Link>
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -96,13 +93,14 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
                 fontSize: 13,
                 fontWeight: 700,
               }}>
-                ★ {v.overall.toFixed(1)}
+                {displayScore(v) ? `★ ${displayScore(v)}` : 'NEW'}
               </div>
             </div>
           ))}
         </div>
       </section>
 
+      {nearAndTopRated.length > 0 && (
       <section className="section">
         <div className="section-title">
           <h2>Highest Rated Nearby</h2>
@@ -113,6 +111,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
           ))}
         </div>
       </section>
+      )}
     </>
   );
 }

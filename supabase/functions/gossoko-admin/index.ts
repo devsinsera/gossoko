@@ -5,6 +5,7 @@
 //   queue_report  put the caller's own report into the moderation queue
 //   audit         write an audit_logs row for a moderation decision
 //   set_role      change another user's role (+ audit)
+//   delete_account  the caller deletes their own account and everything attached to it
 //
 // Deploy: supabase functions deploy gossoko-admin --project-ref lkhtgkmivqwgnvzmjbhr
 // (slug is app-prefixed on purpose: one project hosts every app's functions.)
@@ -124,6 +125,22 @@ Deno.serve(async (req) => {
         new_values: { role },
       });
       if (auditErr) console.warn('[gossoko-admin] audit write failed:', auditErr.message);
+      return json({ ok: true });
+    }
+
+    case 'delete_account': {
+      // The caller deletes their OWN account. profiles has no foreign key to auth.users, so the
+      // profile row is removed first (it cascades to their reviews, comments, likes, saved spots,
+      // deal codes, claims and requests), then the login. Venues they added stay, un-owned.
+      if (body.confirm !== 'DELETE') return json({ error: 'confirm' }, 400);
+      const { data: me } = await admin.from('profiles').select('id, role').eq('id', user.id).maybeSingle();
+      if (me && me.role !== 'user' && me.role !== 'business') return json({ error: 'staff' }, 400); // demote first
+      if (me) {
+        const { error: delErr } = await admin.from('profiles').delete().eq('id', user.id);
+        if (delErr) return json({ error: 'delete_failed', detail: delErr.message }, 500);
+      }
+      const { error: authErr } = await admin.auth.admin.deleteUser(user.id);
+      if (authErr) return json({ error: 'auth_delete_failed', detail: authErr.message }, 500);
       return json({ ok: true });
     }
 

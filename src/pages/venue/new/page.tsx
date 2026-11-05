@@ -16,6 +16,25 @@ export default function NewVenuePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat: string; lng: string } | null>(null);
+  const [locMsg, setLocMsg] = useState<string | null>(null);
+  const [locBusy, setLocBusy] = useState(false);
+
+  /** Standing at the spot? One tap fills in the coordinates. */
+  function useMyLocation() {
+    if (!navigator.geolocation) { setLocMsg('This device can\'t share its location — enter the coordinates below.'); return; }
+    setLocBusy(true);
+    setLocMsg(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude.toFixed(6), lng: pos.coords.longitude.toFixed(6) });
+        setLocMsg(`Location set (accurate to about ${Math.round(pos.coords.accuracy)} m). Move if you're not at the venue.`);
+        setLocBusy(false);
+      },
+      () => { setLocMsg('Couldn\'t get your location. Allow location for Gossoko in settings, or enter the coordinates below.'); setLocBusy(false); },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
+    );
+  }
   // Fields keep their values on a failed submit because the form never remounts.
   const sp: { error?: string } & Record<string, string | undefined> = { error: error ?? undefined };
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent('/venue/new')}`} replace />;
@@ -90,12 +109,17 @@ export default function NewVenuePage() {
             <Field label="Street address" name="address" placeholder="123 Main St" required minLength={4} maxLength={200} defaultValue={sp.address} />
 
             <div>
+              <button type="button" onClick={useMyLocation} disabled={locBusy}
+                style={{ width: '100%', marginBottom: SPACE.sm, background: 'transparent', color: COLORS.orange, border: `1.5px solid ${COLORS.orange}`, borderRadius: RADIUS.md, padding: 11, fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: locBusy ? 0.7 : 1 }}>
+                {locBusy ? 'Finding you…' : '📍 I\'m at the venue — use my location'}
+              </button>
+              {locMsg && <p role="status" style={{ margin: `0 0 ${SPACE.sm}px`, fontSize: 12.5, color: COLORS.textSecondary }}>{locMsg}</p>}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SPACE.sm }}>
-                <Field label="Latitude" name="latitude" placeholder="-27.4501" required defaultValue={sp.latitude} inputMode="decimal" />
-                <Field label="Longitude" name="longitude" placeholder="153.0457" required defaultValue={sp.longitude} inputMode="decimal" />
+                <Field key={`lat-${coords?.lat ?? ''}`} label="Latitude" name="latitude" placeholder="-27.4501" required defaultValue={coords?.lat ?? sp.latitude} inputMode="decimal" />
+                <Field key={`lng-${coords?.lng ?? ''}`} label="Longitude" name="longitude" placeholder="153.0457" required defaultValue={coords?.lng ?? sp.longitude} inputMode="decimal" />
               </div>
               <p style={{ margin: `${SPACE.xs}px 0 0`, fontSize: 11, color: COLORS.textMuted }}>
-                Don't know the coords? Open{' '}
+                Not there right now? Open{' '}
                 <a
                   href="https://www.google.com/maps"
                   target="_blank"

@@ -228,3 +228,12 @@ button { font: inherit; color: inherit; }
 .review-axis-btn:hover {
   border-color: var(--orange);
 }
+
+/* Print only the counter QR poster. */
+@media print {
+  body * { visibility: hidden !important; }
+  .qr-poster, .qr-poster * { visibility: visible !important; }
+  .qr-poster { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; border: none !important; }
+  .qr-poster p { color: #000 !important; }
+  .no-print { display: none !important; }
+}

@@ -46,6 +46,13 @@ export interface Venue {
   badges: string[];
   tags: string[];
   signature: string;
+  phone: string | null;
+  /** True while the venue's Pro plan is current. */
+  pro: boolean;
+  pro_until: string | null;
+  /** True while at least one deal is running. */
+  has_deal: boolean;
+  save_count: number;
 }
 
 export interface Review {

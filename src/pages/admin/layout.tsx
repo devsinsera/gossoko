@@ -37,6 +37,11 @@ export default function AdminLayout() {
             Moderation
           </Link>
           {canManageUsers && (
+            <Link href="/admin/business" style={{ color: COLORS.text, textDecoration: 'none' }}>
+              Business
+            </Link>
+          )}
+          {canManageUsers && (
             <Link href="/admin/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
               Users
             </Link>

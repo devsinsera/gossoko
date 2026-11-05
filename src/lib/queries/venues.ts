@@ -39,6 +39,10 @@ type VenueRow = {
   early_open_avg: number | null;
   service_avg: number | null;
   trending_until: string | null;
+  pro_until: string | null;
+  deal_until: string | null;
+  save_count: number | null;
+  phone: string | null;
 };
 
 const AXES: RatingAxis[] = [
@@ -72,7 +76,13 @@ function rowToVenue(r: VenueRow): Venue {
     price_level: (r.price_level ?? 2) as 1 | 2 | 3,
     verified: r.is_verified,
     trending: r.trending_until != null && Date.parse(r.trending_until) > Date.now(),
-    distance_km: r.distance_km == null ? Number.POSITIVE_INFINITY : Number(r.distance_km),
+    phone: r.phone?.trim() || null,
+    pro: r.pro_until != null && Date.parse(r.pro_until) > Date.now(),
+    pro_until: r.pro_until,
+    has_deal: r.deal_until != null && Date.parse(r.deal_until) > Date.now(),
+    save_count: r.save_count ?? 0,
+    // The stored column is from wherever the seed was written; real distance comes from the device (VenueDistance).
+    distance_km: 9999,
     ratings,
     overall,
     review_count: r.review_count ?? 0,
@@ -97,7 +107,7 @@ function isOpenNow(opens: string | null, closes: string | null): boolean {
   return c > o ? mins >= o && mins < c : mins >= o || mins < c;
 }
 
-const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until';
+const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until, pro_until, deal_until, save_count, phone';
 
 export async function getAllVenues(): Promise<Venue[]> {
   const supabase = getSupabase();
@@ -105,7 +115,7 @@ export async function getAllVenues(): Promise<Venue[]> {
     .from('venues')
     .select(VENUE_COLS)
     .is('deleted_at', null)
-    .order('distance_km', { ascending: true, nullsFirst: false });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('[gossoko] getAllVenues failed:', error.message);

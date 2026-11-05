@@ -2,9 +2,8 @@
 import { useState } from 'react';
 import { COLORS } from '@/lib/theme';
 
-export type FilterId =
-  | 'all' | 'open_now' | 'top_rated' | 'early_open' | 'ute_friendly' | 'cheap_eats'
-  | 'gossoko_van' | 'cafe' | 'food_truck' | 'bakery' | 'servo' | 'snack_bar';
+import type { FilterId } from '@/lib/filters';
+export type { FilterId };
 
 export interface FilterChip {
   id: FilterId;
@@ -15,6 +14,7 @@ export interface FilterChip {
 export const DEFAULT_CHIPS: FilterChip[] = [
   { id: 'all',          label: 'All' },
   { id: 'open_now',     label: 'Open Now' },
+  { id: 'deals',        label: 'Deals' },
   { id: 'early_open',   label: '≤ 5am' },
   { id: 'ute_friendly', label: 'Ute Parking' },
   { id: 'cheap_eats',   label: 'Cheap Eats' },

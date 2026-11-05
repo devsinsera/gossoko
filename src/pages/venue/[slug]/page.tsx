@@ -1,4 +1,5 @@
 import { Link } from '@/lib/nav';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
 import { getReviewsByVenueId, getUserLikedReviewIds } from '@/lib/queries/reviews';
@@ -17,12 +18,17 @@ import { VENUE_TYPE_LABELS } from '@/lib/types';
 import type { VenueType } from '@/lib/types';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
 import { RatingBars } from '@/components/RatingBars';
+import { SaveShare } from '@/components/SaveShare';
+import { DealCard } from '@/components/DealCard';
+import { ReplyBox } from '../../_business/ReplyBox';
+import { directionsUrl } from '@/lib/geo';
+import { getLiveDeals, getMyActiveCodes, getRepliesByReviewIds, getSavedVenueIds, trackVenueEvent } from '@/lib/queries/business';
 import { VenueCard } from '@/components/VenueCard';
 import { VenueDistance } from '@/components/VenueDistance';
 import { ReportButton } from '../../_report/ReportButton';
 import { displayScore } from '@/lib/ranking';
 import {
-  StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon, HeartIcon,
+  StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon,
   TruckIcon, CoffeeIcon, HardHatIcon, FlameIcon,
 } from '@/components/icons';
 
@@ -57,37 +63,34 @@ async function loadVenuePage(slug: string, userId: string | null) {
   if (!venue) return null;
   const reviews = await getReviewsByVenueId(venue.id);
 
-  // Claim-state lookup, only for a signed-in user: do they own this venue, and
-  // do they already have a live claim? Anonymous visitors always see the
-  // "sign in to claim" affordance. (getVenueBySlug doesn't select created_by.)
-  let ownsVenue = false;
+  // Ownership = an admin-approved claim. (created_by is only who typed the venue in.)
   let userClaimStatus: string | null = null;
   if (userId) {
-    const supabase = getSupabase();
-    const [ownerRes, claimRes] = await Promise.all([
-      supabase.from('venues').select('created_by').eq('id', venue.id).maybeSingle(),
-      supabase
-        .from('venue_claims')
-        .select('status')
-        .eq('venue_id', venue.id)
-        .eq('user_id', userId)
-        .is('deleted_at', null)
-        .maybeSingle(),
-    ]);
-    ownsVenue = ownerRes.data?.created_by === userId;
-    userClaimStatus = ownsVenue ? null : (claimRes.data?.status ?? null);
+    const { data: claim } = await getSupabase()
+      .from('venue_claims')
+      .select('status')
+      .eq('venue_id', venue.id)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    userClaimStatus = claim?.status ?? null;
   }
-  const [likedSet, commentsMap, allVenues] = await Promise.all([
+  const ownsVenue = userClaimStatus === 'approved';
+  const [likedSet, commentsMap, allVenues, deals, myCodes, savedIds, replies] = await Promise.all([
     userId
       ? getUserLikedReviewIds(userId, reviews.map((r) => r.id))
       : Promise.resolve(new Set<string>()),
     getCommentsByReviewIds(reviews.map((r) => r.id)),
     getAllVenues(),
+    getLiveDeals(venue.id),
+    userId ? getMyActiveCodes(userId) : Promise.resolve(new Map()),
+    userId ? getSavedVenueIds(userId) : Promise.resolve(new Set<string>()),
+    getRepliesByReviewIds(reviews.map((r) => r.id)),
   ]);
   const similar = allVenues
     .filter((v) => v.id !== venue.id && v.venue_type === venue.venue_type)
     .slice(0, 4);
-  return { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar };
+  return { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved: savedIds.has(venue.id), replies };
 }
 
 export default function VenueDetailPage() {
@@ -98,9 +101,12 @@ export default function VenueDetailPage() {
   const currentUser = user;
   const { data, loading } = useLoad(() => loadVenuePage(slug, user?.id ?? null), [slug, user?.id]);
 
+  const venueId = data?.venue.id;
+  useEffect(() => { if (venueId) trackVenueEvent(venueId, 'view'); }, [venueId]);
+
   if (loading && !data) return <VenueDetailLoading />;
   if (!data) return <NotFound />;
-  const { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar } = data;
+  const { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved, replies } = data;
   const reportBanner = report ? REPORT_BANNER[report] : null;
   const reviewBanner = review ? REVIEW_BANNER[review] : null;
   const claimBanner = claim ? CLAIM_BANNER[claim] : null;
@@ -135,26 +141,7 @@ export default function VenueDetailPage() {
             Back
           </span>
         </Link>
-        <button
-          aria-label="Save venue"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 12px',
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 8,
-            background: COLORS.surface,
-            color: COLORS.text,
-            cursor: 'pointer',
-            minHeight: 40,
-          }}
-        >
-          <HeartIcon size={16} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Save
-          </span>
-        </button>
+        <SaveShare venueId={venue.id} slug={venue.slug} name={venue.name} initialSaved={saved} signedIn={!!currentUser} />
       </div>
 
       {/* Hero block */}
@@ -315,8 +302,11 @@ export default function VenueDetailPage() {
               {venue.suburb} QLD {venue.postcode}
             </div>
           </div>
-          <Link
-            href="/nearby"
+          <a
+            href={directionsUrl(venue.lat, venue.lng, venue.name)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackVenueEvent(venue.id, 'directions')}
             style={{
               padding: '8px 12px',
               border: `1.5px solid ${COLORS.orange}`,
@@ -330,9 +320,33 @@ export default function VenueDetailPage() {
             }}
           >
             Directions
-          </Link>
+          </a>
         </div>
       </section>
+
+      {venue.phone && (
+        <section className="section" style={{ marginTop: -4 }}>
+          <a
+            href={`tel:${venue.phone.replace(/[^\d+]/g, '')}`}
+            onClick={() => trackVenueEvent(venue.id, 'call')}
+            style={{ display: 'block', textAlign: 'center', padding: '11px 14px', border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.surface, color: COLORS.text, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
+          >
+            Call {venue.phone}
+          </a>
+        </section>
+      )}
+
+      {/* Deals on now */}
+      {deals.length > 0 && (
+        <section className="section">
+          <div className="section-title"><h2>Deals on now</h2></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {deals.map((d) => (
+              <DealCard key={d.id} deal={d} code={myCodes.get(d.id)} signedIn={!!currentUser} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* About */}
       <section className="section">
@@ -515,6 +529,7 @@ export default function VenueDetailPage() {
                     <ReportButton reportableType="review" reportableId={r.id} back={`/venue/${venue.slug}`} />
                   </div>
                 </footer>
+                <ReplyBox reviewId={r.id} reply={replies.get(r.id)} venueName={venue.name} isOwner={ownsVenue} />
                 <CommentsSection
                   reviewId={r.id}
                   venueSlug={venue.slug}
@@ -556,11 +571,19 @@ export default function VenueDetailPage() {
           flexDirection: 'column',
           gap: 10,
         }}>
-          {ownsVenue || userClaimStatus === 'approved' ? (
+          {ownsVenue ? (
+            <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisGreen, fontSize: 13.5, fontWeight: 700 }}>
               <VerifiedIcon size={16} />
               You manage this venue.
             </div>
+            <Link
+              href={`/manage/${venue.slug}`}
+              style={{ alignSelf: 'flex-start', background: COLORS.orange, color: '#0a0908', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13, textDecoration: 'none', letterSpacing: 0.5 }}
+            >
+              Open your dashboard
+            </Link>
+            </>
           ) : userClaimStatus === 'pending' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisYellow, fontSize: 13.5, fontWeight: 700 }}>
               <span className="pulse-dot" />

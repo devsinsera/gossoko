@@ -7,12 +7,16 @@ export function SearchBar({
   placeholder = 'Search venues, suburbs, or feeds…',
   autoFocus = false,
   onChange,
+  value: controlled,
 }: {
   placeholder?: string;
   autoFocus?: boolean;
   onChange?: (v: string) => void;
+  /** Pass to let the page set the text (e.g. when a suggestion is tapped). */
+  value?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [inner, setValue] = useState('');
+  const value = controlled ?? inner;
 
   return (
     <div
@@ -53,6 +57,7 @@ export function SearchBar({
       {value && (
         <button
           aria-label="Clear search"
+          type="button"
           onClick={() => {
             setValue('');
             onChange?.('');

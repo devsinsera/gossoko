@@ -29,3 +29,12 @@ export function formatKm(km: number): string {
   const rounded = Math.round(km * 10) / 10;
   return `${rounded}km`;
 }
+
+/** A link that opens turn-by-turn directions in the phone's maps app (Apple Maps on iPhone/iPad/Mac, Google Maps elsewhere). */
+export function directionsUrl(lat: number, lng: number, name: string): string {
+  const apple = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent);
+  const label = encodeURIComponent(name);
+  return apple
+    ? `https://maps.apple.com/?daddr=${lat},${lng}&q=${label}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+}

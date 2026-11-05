@@ -68,7 +68,7 @@ export const SECURITY_HEADERS = {
 
 // CORS configuration
 export const CORS_CONFIG = {
-  allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  allowedOrigins: (typeof process !== 'undefined' ? process.env.ALLOWED_ORIGINS : undefined)?.split(',') || ['http://localhost:3000'],
   allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowCredentials: true,
   maxAge: 3600,
@@ -89,7 +89,7 @@ export const ABUSE_THRESHOLDS = {
 
 // Monitoring & alerting configuration
 export const MONITORING = {
-  enableSentryIntegration: process.env.SENTRY_DSN ? true : false,
+  enableSentryIntegration: typeof process !== 'undefined' && process.env.SENTRY_DSN ? true : false,
   enableAuditLogging: true,
   enableSuspiciousActivityAlerts: true,
   alertingThresholds: {

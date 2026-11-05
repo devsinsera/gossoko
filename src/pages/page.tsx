@@ -1,4 +1,11 @@
+import { useState } from 'react';
 import { VenueCard } from '@/components/VenueCard';
+import { DealCard } from '@/components/DealCard';
+import { useCoords } from '@/components/DistanceProvider';
+import { useAuth } from '@/lib/auth';
+import { getLiveDeals, getMyActiveCodes } from '@/lib/queries/business';
+import { applyFilter, type FilterId } from '@/lib/filters';
+import { haversineKm } from '@/lib/geo';
 import { FilterChips } from '@/components/FilterChips';
 import { getAllVenues } from '@/lib/queries/venues';
 import { getRecentReviews } from '@/lib/queries/reviews';
@@ -12,18 +19,29 @@ import { Link } from '@/lib/nav';
 import { displayScore, rankVenues } from '@/lib/ranking';
 
 export default function FeedPage() {
+  const { user } = useAuth();
+  const coords = useCoords();
+  const [filter, setFilter] = useState<FilterId>('all');
   const { data, loading } = useLoad(async () => {
-    const [allVenues, recentReviews] = await Promise.all([getAllVenues(), getRecentReviews(4)]);
-    return { allVenues, recentReviews };
-  }, []);
+    const [allVenues, recentReviews, deals, codes] = await Promise.all([
+      getAllVenues(), getRecentReviews(4), getLiveDeals(),
+      user ? getMyActiveCodes(user.id) : Promise.resolve(new Map()),
+    ]);
+    return { allVenues, recentReviews, deals, codes };
+  }, [user?.id]);
   if (loading && !data) return <FeedLoading />;
   const allVenues = data?.allVenues ?? [];
   const recentReviews = data?.recentReviews ?? [];
+  const deals = (data?.deals ?? []).slice(0, 3);
   // The hero is the #1 ranked venue; no hero until something has enough reviews.
-  const featured = rankVenues(allVenues)[0];
-  const open = allVenues.filter((v) => v.open_now).slice(0, 6);
-  const trending = allVenues.filter((v) => v.trending);
-  const nearMe = [...allVenues].sort((a, b) => a.distance_km - b.distance_km).slice(0, 6);
+  const featured = filter === 'all' ? rankVenues(allVenues)[0] : undefined;
+  const shown = applyFilter(allVenues, filter);
+  const open = shown.filter((v) => v.open_now).slice(0, 6);
+  const trending = shown.filter((v) => v.trending);
+  // "Closest to you" only means something once the phone has said where it is.
+  const nearMe = coords
+    ? [...shown].sort((a, b) => haversineKm(coords.lat, coords.lng, a.lat, a.lng) - haversineKm(coords.lat, coords.lng, b.lat, b.lng)).slice(0, 6)
+    : [];
 
   return (
     <>
@@ -56,7 +74,7 @@ export default function FeedPage() {
 
       {/* Filter chips */}
       <div style={{ marginTop: 6 }}>
-        <FilterChips />
+        <FilterChips onChange={setFilter} />
       </div>
 
       {/* Featured hero card */}
@@ -66,7 +84,27 @@ export default function FeedPage() {
         </section>
       )}
 
+      {/* Deals on now */}
+      {filter === 'all' && deals.length > 0 && (
+        <section className="section">
+          <div className="section-title">
+            <h2>Deals On Now</h2>
+            <Link href="/deals">All deals</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {deals.map((d) => <DealCard key={d.id} deal={d} code={data?.codes.get(d.id)} signedIn={!!user} showVenue />)}
+          </div>
+        </section>
+      )}
+
+      {filter !== 'all' && shown.length === 0 && (
+        <section className="section">
+          <p style={{ color: COLORS.textSecondary, lineHeight: 1.5 }}>Nothing matches that filter right now — try another, or pick All.</p>
+        </section>
+      )}
+
       {/* Open now */}
+      {open.length > 0 && (
       <section className="section">
         <div className="section-title">
           <h2>
@@ -82,7 +120,10 @@ export default function FeedPage() {
         </div>
       </section>
 
+      )}
+
       {/* Trending */}
+      {trending.length > 0 && (
       <section className="section">
         <div className="section-title">
           <h2>
@@ -98,7 +139,10 @@ export default function FeedPage() {
         </div>
       </section>
 
+      )}
+
       {/* Near me */}
+      {nearMe.length > 0 && (
       <section className="section">
         <div className="section-title">
           <h2>Closest to You</h2>
@@ -110,6 +154,8 @@ export default function FeedPage() {
           ))}
         </div>
       </section>
+
+      )}
 
       {/* Recent reviews */}
       <section className="section">

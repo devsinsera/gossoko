@@ -82,12 +82,15 @@ async function loadApp() {
     claim: (await import('@/pages/_claims/actions')).claimVenue,
     deleteReview: (await import('@/pages/profile/actions')).deleteReview,
     mod: await import('@/pages/admin/moderation/actions'),
+    biz: await import('@/pages/_business/actions'),
+    bq: await import('@/lib/queries/business'),
+    adminApi: await import('@/lib/api/admin'),
   };
 }
 
 // ── the cast ────────────────────────────────────────────────────────────────
 type Kind = 'tradie' | 'lurker' | 'owner' | 'spammer' | 'admin' | 'moderator';
-interface Person { id: string; email: string; username: string; kind: Kind; token: string; joined: number; activity: number; hasProfile: boolean; }
+interface Person { id: string; email: string; username: string; kind: Kind; token: string; joined: number; activity: number; hasProfile: boolean; deleted?: boolean; saved: Set<string>; }
 
 const FIRST = ['Dave', 'Shane', 'Bec', 'Jono', 'Mick', 'Tash', 'Brodie', 'Kel', 'Gaz', 'Steph', 'Lachie', 'Jess', 'Tony', 'Mel', 'Robbo', 'Sam', 'Nat', 'Hayden', 'Kirra', 'Darren', 'Liam', 'Ash', 'Tom', 'Jaz', 'Wayne'];
 const TRADES = ['sparky', 'chippy', 'plumber', 'concreter', 'tiler', 'brickie', 'roofer', 'painter', 'landscaper', 'diesel_mech', 'scaffolder', 'plasterer'];
@@ -111,6 +114,15 @@ const SPAM = ['CHEAP STEEL CAPS 80% OFF visit bootdeals.example', 'Crypto for tr
 const ABUSE = ['this owner is a [slur removed] and a thief', 'staff are useless idiots, avoid', 'whoever wrote this review is a liar and a grub'];
 
 const people: Person[] = [];
+// Business-layer ground truth, so the checks can compare the database with what SHOULD have happened.
+const codes: { venue: string; code: string; userId: string }[] = [];          // issued, not yet redeemed
+const dealEnds: { id: string; endDay: number }[] = [];                         // running deals and the sim day they lapse
+const proUntil = new Map<string, number>();                                    // venue id → sim day Pro lapses
+const promoEnds: { id: string; endDay: number }[] = [];
+const ownerVenue = new Map<string, string>();                                  // owner person id → venue they run
+const seen = { view: new Set<string>(), directions: new Set<string>(), share: new Set<string>() };  // distinct actor|venue|day
+const dealErrors: Record<string, number> = {};
+const bump = (k: string, n = 1) => { metrics[k] = (metrics[k] ?? 0) + n; };
 const venueTruth = new Map<string, number>();  // venue id → hidden "true quality" 1-5
 const metrics: Record<string, any> = { daily: [] as any[] };
 const issues = new Map<string, { count: number; first: string; example: string }>();
@@ -142,6 +154,12 @@ function backdate(day: number) {
   const stmts = DATED.map((t) =>
     `update gossoko.${t} set created_at = '${base}'::timestamptz + interval '4 hours' + random() * interval '13 hours' where created_at >= '${runStart}'`);
   stmts.push(`update gossoko.reviews set updated_at = created_at where updated_at >= '${runStart}' and updated_at - created_at > interval '1 day' is not true`);
+  // Business tables: rows made today (real calendar) belong to the simulated day.
+  stmts.push(`update gossoko.venue_analytics set date = '${base.slice(0, 10)}' where date = gossoko.brisbane_today()`);
+  stmts.push(`update gossoko.event_dedupe set day = '${base.slice(0, 10)}' where day = gossoko.brisbane_today()`);
+  stmts.push(`update gossoko.deal_codes set created_at = '${base}'::timestamptz + interval '6 hours' + random() * interval '10 hours' where created_at >= '${runStart}'`);
+  stmts.push(`update gossoko.deal_codes set redeemed_at = created_at + interval '20 minutes' where redeemed_at >= '${runStart}'`);
+  stmts.push(`update gossoko.review_replies set created_at = '${base}'::timestamptz + interval '8 hours' where created_at >= '${runStart}'`);
   sql(stmts.join(';\n'));
   // Stored scores/trending were computed from real-time dates; redo them on the simulated calendar.
   if (sql(`select to_regproc('gossoko.refresh_venue_stats') is not null`) === 't') {
@@ -159,14 +177,25 @@ async function visit(p: Person, day: number, timing: number[]) {
   if (venues.length === 0) { issue('feed returned no venues for a signed-in user', p.username, day); return; }
 
   // Lean toward nearby/top venues like a real person scrolling.
-  const v = chance(0.6) ? pick(venues.slice(0, 12)) : pick(venues);
+  const popular = [...venues].sort((a, b) => b.review_count - a.review_count).slice(0, 12);
+  const v = chance(0.6) ? pick(popular) : pick(venues);
   const venue = await app.venues.getVenueBySlug(v.slug);
   if (!venue) { issue('venue in the list but its page 404s', v.slug, day); return; }
   const revs = await app.reviews.getReviewsByVenueId(venue.id);
   const threads = await app.comments.getCommentsByReviewIds(revs.map((r) => r.id));
   const liked = await app.reviews.getUserLikedReviewIds(p.id, revs.map((r) => r.id));
 
-  if (p.kind === 'lurker') return;
+  // What the venue page does on open (and what a thumb does next).
+  if (p.kind !== 'spammer') {
+    await track(p, venue.id, 'view', day);
+    if (chance(0.12)) await track(p, venue.id, 'directions', day);
+    if (chance(0.03)) await track(p, venue.id, 'share', day);
+  }
+
+  if (p.kind === 'lurker') {
+    if (chance(0.08)) await tradieBusiness(p, venue, day);
+    return;
+  }
 
   if (p.kind === 'spammer') {
     if (chance(0.5)) {
@@ -209,6 +238,7 @@ async function visit(p: Person, day: number, timing: number[]) {
     if (!res.ok) issue(`comment failed: ${res.error}`, r.id, day);
   }
 
+  let mineDeleted = false;
   const mine = revs.find((r) => r.user_id === p.id) ?? (await app.reviews.getReviewByUserAndVenue(p.id, venue.id));
   if (!mine && chance(p.kind === 'owner' ? 0.02 : 0.11)) {
     const q = venueTruth.get(venue.id) ?? 3.5;
@@ -229,16 +259,135 @@ async function visit(p: Person, day: number, timing: number[]) {
   } else if (mine && chance(0.01)) {
     const res = await app.deleteReview(mine.id);
     if (!res.ok) issue(`review delete failed: ${res.error}`, mine.id, day);
-    else metrics.reviewDeletes = (metrics.reviewDeletes ?? 0) + 1;
+    else { metrics.reviewDeletes = (metrics.reviewDeletes ?? 0) + 1; mineDeleted = true; }
   }
 
   // Double-tap a second review on the same venue (should be refused, cleanly).
-  if (mine && chance(0.01)) {
+  if (mine && !mineDeleted && chance(0.01)) {
     const res = await app.submitReview(form({ venue_id: venue.id, title: 'Again', body: 'Posting twice by accident', ...stars(() => 4) }));
     if (res.ok) issue('second review on the same venue was accepted', venue.slug, day);
   }
 
   if (p.kind === 'tradie' && chance(0.012)) await addVenue(p, day, false);
+
+  await tradieBusiness(p, venue, day);
+  if (p.kind === 'owner') await ownerBusiness(p, day);
+  // Rarely, someone deletes their account.
+  if (day > 20 && chance(p.kind === 'owner' ? 0.0008 : 0.0012)) await deleteAccount(p, day);
+}
+
+// ── business layer: what a tradie does with saves and deals ─────────────────
+async function track(p: Person, venueId: string, kind: 'view' | 'directions' | 'share', day: number) {
+  const key = `${p.id}|${venueId}|${day}`;
+  seen[kind].add(key);
+  const { error } = await app.client.supabase().rpc('track_venue_event', { p_venue: venueId, p_kind: kind, p_actor: 'dev-' + p.id });
+  if (error) issue(`tracking call failed: ${error.message}`, kind, day);
+}
+
+async function tradieBusiness(p: Person, venue: { id: string; slug: string }, day: number) {
+  // Save / unsave
+  if (!p.saved.has(venue.id) && chance(0.07)) {
+    const r = await app.biz.toggleSave(venue.id, false);
+    if (r.ok) p.saved.add(venue.id); else issue(`save failed: ${r.error}`, venue.slug, day);
+  } else if (p.saved.has(venue.id) && chance(0.03)) {
+    const r = await app.biz.toggleSave(venue.id, true);
+    if (r.ok) p.saved.delete(venue.id); else issue(`unsave failed: ${r.error}`, venue.slug, day);
+  }
+  // Deals: look at this venue's, maybe grab a code
+  const deals = await app.bq.getLiveDeals(venue.id);
+  if (deals.length && chance(0.3)) {
+    const d = pick(deals);
+    const r = await app.biz.claimDealCode(d.id);
+    if (r.ok) {
+      if (!codes.some((c) => c.code === r.code)) { codes.push({ venue: venue.id, code: r.code, userId: p.id }); bump('dealCodesIssued'); }
+    } else { dealErrors[r.hint ?? r.error] = (dealErrors[r.hint ?? r.error] ?? 0) + 1; if (!['used_today', 'sold_out'].includes(r.hint ?? '')) issue(`claim deal failed: ${r.error}`, d.id, day); }
+  }
+  // The Deals tab and my codes
+  if (chance(0.04)) {
+    const all = await app.bq.getLiveDeals();
+    const mine = await app.bq.getMyActiveCodes(p.id);
+    if (all.length > 60) issue('deals list over its cap', `${all.length}`, day);
+    void mine;
+  }
+  if (chance(0.02)) { const sv = await app.bq.getSavedVenueIds(p.id); if (sv.size !== p.saved.size) issue('saved spots list differs from what the user saved', `${sv.size} vs ${p.saved.size}`, day); }
+}
+
+// ── business layer: what a verified owner does ───────────────────────────────
+async function ownerBusiness(p: Person, day: number) {
+  if (!ownerVenue.has(p.id)) {
+    const m = await app.bq.getManagedVenues(p.id);
+    if (m[0]) ownerVenue.set(p.id, m[0].id);
+  }
+  const vid = ownerVenue.get(p.id);
+  if (!vid) return;
+  const pro = (proUntil.get(vid) ?? -1) > day;
+
+  const stats = await app.bq.getVenueStats(vid, 30);
+  if (!stats) issue('owner could not load their stats', vid, day);
+  else {
+    if (!pro && stats.directions !== null) issue('free venue can see Pro-only numbers', vid, day);
+    if (pro && stats.directions === null) issue('Pro venue cannot see its Pro numbers', vid, day);
+    if (!pro && stats.days > 7) issue('free venue got more than 7 days of history', `${stats.days}`, day);
+  }
+
+  // Redeem codes customers are holding for this venue
+  for (const c of codes.filter((x) => x.venue === vid)) {
+    if (!chance(0.85)) continue;
+    const r = await app.biz.redeemDealCode(vid, c.code);
+    if (r.ok) { bump('dealCodesRedeemed'); codes.splice(codes.indexOf(c), 1); }
+    else { issue(`owner could not redeem a valid code: ${r.error}`, c.code, day); codes.splice(codes.indexOf(c), 1); }
+  }
+  // Codes nobody redeemed lapse after 2 hours — drop the ones the sim is done with.
+  if (codes.length > 400) codes.splice(0, 200);
+
+  // Post a deal now and then
+  if (chance(0.14)) {
+    const hours = pick([4, 24, 24 * 7]);
+    const kind = pick(['percent', 'amount', 'other'] as const);
+    const r = await app.biz.createDeal({ venueId: vid, title: pick(['Pie + coffee $8 before 7', 'Bacon & egg roll $6', 'Free cuppa with any brekkie', 'Tradie combo']),
+      description: 'Show your code at the counter.', terms: 'One per customer', kind, value: kind === 'percent' ? 15 : 3, hours, maxRedemptions: chance(0.3) ? 25 : null });
+    if (r.ok) {
+      const id = sql(`select id from gossoko.venue_specials where venue_id = '${vid}' order by created_at desc limit 1`);
+      dealEnds.push({ id, endDay: day + Math.max(1, Math.ceil(hours / 24)) });
+      bump('dealsPosted');
+    } else if (r.hint === 'deal_limit') bump(pro ? 'dealLimitHitPro' : 'dealLimitHitFree');
+    else issue(`deal not posted: ${r.error}`, vid, day);
+  }
+
+  // Reply to a couple of reviews
+  if (chance(0.35)) {
+    const revs = await app.reviews.getReviewsByVenueId(vid, 15);
+    const replies = await app.bq.getRepliesByReviewIds(revs.map((r) => r.id));
+    for (const r of revs.filter((x) => !replies.has(x.id)).slice(0, 2)) {
+      const out = await app.biz.postReply(r.id, pick(['Cheers for the feedback, see you again soon.', 'Sorry about the wait — we added a second machine.', 'Thanks mate, the boys will be stoked.']));
+      if (out.ok) bump('ownerReplies'); else issue(`owner reply failed: ${out.error}`, r.id, day);
+    }
+  }
+  // Ask for Pro
+  if (!pro && chance(0.03)) {
+    const r = await app.biz.requestPro(vid, 'Keen to see who is tapping Directions');
+    if (r.ok) bump('proRequests'); else issue(`Pro request failed: ${r.error}`, vid, day);
+  }
+  // Tidy the listing sometimes
+  if (chance(0.03)) {
+    const r = await app.biz.saveVenueDetails(vid, { tagline: 'Strong coffee, early start', description: 'Family run since 2009.', phone: '07 3000 0000', opens_at: '04:30', closes_at: '14:00' });
+    if (!r.ok) issue(`owner could not save listing: ${r.error}`, vid, day);
+  }
+}
+
+async function deleteAccount(p: Person, day: number) {
+  if (p.deleted || !p.hasProfile) return;
+  await as(p);
+  const r = await app.adminApi.deleteMyAccount();
+  if (!r.ok) { issue(`account deletion failed: ${r.error}`, p.username, day); return; }
+  p.deleted = true;
+  bump('accountsDeleted');
+  const left = sql(`select (select count(*) from gossoko.profiles where id = '${p.id}') + (select count(*) from gossoko.reviews where user_id = '${p.id}')
+     + (select count(*) from gossoko.comments where user_id = '${p.id}') + (select count(*) from gossoko.favourites where user_id = '${p.id}')
+     + (select count(*) from gossoko.deal_codes where user_id = '${p.id}') + (select count(*) from auth.users where id = '${p.id}')`);
+  if (left !== '0') issue('deleted account left personal data behind', `${p.username}: ${left} rows`, day);
+  const owned = ownerVenue.get(p.id);
+  if (owned) { ownerVenue.delete(p.id); proUntil.delete(owned); }
 }
 
 function stars(f: () => number) {
@@ -300,6 +449,31 @@ async function moderate(m: Person, day: number) {
       } else issue(`admin claim decision failed: ${msg}`, id, day);
     }
   }
+  // Pro requests: grant most, dismiss a few.
+  for (const [id, venue] of sqlRows(`select id, venue_id from gossoko.pro_requests where status = 'open'`)) {
+    if (chance(0.7)) {
+      const r = await app.biz.grantPro(venue, 90, 'sim grant');
+      if (r.ok) { proUntil.set(venue, Math.max(proUntil.get(venue) ?? day, day) + 90); bump('proGranted'); } else issue(`grant Pro failed: ${r.error}`, venue, day);
+    } else {
+      const { error } = await app.client.supabase().from('pro_requests').update({ status: 'dismissed' }).eq('id', id);
+      if (error) issue(`dismiss Pro request failed: ${error.message}`, id, day);
+    }
+  }
+  // Sell a promoted slot now and then.
+  if (chance(0.08)) {
+    const rows = sqlRows(`select id from gossoko.venues where moderation_status = 'approved' and deleted_at is null`);
+    if (rows.length) {
+      const vid = pick(rows)[0];
+      const r = await app.biz.featureVenue(vid, 'bronze', 7);
+      if (r.ok) {
+        const id = sql(`select id from gossoko.featured_venues where venue_id = '${vid}' and deleted_at is null`);
+        const prev = promoEnds.find((x) => x.id === id);
+        if (prev) prev.endDay = Math.max(prev.endDay, day) + 7; else promoEnds.push({ id, endDay: day + 7 });
+        bump('promosSold');
+      }
+      else issue(`promotion failed: ${r.error}`, 'feature_venue', day);
+    }
+  }
 }
 
 // ── sign-up ────────────────────────────────────────────────────────────────
@@ -317,7 +491,7 @@ async function join(kind: Kind, day: number): Promise<Person | null> {
   const hasProfile = sql(`select count(*) from gossoko.profiles where id = '${id}'`) === '1';
   if (!hasProfile) issue('account created but no profile (username taken?) — user cannot post', username, day);
   else sql(`update gossoko.profiles set trade_type = '${pick(TRADE_ENUM)}' where id = '${id}'`);
-  const p: Person = { id, email, username, kind, token: jwt(id, email), joined: day, activity: 0.15 + rnd() * 0.5, hasProfile };
+  const p: Person = { id, email, username, kind, token: jwt(id, email), joined: day, activity: 0.15 + rnd() * 0.5, hasProfile, saved: new Set() };
   people.push(p);
   return p;
 }
@@ -370,6 +544,32 @@ async function checks(day: number) {
     const { data } = await app.client.supabase().from('reviews').select('id').is('deleted_at', null);
     if ((data?.length ?? 0) < totalRows - hidden) metrics.apiRowCapSeen = `${data?.length} of ${totalRows - hidden} visible reviews returned in one unpaged request`;
   }
+  // Business layer
+  const viewsDb = Number(sql(`select coalesce(sum(profile_views), 0) from gossoko.venue_analytics`));
+  const dirDb = Number(sql(`select coalesce(sum(directions_taps), 0) from gossoko.venue_analytics`));
+  const shareDb = Number(sql(`select coalesce(sum(shares), 0) from gossoko.venue_analytics`));
+  if (viewsDb !== seen.view.size) issue('venue view counts differ from distinct people per day', `db ${viewsDb} vs ${seen.view.size}`, day);
+  if (dirDb !== seen.directions.size) issue('Directions counts differ from distinct people per day', `db ${dirDb} vs ${seen.directions.size}`, day);
+  if (shareDb !== seen.share.size) issue('share counts differ from distinct people per day', `db ${shareDb} vs ${seen.share.size}`, day);
+  const saveDrift = Number(sql(`select count(*) from gossoko.venues v where save_count <> (select count(*) from gossoko.favourites f where f.venue_id = v.id)`));
+  if (saveDrift) issue('venue save count out of sync with saved spots', `${saveDrift} venues`, day);
+  const dealUnder = Number(sql(`select count(*) from gossoko.venue_specials s where redeemed_count < (select count(*) from gossoko.deal_codes c where c.special_id = s.id and c.redeemed_at is not null)
+     or claimed_count < (select count(*) from gossoko.deal_codes c where c.special_id = s.id)`));
+  if (dealUnder) issue('deal counters lower than the codes actually issued/redeemed', `${dealUnder} deals`, day);
+  const overRedeemed = Number(sql(`select count(*) from gossoko.venue_specials where max_redemptions is not null and redeemed_count > max_redemptions`));
+  if (overRedeemed) issue('a limited deal was redeemed more times than its limit', `${overRedeemed} deals`, day);
+  const dupRedeem = Number(sql(`select count(*) from (select special_id, user_id, (redeemed_at at time zone 'Australia/Brisbane')::date d, count(*) from gossoko.deal_codes where redeemed_at is not null group by 1,2,3 having count(*) > 1) x`));
+  if (dupRedeem) issue('someone redeemed the same deal twice in one day', `${dupRedeem}`, day);
+  const dealsNoOwner = Number(sql(`select count(*) from gossoko.venue_specials s where deleted_at is null and end_date > now()
+     and not exists (select 1 from gossoko.venue_claims c where c.venue_id = s.venue_id and c.status = 'approved' and c.deleted_at is null)`));
+  if (dealsNoOwner) issue('deals still running on a venue with no verified owner', `${dealsNoOwner}`, day);
+  const proDb = new Set(sqlRows(`select id from gossoko.venues where pro_until > now()`).map((r) => r[0]));
+  const proSim = new Set([...proUntil].filter(([, d]) => d > day).map(([v]) => v));
+  const proOff = [...proSim].filter((v) => !proDb.has(v)).length + [...proDb].filter((v) => !proSim.has(v)).length;
+  if (proOff) issue('Pro status differs from the grants/lapses that happened', `${proOff} venues`, day);
+  const shownDeals = (await app.bq.getLiveDeals()).length;
+  const dbDeals = Number(sql(`select count(*) from gossoko.venue_specials where deleted_at is null and start_date <= now() and end_date > now()`));
+  if (shownDeals !== Math.min(60, dbDeals)) issue('Deals tab differs from the running deals in the database', `${shownDeals} vs ${dbDeals}`, day);
   // Badges
   const unearnedVerified = Number(sql(`select count(*) from gossoko.venues v where is_verified and not exists (select 1 from gossoko.venue_claims c where c.venue_id = v.id and c.status = 'approved')`));
   if (unearnedVerified) issue('venues show a Verified badge without an approved owner claim', `${unearnedVerified} venues`, day);
@@ -378,6 +578,151 @@ async function checks(day: number) {
      (select count(*) from gossoko.reviews r where r.venue_id = v.id and r.moderation_status='approved' and r.deleted_at is null
         and r.created_at > '${simNow}'::timestamptz - interval '14 days' and r.created_at <= '${simNow}') >= 3)`));
   if (wrongTrending) issue('Trending badge wrong (3+ reviews in the last 14 days)', `${wrongTrending} venues`, day);
+}
+
+// ── probes: what the new rules must refuse, and allow ────────────────────────
+async function businessProbes(admin: Person, last: number) {
+  const live = people.filter((p) => p.hasProfile && !p.deleted);
+  const tradies = live.filter((p) => p.kind === 'tradie');
+  const owners = live.filter((p) => p.kind === 'owner' && ownerVenue.has(p.id));
+  if (tradies.length < 6 || owners.length < 2) { origErr('[sim] probes skipped: not enough people'); return; }
+  const [T, T2, T3, T4] = tradies;
+  const [O, O2] = owners;
+  const V = ownerVenue.get(O.id)!, W = ownerVenue.get(O2.id)!;
+  const want = (cond: boolean, msg: string, ex = '') => { if (!cond) issue(`PROBE: ${msg}`, ex || 'probe', last); else bump('probesPassed'); };
+  const sbAs = async (p: Person) => { await as(p); return app.client.supabase(); };
+  const mkDeal = (venueId: string, over: Partial<{ title: string; max: number | null; hours: number }> = {}) =>
+    app.biz.createDeal({ venueId, title: over.title ?? 'Probe deal', description: '', terms: '', kind: 'other', value: 0, hours: over.hours ?? 24, maxRedemptions: over.max ?? null });
+  const clearDeals = (venueId: string) => sql(`update gossoko.venue_specials set deleted_at = now() where venue_id = '${venueId}' and deleted_at is null`);
+  const makePro = (venueId: string) => sql(`insert into gossoko.venue_plans (venue_id, status, current_period_end, source) values ('${venueId}', 'active', now() + interval '30 days', 'manual')
+     on conflict (venue_id) do update set status = 'active', current_period_end = now() + interval '30 days'`);
+  const noPro = (venueId: string) => sql(`update gossoko.venue_plans set status = 'cancelled', current_period_end = now() - interval '1 second' where venue_id = '${venueId}'`);
+  const dealId = (venueId: string) => sql(`select id from gossoko.venue_specials where venue_id = '${venueId}' and deleted_at is null order by created_at desc limit 1`);
+
+  // --- a non-owner cannot act for a venue
+  await as(T);
+  const fake = await mkDeal(V, { title: 'FREE MONEY for everyone' });
+  want(!fake.ok, 'a non-owner posted a deal on someone else\'s venue', V);
+  clearDeals(V);
+  const sbT = await sbAs(T);
+  const st = await sbT.rpc('venue_stats', { p_venue: V, p_days: 7 });
+  want(!!st.error, 'a non-owner could read a venue\'s stats');
+  const an = await sbT.from('venue_analytics').select('*').limit(5);
+  want((an.data ?? []).length === 0, 'a tradie could read other venues\' analytics');
+  const forge = await sbT.from('venue_analytics').insert({ venue_id: V, date: '2026-01-01', profile_views: 99999 });
+  want(!!forge.error, 'a tradie could write fake analytics');
+  const notif = await sbT.from('notifications').insert({ user_id: T2.id, type: 'x', title: 'Your account is locked, click here' });
+  want(!!notif.error, 'a tradie could put a notification in someone else\'s inbox');
+  const claimNow = await sbT.rpc('grant_venue_pro', { p_venue: V, p_days: 365, p_note: 'free' });
+  want(!!claimNow.error, 'a tradie could grant themselves Pro');
+  const promoNow = await sbT.rpc('feature_venue', { p_venue: V, p_tier: 'platinum', p_days: 30 });
+  want(!!promoNow.error, 'a tradie could buy themselves a promoted slot');
+  const pf = await sbT.from('profiles').update({ is_verified: true, reviews_count: 500, followers_count: 9999, bio: 'x'.repeat(400) }).eq('id', T.id).select('is_verified, reviews_count, followers_count, bio').single();
+  want(!pf.error && pf.data?.is_verified === false && Number(pf.data?.reviews_count) < 500 && Number(pf.data?.followers_count) < 9999 && (pf.data?.bio ?? '').length <= 280, 'a tradie could edit their own badge, counts or write a huge bio', JSON.stringify(pf.data));
+  const swapV = await (await sbAs(O)).from('venues').update({ pro_until: '2099-01-01', save_count: 9999, rating: 5 }).eq('id', V).select('pro_until, save_count, rating').maybeSingle();
+  want(!swapV.data || (swapV.data.pro_until === null || new Date(swapV.data.pro_until).getFullYear() < 2090) && Number(swapV.data.save_count) < 9999 && Number(swapV.data.rating) < 5, 'an owner could give their venue Pro/saves/rating by editing it');
+
+  // --- free vs Pro limits
+  await as(O);
+  noPro(V); clearDeals(V);
+  const d1 = await mkDeal(V);
+  const d2 = await mkDeal(V);
+  want(d1.ok && !d2.ok && (d2.ok === false && d2.hint === 'deal_limit'), 'a free venue can run more than one deal at a time', `${JSON.stringify(d2)}`);
+  makePro(V);
+  let proOk = 0;
+  for (let i = 0; i < 6; i++) if ((await mkDeal(V)).ok) proOk++;
+  const seventh = await mkDeal(V);
+  want(proOk === 5 && !seventh.ok, 'Pro limit is not exactly 6 live deals', `ok=${proOk} 7th=${seventh.ok}`);
+  clearDeals(V); noPro(V);
+
+  // --- code lifecycle
+  const dealA = await mkDeal(V, { title: 'Probe: pie + coffee', max: 1, hours: 24 });
+  want(dealA.ok, 'owner could not post a probe deal');
+  const did = dealId(V);
+  await as(T);
+  const c1 = await app.biz.claimDealCode(did);
+  const c1b = await app.biz.claimDealCode(did);
+  want(c1.ok && c1b.ok && c1.code === c1b.code, 'asking for a code twice gave two different codes');
+  await as(O2);
+  const wrong = await app.biz.redeemDealCode(W, c1.ok ? c1.code : 'x');
+  want(!wrong.ok, 'another venue\'s owner redeemed this venue\'s code');
+  await as(T);
+  const selfRedeem = await app.biz.redeemDealCode(V, c1.ok ? c1.code : 'x');
+  want(!selfRedeem.ok, 'a customer redeemed their own code');
+  await as(O);
+  const ok1 = await app.biz.redeemDealCode(V, c1.ok ? c1.code.toLowerCase() : 'x');
+  want(ok1.ok, 'owner could not redeem a valid code (lower-case typed)');
+  const again = await app.biz.redeemDealCode(V, c1.ok ? c1.code : 'x');
+  want(!again.ok && again.hint === 'already_used', 'a code could be redeemed twice');
+  await as(T);
+  const sameDay = await app.biz.claimDealCode(did);
+  want(!sameDay.ok, 'someone claimed the same deal twice in a day');
+  await as(T2);
+  const soldOut = await app.biz.claimDealCode(did);
+  want(!soldOut.ok && soldOut.hint === 'sold_out', 'a sold-out deal still handed out a code', JSON.stringify(soldOut));
+  clearDeals(V);
+
+  const dealB = await (async () => { await as(O); return mkDeal(V, { title: 'Probe: expiry' }); })();
+  want(dealB.ok, 'owner could not post a second probe deal');
+  const did2 = dealId(V);
+  await as(T3);
+  const c2 = await app.biz.claimDealCode(did2);
+  if (c2.ok) {
+    sql(`update gossoko.deal_codes set expires_at = now() - interval '1 minute' where code = '${c2.code}'`);
+    await as(O);
+    const late = await app.biz.redeemDealCode(V, c2.code);
+    want(!late.ok && late.hint === 'expired', 'an expired code was accepted', JSON.stringify(late));
+  }
+  const gone = await (async () => { await as(O); clearDeals(V); await as(T4); return app.biz.claimDealCode(did2); })();
+  want(!gone.ok, 'a code was handed out for a deal that had ended');
+  const signedOut = await (async () => { await as(null); return app.biz.claimDealCode(did2); })();
+  want(!signedOut.ok, 'a signed-out visitor got a deal code');
+
+  // --- replies
+  const rv = sqlRows(`select id from gossoko.reviews where venue_id = '${V}' and moderation_status = 'approved' and deleted_at is null limit 3`);
+  if (rv.length) {
+    sql(`update gossoko.review_replies set deleted_at = now() where review_id = '${rv[0][0]}'`);
+    await as(T);
+    const nr = await app.biz.postReply(rv[0][0], 'Great place, trust me');
+    want(!nr.ok, 'a non-owner posted a reply as the venue');
+    await as(O);
+    const link = await app.biz.postReply(rv[0][0], 'Visit www.bootdeals.example for 80% off');
+    want(!link.ok && link.hint === 'links', 'an owner reply with a link/spam was accepted', JSON.stringify(link));
+    const good = await app.biz.postReply(rv[0][0], 'Cheers for the feedback.');
+    const twice = await app.biz.postReply(rv[0][0], 'And another one.');
+    want(good.ok && !twice.ok, 'owner reply rules: one reply per review');
+    await as(O2);
+    const wrongOwner = await app.biz.postReply(rv[Math.min(1, rv.length - 1)][0], 'Not my venue but I will reply');
+    want(!wrongOwner.ok, 'another venue\'s owner replied to this venue\'s review');
+  }
+
+  // --- listing edits
+  await as(T);
+  const edit = await app.biz.saveVenueDetails(V, { tagline: 'HACKED', description: '', phone: '', opens_at: '', closes_at: '' });
+  want(!edit.ok, 'a non-owner edited a venue listing');
+
+  // --- the community hides content three established people report
+  const victim = sqlRows(`select c.id, c.user_id from gossoko.comments c where c.moderation_status = 'approved' and c.deleted_at is null limit 1`)[0];
+  if (victim) {
+    const reporters = tradies.filter((p) => p.id !== victim[1]).slice(4, 7);
+    for (const rp of reporters) { await as(rp); await app.report({ reportableType: 'comment', reportableId: victim[0], reportType: 'spam', reason: 'probe: spam comment' }); }
+    want(sql(`select moderation_status from gossoko.comments where id = '${victim[0]}'`) === 'flagged', 'three reports from established accounts did not hide the comment');
+  }
+  // --- spam words are held for a moderator
+  const fresh = sqlRows(`select v.id from gossoko.venues v where moderation_status = 'approved' and deleted_at is null and not exists (select 1 from gossoko.reviews r where r.venue_id = v.id and r.user_id = '${T2.id}') limit 1`)[0];
+  if (fresh) {
+    await as(T2);
+    const sp = await app.submitReview(form({ venue_id: fresh[0], title: 'Check this out', body: 'Best crypto tips, DM me on telegram', ...stars(() => 5) }));
+    want(sp.ok && sp.pending, 'a spammy review went live straight away', JSON.stringify(sp));
+    const ok = await (async () => { sql(`delete from gossoko.reviews where user_id = '${T2.id}' and venue_id = '${fresh[0]}'`); return app.submitReview(form({ venue_id: fresh[0], title: 'Good feed', body: 'Pie was hot and the coffee strong, fair price.', ...stars(() => 4) })); })();
+    const premodOn = sql(`select value::text from gossoko.app_settings where key = 'review_premoderation'`) === 'true';
+    want(ok.ok && (premodOn || !ok.pending), 'an ordinary review was held for moderation while pre-moderation was off');
+  }
+  // --- username checks
+  await as(null);
+  const dupe = await app.auth.signupUser('probe-dupe@example.test', 'Tradie2026!sim', T.username.toUpperCase());
+  want(!dupe.success, 'a username differing only by case was accepted', JSON.stringify(dupe));
+  void admin;
 }
 
 // ── the run ────────────────────────────────────────────────────────────────
@@ -389,12 +734,19 @@ test('Gossoko — six months of operation', async () => {
   // Day 0: the owner (admin) and the seed venues.
   const admin = (await join('admin', 0))!;
   sql(`update gossoko.profiles set role = 'admin' where id = '${admin.id}'`);
-  for (const [id, rating] of sqlRows(`select id, rating from gossoko.venues`)) venueTruth.set(id, Math.max(2, Number(rating) - (rnd() * 1.2)));
+  for (const [id] of sqlRows(`select id from gossoko.venues`)) venueTruth.set(id, 3 + rnd() * 1.8);
 
   let premod = false;
   for (let day = 0; day < DAYS; day++) {
     const month = dayLabel(day).slice(0, 7);
     const timing = (timingByMonth[month] ??= []);
+
+    // Deals, Pro plans and promotions lapse on their simulated day.
+    for (const d of dealEnds.filter((x) => x.endDay <= day)) sql(`update gossoko.venue_specials set end_date = now() - interval '1 second' where id = '${d.id}'`);
+    for (let i = dealEnds.length - 1; i >= 0; i--) if (dealEnds[i].endDay <= day) dealEnds.splice(i, 1);
+    for (const [vid, exp] of [...proUntil]) if (exp <= day) { sql(`update gossoko.venue_plans set status = 'cancelled', current_period_end = now() - interval '1 second' where venue_id = '${vid}'`); proUntil.delete(vid); bump('proLapsed'); }
+    for (const d of promoEnds.filter((x) => x.endDay <= day)) sql(`update gossoko.featured_venues set end_date = now() - interval '1 second' where id = '${d.id}'`);
+    for (let i = promoEnds.length - 1; i >= 0; i--) if (promoEnds[i].endDay <= day) promoEnds.splice(i, 1);
 
     // Launch → word of mouth: ~0.4/day at first, ~6/day by month five.
     const target = Math.round(650 / (1 + Math.exp(-(day - 105) / 24)));
@@ -433,7 +785,7 @@ test('Gossoko — six months of operation', async () => {
     const dow = new Date(START.getTime() + day * 864e5).getDay();
     const busy = dow === 0 ? 0.25 : dow === 6 ? 0.5 : 1;
     for (const p of people) {
-      if (p.kind === 'admin' || p.kind === 'moderator' || !p.hasProfile) continue;
+      if (p.kind === 'admin' || p.kind === 'moderator' || !p.hasProfile || p.deleted) continue;
       const fade = Math.exp(-(day - p.joined) / 120); // people drift off
       if (chance(p.activity * busy * (0.35 + 0.65 * fade))) {
         try { await visit(p, day, timing); }
@@ -514,6 +866,8 @@ test('Gossoko — six months of operation', async () => {
       if (error || !data?.length) issue('approved owner cannot update their venue', error?.message ?? 'no rows', DAYS - 1);
     }
   }
+
+  await businessProbes(admin, DAYS - 1);
 
   const finalTotals = Object.fromEntries(['profiles', 'venues', 'reviews', 'comments', 'review_likes', 'content_reports', 'venue_claims', 'moderation_queue', 'audit_logs']
     .map((t) => [t, Number(sql(`select count(*) from gossoko.${t}`))]));

@@ -26,3 +26,6 @@ export const writeAudit = (a: {
 }) => call({ action: 'audit', ...a });
 
 export const setUserRole = (userId: string, role: string) => call({ action: 'set_role', userId, role });
+
+/** Delete the signed-in user's own account and everything attached to it. */
+export const deleteMyAccount = () => call({ action: 'delete_account', confirm: 'DELETE' });

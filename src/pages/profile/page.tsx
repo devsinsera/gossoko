@@ -1,4 +1,4 @@
-import { Link } from '@/lib/nav';
+import { Link, useQuery } from '@/lib/nav';
 import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
 import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon } from '@/components/icons';
 import { useAuth } from '@/lib/auth';
@@ -7,6 +7,12 @@ import { Skeleton } from '@/components/Skeleton';
 import { getOwnProfile, initialsFromName } from '@/lib/queries/profile';
 import { getReviewsByUserId } from '@/lib/queries/reviews';
 import { DeleteReviewButton } from './DeleteReviewButton';
+import { ProfileEditor } from './ProfileEditor';
+import { SavedSpots } from './SavedSpots';
+import { DeleteAccount } from './DeleteAccount';
+import { getAllVenues } from '@/lib/queries/venues';
+import { getManagedVenues, getSavedVenueIds } from '@/lib/queries/business';
+import { TRADES } from './ProfileEditor';
 
 interface ProfileView {
   handle: string;
@@ -36,16 +42,20 @@ interface ReviewRowView {
 
 export default function ProfilePage() {
   const { user: authUser, signOut } = useAuth();
+  const { venue: venueFlag } = useQuery('venue');
   const { data, loading } = useLoad(async () => {
     if (!authUser) return null;
     const profile = await getOwnProfile(authUser.id);
     const reviews = profile ? await getReviewsByUserId(profile.id) : [];
-    return { profile, reviews };
+    const [venues, savedIds, managed] = await Promise.all([getAllVenues(), getSavedVenueIds(authUser.id), getManagedVenues(authUser.id)]);
+    return { profile, reviews, saved: venues.filter((v) => savedIds.has(v.id)), managed };
   }, [authUser?.id]);
   if (loading && authUser) return <div style={{ padding: 16 }}><Skeleton width={200} height={26} /></div>;
 
   const profile = data?.profile ?? null;
   const realReviews = data?.reviews ?? [];
+  const savedVenues = data?.saved ?? [];
+  const managed = data?.managed ?? [];
 
   let u: ProfileView;
   let myReviews: ReviewRowView[];
@@ -54,17 +64,17 @@ export default function ProfilePage() {
     u = {
       handle: profile.username,
       display_name: profile.full_name || profile.username,
-      trade: profile.trade_type ?? 'tradie',
+      trade: TRADES.find((t) => t.value === profile.trade_type)?.label ?? 'Tradie',
       suburb: 'Brisbane',
       avatar_color: COLORS.orange,
       initials: initialsFromName(profile.full_name || profile.username),
-      bio: profile.bio || 'No bio yet. Add one from settings (coming soon).',
+      bio: profile.bio || 'No bio yet — tap Edit profile to add your trade and a line about you.',
       role: profile.role,
       stats: {
         reviews: profile.reviews_count || realReviews.length,
         helpful_marks: realReviews.reduce((sum, r) => sum + r.helpful_count, 0),
         venues_visited: new Set(realReviews.map((r) => r.venue_id)).size,
-        streak_days: 0,
+        streak_days: savedVenues.length,
       },
       badges: profile.is_verified ? [{ code: 'verified', label: 'Verified', color: COLORS.orange }] : [],
     };
@@ -101,6 +111,14 @@ export default function ProfilePage() {
           </p>
         </div>
       </header>
+
+      {venueFlag === 'submitted' && (
+        <section className="section">
+          <div role="status" style={{ padding: '10px 14px', background: COLORS.surface, border: `1px solid ${COLORS.hiVisGreen}`, borderLeft: `4px solid ${COLORS.hiVisGreen}`, borderRadius: RADIUS.md, fontSize: 13 }}>
+            Thanks — an admin will check your venue before it goes live. Run the place? Claim it once it&apos;s up.
+          </div>
+        </section>
+      )}
 
       {/* Identity card */}
       <section className="section">
@@ -176,7 +194,7 @@ export default function ProfilePage() {
             <Stat label="Reviews"  value={u.stats.reviews}        accent={COLORS.orange} />
             <Stat label="Helpful"  value={u.stats.helpful_marks}  accent={COLORS.hiVisGreen} />
             <Stat label="Venues"   value={u.stats.venues_visited} accent={COLORS.text} />
-            <Stat label="Streak"   value={`${u.stats.streak_days}d`} accent={COLORS.hiVisYellow} />
+            <Stat label="Saved"    value={u.stats.streak_days}    accent={COLORS.hiVisYellow} />
           </div>
         </div>
       </section>
@@ -213,10 +231,19 @@ export default function ProfilePage() {
       {/* Actions */}
       <section className="section">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <ActionTile href="/" icon={<FlameIcon size={20} />} label="Write a Review" hint="Pick a venue first" />
+          <ActionTile href="/search" icon={<FlameIcon size={20} />} label="Write a Review" hint="Find the venue first" />
           <ActionTile href="/venue/new" icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Suggest a new spot" />
+          <ActionTile href="/deals" icon={<StarIcon size={20} />} label="Deals" hint="Codes for smoko" />
+          <ActionTile href="/manage" icon={<HardHatIcon size={20} />} label="My Venues" hint={managed.length ? `${managed.length} you manage` : 'Own a place? Claim it'} />
         </div>
+        {authUser && profile && (
+          <div style={{ marginTop: 12 }}>
+            <ProfileEditor userId={authUser.id} initial={{ username: profile.username, full_name: profile.full_name, bio: profile.bio, trade: profile.trade_type ?? 'tradie' }} />
+          </div>
+        )}
       </section>
+
+      {authUser && profile && <SavedSpots venues={savedVenues} />}
 
       {/* My recent reviews */}
       <section className="section">
@@ -370,6 +397,7 @@ export default function ProfilePage() {
                 Sign out
               </button>
             </div>
+            <DeleteAccount onDeleted={() => { void signOut(); }} />
           </div>
         ) : (
           <div style={{
@@ -382,7 +410,7 @@ export default function ProfilePage() {
             gap: SPACE.sm,
           }}>
             <div style={{ fontSize: 13, color: COLORS.textSecondary }}>
-              Not signed in — the data above is demo content.
+              Not signed in. Sign in to save spots, get deal codes and post reviews.
             </div>
             <div style={{ display: 'flex', gap: SPACE.sm }}>
               <Link
