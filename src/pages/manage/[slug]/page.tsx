@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@/lib/nav';
 import { Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
@@ -10,6 +10,8 @@ import {
 } from '@/lib/queries/business';
 import { ReplyBox } from '../../_business/ReplyBox';
 import { createDeal, endDeal, redeemDealCode, requestPro, saveVenueDetails } from '../../_business/actions';
+import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
+import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
 import { COLORS, RADIUS } from '@/lib/theme';
 import NotFound from '../../not-found';
@@ -229,6 +231,22 @@ function Plan({ venueId, pro, until }: { venueId: string; pro: boolean; until: s
   const [note, setNote] = useState('');
   const [state, setState] = useState<'idle' | 'sent' | string>('idle');
   const [busy, setBusy] = useState(false);
+  // Card payment is web only (the app never takes payment itself) and only once Stripe is switched on.
+  const [online, setOnline] = useState(false);
+  useEffect(() => {
+    if (isNative()) return;
+    let live = true;
+    billingEnabled().then((on) => { if (live) setOnline(on); });
+    return () => { live = false; };
+  }, []);
+  async function pay(kind: 'checkout' | 'portal') {
+    setBusy(true);
+    setState('idle');
+    const res = await (kind === 'checkout' ? startCheckout : openBillingPortal)(venueId);
+    if (res.ok) { window.location.assign(res.url); return; }
+    setBusy(false);
+    setState(res.error);
+  }
   async function ask() {
     setBusy(true);
     const res = await requestPro(venueId, note);
@@ -240,18 +258,31 @@ function Plan({ venueId, pro, until }: { venueId: string; pro: boolean; until: s
       <div className="section-title"><h2>Plan</h2></div>
       <div style={{ ...card, borderColor: pro ? COLORS.orange : COLORS.border }}>
         {pro ? (
+          <>
           <p style={{ margin: 0, color: COLORS.hiVisGreen, fontWeight: 800 }}>
             Pro{until ? ` until ${new Date(until).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
           </p>
+          {online && (
+            <>
+              <button type="button" onClick={() => pay('portal')} disabled={busy} style={{ ...primary, marginTop: 10, opacity: busy ? 0.7 : 1 }}>Manage billing</button>
+              {state !== 'idle' && state !== 'sent' && <p role="alert" style={{ margin: '8px 0 0', color: COLORS.red, fontSize: 13 }}>{state}</p>}
+            </>
+          )}
+          </>
         ) : (
           <>
-            <p style={{ margin: 0, color: COLORS.text, fontWeight: 800 }}>Free{PRO_PRICE_TEXT ? '' : ' — Pro is open by invitation'}</p>
+            <p style={{ margin: 0, color: COLORS.text, fontWeight: 800 }}>Free{PRO_PRICE_TEXT && !isNative() ? '' : ' — Pro is open by invitation'}</p>
             <ul style={{ margin: '8px 0', paddingLeft: 18, color: COLORS.textSecondary, fontSize: 13.5, lineHeight: 1.6 }}>
               <li>Up to {PRO_DEAL_LIMIT} deals at once (free: {FREE_DEAL_LIMIT})</li>
               <li>See Directions, Calls, Shares and deal redemptions</li>
               <li>90 days of history (free: 7)</li>
             </ul>
-            {PRO_PRICE_TEXT && <p style={{ margin: '0 0 8px', color: COLORS.orange, fontWeight: 800 }}>{PRO_PRICE_TEXT}</p>}
+            {PRO_PRICE_TEXT && !isNative() && <p style={{ margin: '0 0 8px', color: COLORS.orange, fontWeight: 800 }}>{PRO_PRICE_TEXT}</p>}
+            {online && (
+              <button type="button" onClick={() => pay('checkout')} disabled={busy} style={{ ...primary, alignSelf: 'flex-start', marginBottom: 10, opacity: busy ? 0.7 : 1 }}>
+                {busy ? 'Opening…' : 'Go Pro'}
+              </button>
+            )}
             {state === 'sent' ? (
               <p role="status" style={{ margin: 0, color: COLORS.hiVisGreen, fontWeight: 700, fontSize: 13.5 }}>Got it — we&apos;ll be in touch about Pro.</p>
             ) : (
