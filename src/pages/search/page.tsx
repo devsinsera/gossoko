@@ -194,7 +194,7 @@ export default function SearchPage() {
                       color: COLORS.textMuted,
                       marginTop: 2,
                     }}>
-                      {v.suburb} · <VenueDistance lat={v.lat} lng={v.lng} fallbackKm={v.distance_km} />
+                      {v.suburb} · <VenueDistance lat={v.lat} lng={v.lng} />
                     </div>
                   </div>
                   <span style={{

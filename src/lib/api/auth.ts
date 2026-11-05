@@ -35,6 +35,11 @@ export async function signupUser(email: string, password: string, username: stri
   if (!policy.valid) return { success: false, errors: policy.errors };
 
   const sb = supabase();
+  // Check the name first: a taken name would create the login without a profile.
+  const { data: free, error: freeErr } = await sb.rpc('username_available', { p_username: cleanUsername });
+  if (freeErr) return { success: false, errors: [`Couldn't check that username: ${freeErr.message}`] };
+  if (free === false) return { success: false, errors: [`"${cleanUsername}" is taken — try adding your trade or a number.`] };
+
   const { data, error } = await sb.auth.signUp({
     email,
     password,
@@ -48,14 +53,7 @@ export async function signupUser(email: string, password: string, username: stri
 
   // With email confirmation on there is no session yet, so the profile row is
   // created by the database trigger/first sign-in, not here (RLS needs a session).
-  if (data.session) {
-    const { error: profileError } = await sb.from('profiles').insert({
-      id: data.user.id, email, username: cleanUsername, role: 'user',
-    });
-    if (profileError && !/duplicate|unique/i.test(profileError.message)) {
-      console.error('[gossoko] profile creation failed:', profileError.message);
-    }
-  }
+  if (data.session) await ensureProfile(data.user);
   return { success: true, needsEmailConfirmation: !data.session };
 }
 
@@ -86,9 +84,18 @@ export async function ensureProfile(user: { id: string; email?: string | null; u
   const { data, error } = await sb.from('profiles').select('id').eq('id', user.id).maybeSingle();
   if (error || data) return;
   const email = user.email ?? '';
-  const username = normalizeUsername(String(user.user_metadata?.username ?? email.split('@')[0] ?? ''));
-  const { error: insErr } = await sb.from('profiles').insert({ id: user.id, email, username, role: 'user' });
-  if (insErr && !/duplicate|unique/i.test(insErr.message)) {
-    console.error('[gossoko] profile creation failed:', insErr.message);
+  const wanted = normalizeUsername(String(user.user_metadata?.username ?? email.split('@')[0] ?? '')) || 'tradie';
+  // If someone took the name between sign-up and first sign-in, add a number
+  // rather than leave the account without a profile (it couldn't post).
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const username = attempt === 0 ? wanted : `${wanted.slice(0, 27)}_${Math.floor(1000 + Math.random() * 9000)}`;
+    const { error: insErr } = await sb.from('profiles').insert({ id: user.id, email, username, role: 'user' });
+    if (!insErr) return;
+    if (/profiles_pkey/i.test(insErr.message)) return; // already has one
+    if (!/username|duplicate|unique/i.test(insErr.message)) {
+      console.error('[gossoko] profile creation failed:', insErr.message);
+      return;
+    }
   }
+  console.error('[gossoko] profile creation failed: no free username near', wanted);
 }

@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
 import { invalidate } from '@/lib/useLoad';
 
-export type ClaimOutcome = 'submitted' | 'exists' | 'owner' | 'error' | 'unauthenticated';
+export type ClaimOutcome = 'submitted' | 'exists' | 'owner' | 'taken' | 'error' | 'unauthenticated';
 
 // Lets a signed-in user claim ownership of a venue: inserts a pending
 // venue_claims row (RLS allows an own-claim insert). An admin approves or
@@ -14,8 +14,10 @@ export async function claimVenue(venueId: string): Promise<ClaimOutcome> {
 
   const sb = supabase();
   const { data: venue } = await sb
-    .from('venues').select('created_by').eq('id', venueId).is('deleted_at', null).maybeSingle();
+    .from('venues').select('created_by, is_verified').eq('id', venueId).is('deleted_at', null).maybeSingle();
   if (venue?.created_by === user.id) return 'owner';
+  // is_verified = an admin already approved someone's claim on this venue.
+  if (venue?.is_verified) return 'taken';
 
   const { data: existing } = await sb
     .from('venue_claims').select('id, status')

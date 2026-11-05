@@ -9,6 +9,7 @@ import { COLORS } from '@/lib/theme';
 import { StarIcon, FlameIcon, MapPinIcon } from '@/components/icons';
 import { VenueDistance } from '@/components/VenueDistance';
 import { Link } from '@/lib/nav';
+import { displayScore, rankVenues } from '@/lib/ranking';
 
 export default function FeedPage() {
   const { data, loading } = useLoad(async () => {
@@ -18,9 +19,8 @@ export default function FeedPage() {
   if (loading && !data) return <FeedLoading />;
   const allVenues = data?.allVenues ?? [];
   const recentReviews = data?.recentReviews ?? [];
-  // Top-rated first for the hero; the other slices apply different orderings.
-  const topRated = [...allVenues].sort((a, b) => b.overall - a.overall);
-  const featured = topRated[0];
+  // The hero is the #1 ranked venue; no hero until something has enough reviews.
+  const featured = rankVenues(allVenues)[0];
   const open = allVenues.filter((v) => v.open_now).slice(0, 6);
   const trending = allVenues.filter((v) => v.trending);
   const nearMe = [...allVenues].sort((a, b) => a.distance_km - b.distance_km).slice(0, 6);
@@ -240,9 +240,9 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
           gap: 16,
           flexWrap: 'wrap',
         }}>
-          <Stat label="Overall" value={venue.overall.toFixed(1)} accent={COLORS.orange} />
+          <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orange} />
           <Stat label="Reviews" value={String(venue.review_count)} />
-          <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />} />
+          <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
           <Stat label="Opens" value={venue.opens_at} />
         </div>
       </div>

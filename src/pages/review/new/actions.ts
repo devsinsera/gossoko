@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
-import { REVIEW_PREMODERATION } from '@/lib/env';
 import { invalidate } from '@/lib/useLoad';
 
 export const AXIS_COLS = [
@@ -9,7 +8,7 @@ export const AXIS_COLS = [
 ] as const;
 
 export type SubmitReviewResult =
-  | { ok: true; updated: boolean }
+  | { ok: true; updated: boolean; pending: boolean }
   | { ok: false; error: string; unauthenticated?: boolean };
 
 export async function submitReview(form: FormData): Promise<SubmitReviewResult> {
@@ -33,24 +32,30 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: 'Sign in to review', unauthenticated: true };
 
-  // With pre-moderation on, new AND edited reviews go back to 'pending' so an
-  // approved review can't be edited into anything and stay live.
-  const moderation_status = REVIEW_PREMODERATION ? 'pending' : 'approved';
+  // The database decides moderation_status (reviews_guard trigger): 'pending'
+  // when pre-moderation is on or the text carries a link/phone/email.
   const sb = supabase();
-  let dbError: { message: string } | null;
+  let dbError: { message: string; hint?: string } | null;
+  let status: string | undefined;
 
   if (reviewId) {
-    const { error } = await sb
+    const { data, error } = await sb
       .from('reviews')
-      .update({ title, body, ...ratings, moderation_status, updated_at: new Date().toISOString() })
+      .update({ title, body, ...ratings, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select('moderation_status')
+      .maybeSingle();
     dbError = error;
+    status = data?.moderation_status;
   } else {
-    const { error } = await sb.from('reviews').insert({
-      venue_id: venueId, user_id: user.id, title, body, ...ratings, moderation_status,
-    });
+    const { data, error } = await sb
+      .from('reviews')
+      .insert({ venue_id: venueId, user_id: user.id, title, body, ...ratings })
+      .select('moderation_status')
+      .single();
     dbError = error;
+    status = data?.moderation_status;
   }
 
   if (dbError) {
@@ -59,9 +64,11 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
       ok: false,
       error: dbError.message.includes('unique')
         ? 'You already reviewed this venue. Reload the page to edit.'
+        : dbError.hint === 'rate_limited' ? dbError.message
+        : /row-level security/i.test(dbError.message) ? 'Your account can\'t post right now.'
         : 'Could not save your review. Please try again.',
     };
   }
   invalidate();
-  return { ok: true, updated: Boolean(reviewId) };
+  return { ok: true, updated: Boolean(reviewId), pending: status !== 'approved' };
 }

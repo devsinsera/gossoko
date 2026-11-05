@@ -1,11 +1,10 @@
 import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
-import { REVIEW_PREMODERATION } from '@/lib/env';
 import { invalidate } from '@/lib/useLoad';
 import { MAX_COMMENT_LENGTH } from './constants';
 
 export type AddCommentResult =
-  | { ok: true }
+  | { ok: true; pending: boolean }
   | { ok: false; error: string };
 
 export async function addComment(reviewId: string, body: string): Promise<AddCommentResult> {
@@ -31,16 +30,18 @@ export async function addComment(reviewId: string, body: string): Promise<AddCom
     .maybeSingle();
   if (!parent) return { ok: false, error: 'That review is no longer available.' };
 
-  const { error } = await sb.from('comments').insert({
-    review_id: reviewId,
-    user_id: user.id,
-    body: trimmed,
-    moderation_status: REVIEW_PREMODERATION ? 'pending' : 'approved',
-  });
+  // moderation_status is set by the database (comments_guard trigger).
+  const { data, error } = await sb
+    .from('comments')
+    .insert({ review_id: reviewId, user_id: user.id, body: trimmed })
+    .select('moderation_status')
+    .single();
   if (error) {
     console.error('[gossoko] addComment failed:', error.message);
+    if (error.hint === 'rate_limited') return { ok: false, error: error.message };
+    if (/row-level security/i.test(error.message)) return { ok: false, error: 'Your account can\'t post right now.' };
     return { ok: false, error: 'Failed to post comment. Please try again.' };
   }
   invalidate();
-  return { ok: true };
+  return { ok: true, pending: data?.moderation_status !== 'approved' };
 }

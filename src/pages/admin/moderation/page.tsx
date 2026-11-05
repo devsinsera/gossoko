@@ -213,7 +213,7 @@ export default function ModerationPage() {
 
       {pendingReviews.length === 0 && !reviewRes.error && (
         <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
-          No reviews waiting. (Pre-moderation only kicks in when GOSSOKO_REVIEW_PREMODERATION=true.)
+          No reviews waiting. (Reviews wait here when pre-moderation is on, or when they contain a link, email or phone number.)
         </p>
       )}
 
@@ -271,7 +271,7 @@ export default function ModerationPage() {
 
       {pendingComments.length === 0 && !commentRes.error && (
         <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>
-          No comments waiting. (Pre-moderation only kicks in when GOSSOKO_REVIEW_PREMODERATION=true.)
+          No comments waiting. (Comments wait here when pre-moderation is on, or when they contain a link, email or phone number.)
         </p>
       )}
 

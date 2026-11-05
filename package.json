@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "icons": "python3 scripts/make_icons.py",
+    "sim": "sim/run.sh",
     "deploy": "npm test && npm run build && python3 scripts/deploy.py"
   },
   "dependencies": {

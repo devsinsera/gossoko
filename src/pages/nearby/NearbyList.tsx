@@ -77,7 +77,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
                 letterSpacing: '0.06em',
                 whiteSpace: 'nowrap',
               }}>
-                <VenueDistance lat={v.lat} lng={v.lng} fallbackKm={v.distance_km} />
+                <VenueDistance lat={v.lat} lng={v.lng} />
               </div>
               <a href={`/venue/${v.slug}`} style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: COLORS.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

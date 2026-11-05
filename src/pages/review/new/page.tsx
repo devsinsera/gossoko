@@ -101,7 +101,7 @@ export default function NewReviewPage() {
             action={submitReview}
             onDone={(r) => {
               const res = r as Awaited<ReturnType<typeof submitReview>>;
-              if (res.ok) navigate(`/venue/${venue.slug}?review=${res.updated ? 'updated' : 'submitted'}`);
+              if (res.ok) navigate(`/venue/${venue.slug}?review=${res.pending ? 'pending' : res.updated ? 'updated' : 'submitted'}`);
               else if (res.unauthenticated) navigate(`/login?next=${encodeURIComponent(`/review/new?venue=${venue.slug}`)}`);
               else setError(res.error);
             }}

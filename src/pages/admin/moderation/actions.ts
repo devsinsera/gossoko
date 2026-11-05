@@ -158,9 +158,14 @@ export async function resolveVenueClaim(formData: FormData | Record<string,strin
   // an admin set venues.created_by; mirror resolveVenueSubmission by stamping
   // last_updated_by.
   if (decision === 'approved') {
+    const { data: owned } = await sb
+      .from('venue_claims').select('id')
+      .eq('venue_id', claim.venue_id).eq('status', 'approved').is('deleted_at', null).neq('id', claim.id)
+      .maybeSingle();
+    if (owned) throw new Error('This venue already has an approved owner. Reject this claim, or remove the current owner first.');
     const { error: venueErr } = await sb
       .from('venues')
-      .update({ created_by: claim.user_id, last_updated_by: user.id })
+      .update({ created_by: claim.user_id, last_updated_by: user.id, is_verified: true })
       .eq('id', claim.venue_id);
 
     if (venueErr) {

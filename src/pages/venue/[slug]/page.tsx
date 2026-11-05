@@ -20,6 +20,7 @@ import { RatingBars } from '@/components/RatingBars';
 import { VenueCard } from '@/components/VenueCard';
 import { VenueDistance } from '@/components/VenueDistance';
 import { ReportButton } from '../../_report/ReportButton';
+import { displayScore } from '@/lib/ranking';
 import {
   StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon, HeartIcon,
   TruckIcon, CoffeeIcon, HardHatIcon, FlameIcon,
@@ -40,12 +41,14 @@ const REPORT_BANNER: Record<string, { color: string; text: string }> = {
 const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
   submitted: { color: COLORS.hiVisGreen, text: 'Review posted. Cheers for the rundown.' },
   updated:   { color: COLORS.hiVisGreen, text: 'Review updated.' },
+  pending:   { color: COLORS.hiVisYellow, text: 'Saved. A moderator checks it before it goes up — usually within a day.' },
 };
 
 const CLAIM_BANNER: Record<string, { color: string; text: string }> = {
   submitted: { color: COLORS.hiVisGreen, text: 'Claim submitted. An admin will review it shortly.' },
   exists:    { color: COLORS.hiVisYellow, text: 'You already have a claim pending review for this venue.' },
   owner:     { color: COLORS.hiVisGreen, text: 'You already manage this venue.' },
+  taken:     { color: COLORS.hiVisYellow, text: 'This venue already has a verified owner. If that’s wrong, report it and an admin will sort it out.' },
   error:     { color: COLORS.red,         text: 'Something went wrong saving your claim. Try again.' },
 };
 
@@ -225,9 +228,9 @@ export default function VenueDetailPage() {
             marginTop: 16,
             flexWrap: 'wrap',
           }}>
-            <Stat label="Overall" value={venue.overall.toFixed(1)} accent={COLORS.orange} />
+            <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orange} />
             <Stat label="Reviews" value={String(venue.review_count)} />
-            <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />} />
+            <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
             <Stat label="Opens" value={venue.opens_at} />
             <Stat label="Closes" value={venue.closes_at} />
           </div>
@@ -383,7 +386,13 @@ export default function VenueDetailPage() {
           border: `1px solid ${COLORS.border}`,
           borderRadius: 10,
         }}>
-          <RatingBars ratings={venue.ratings} />
+          {venue.review_count > 0 ? (
+            <RatingBars ratings={venue.ratings} />
+          ) : (
+            <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 14 }}>
+              No ratings yet. Be the first to rate the coffee, the feed and the ute parking.
+            </p>
+          )}
         </div>
       </section>
 

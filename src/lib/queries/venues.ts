@@ -1,11 +1,10 @@
 // Venue queries. Pulls rows from `gossoko.venues` and shapes them into the
-// Venue type the UI already consumes (lib/seed/types.ts). The 7-axis ratings
-// will eventually come from aggregated reviews — for now they're synthesized
-// from the venue's overall `rating` so the breakdown bars still render.
+// Venue type the UI consumes. Scores (overall, review count, per-axis averages)
+// are kept by a database trigger from approved reviews
+// (migration 20261105000002); a venue with no reviews has review_count 0.
 
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
-import { getAggregatedRatingsForVenues } from '@/lib/queries/reviews';
 
 type VenueRow = {
   id: string;
@@ -32,6 +31,14 @@ type VenueRow = {
   hero_accent: string | null;
   tags: string[] | null;
   signature: string | null;
+  coffee_strength_avg: number | null;
+  feed_size_avg: number | null;
+  bang_for_buck_avg: number | null;
+  speed_avg: number | null;
+  ute_parking_avg: number | null;
+  early_open_avg: number | null;
+  service_avg: number | null;
+  trending_until: string | null;
 };
 
 const AXES: RatingAxis[] = [
@@ -40,10 +47,10 @@ const AXES: RatingAxis[] = [
 ];
 
 function rowToVenue(r: VenueRow): Venue {
-  const overall = Number(r.rating) || 0;
-  // Synthesize per-axis ratings from overall until aggregated review data lands.
+  const reviewed = (r.review_count ?? 0) > 0;
+  const overall = reviewed ? Number(r.rating) || 0 : 0;
   const ratings = AXES.reduce<Record<RatingAxis, number>>((acc, axis) => {
-    acc[axis] = Math.max(1, Math.min(5, Math.round(overall)));
+    acc[axis] = reviewed ? Number(r[`${axis}_avg` as keyof VenueRow] ?? 0) : 0;
     return acc;
   }, {} as Record<RatingAxis, number>);
 
@@ -64,8 +71,8 @@ function rowToVenue(r: VenueRow): Venue {
     closes_at: r.closes_at ?? '',
     price_level: (r.price_level ?? 2) as 1 | 2 | 3,
     verified: r.is_verified,
-    trending: r.trending,
-    distance_km: Number(r.distance_km ?? 0),
+    trending: r.trending_until != null && Date.parse(r.trending_until) > Date.now(),
+    distance_km: r.distance_km == null ? Number.POSITIVE_INFINITY : Number(r.distance_km),
     ratings,
     overall,
     review_count: r.review_count ?? 0,
@@ -90,7 +97,7 @@ function isOpenNow(opens: string | null, closes: string | null): boolean {
   return c > o ? mins >= o && mins < c : mins >= o || mins < c;
 }
 
-const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature';
+const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until';
 
 export async function getAllVenues(): Promise<Venue[]> {
   const supabase = getSupabase();
@@ -104,12 +111,7 @@ export async function getAllVenues(): Promise<Venue[]> {
     console.error('[gossoko] getAllVenues failed:', error.message);
     return [];
   }
-  const venues = ((data as unknown) as VenueRow[]).map(rowToVenue);
-  const aggregated = await getAggregatedRatingsForVenues(venues.map((v) => v.id));
-  return venues.map((v) => {
-    const real = aggregated.get(v.id);
-    return real ? { ...v, ratings: real } : v;
-  });
+  return ((data as unknown) as VenueRow[]).map(rowToVenue);
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {
@@ -126,8 +128,5 @@ export async function getVenueBySlug(slug: string): Promise<Venue | null> {
     return null;
   }
   if (!data) return null;
-  const venue = rowToVenue(data as unknown as VenueRow);
-  const aggregated = await getAggregatedRatingsForVenues([venue.id]);
-  const real = aggregated.get(venue.id);
-  return real ? { ...venue, ratings: real } : venue;
+  return rowToVenue(data as unknown as VenueRow);
 }

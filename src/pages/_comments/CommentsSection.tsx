@@ -36,6 +36,7 @@ export function CommentsSection({
   const comments = initialComments;
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const navigate = useNavigate();
 
@@ -56,11 +57,13 @@ export function CommentsSection({
       return;
     }
     setError(null);
+    setNotice(null);
 
     startTransition(async () => {
       const res = await addComment(reviewId, trimmed);
       if (res.ok) {
         setBody('');
+        if (res.pending) setNotice('Saved. A moderator checks it before it shows.');
         // The page will revalidate via revalidatePath; the server component
         // will re-render with the new comment. For a snappy feel, we don't
         // do optimistic insertion — the server is the source of truth.
@@ -225,6 +228,11 @@ export function CommentsSection({
                 opacity: pending ? 0.7 : 1,
               }}
             />
+            {notice && !error && (
+              <div style={{ fontSize: 11.5, color: COLORS.hiVisYellow, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+                {notice}
+              </div>
+            )}
             {error && (
               <div style={{
                 fontSize: 11.5,

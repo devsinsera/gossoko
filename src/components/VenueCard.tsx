@@ -4,6 +4,7 @@ import { VENUE_TYPE_LABELS } from '@/lib/types';
 import { COLORS, RADIUS } from '@/lib/theme';
 import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
 import { VenueDistance } from './VenueDistance';
+import { displayScore, reviewCountLabel } from '@/lib/ranking';
 
 function venueIcon(type: Venue['venue_type']) {
   if (type === 'gossoko_van') return HardHatIcon;
@@ -144,7 +145,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: COLORS.textMuted }}>
-                <VenueDistance lat={venue.lat} lng={venue.lng} fallbackKm={venue.distance_km} />
+                <VenueDistance lat={venue.lat} lng={venue.lng} />
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -165,7 +166,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
             }}>
               <StarIcon size={13} filled />
               <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em' }}>
-                {venue.overall.toFixed(1)}
+                {displayScore(venue) ?? 'NEW'}
               </strong>
             </div>
             <span style={{
@@ -175,7 +176,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
               letterSpacing: '0.1em',
               color: COLORS.textMuted,
             }}>
-              {venue.review_count} REVIEWS
+              {reviewCountLabel(venue.review_count).toUpperCase()}
             </span>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { getAllVenues } from '@/lib/queries/venues';
 import { useLoad } from '@/lib/useLoad';
 import { useQuery } from '@/lib/nav';
 import RankingsLoading from './loading';
+import { MIN_REVIEWS_TO_RANK, rankVenues, reviewCountLabel } from '@/lib/ranking';
 import { COLORS } from '@/lib/theme';
 import { TrophyIcon, FlameIcon, StarIcon, ChevronRightIcon } from '@/components/icons';
 
@@ -23,10 +24,7 @@ export default function RankingsPage() {
   const mode: RankingMode = (MODES.find((m) => m.id === modeParam)?.id ?? 'overall');
   const active = MODES.find((m) => m.id === mode)!;
 
-  const ranked = [...(venues ?? [])].sort((a, b) => {
-    if (mode === 'overall') return b.overall - a.overall;
-    return b.ratings[mode] - a.ratings[mode];
-  });
+  const ranked = rankVenues(venues ?? [], mode);
 
   return (
     <>
@@ -70,7 +68,17 @@ export default function RankingsPage() {
         })}
       </div>
 
+      {ranked.length === 0 && (
+        <section className="section">
+          <p style={{ color: COLORS.textSecondary, lineHeight: 1.5 }}>
+            Nothing ranked yet. A venue joins the leaderboard once it has {MIN_REVIEWS_TO_RANK} reviews from the crew —
+            rate the places you stop at and they&apos;ll show up here.
+          </p>
+        </section>
+      )}
+
       {/* Podium — top 3 */}
+      {ranked.length > 0 && (<>
       <section className="section">
         <div style={{
           display: 'grid',
@@ -201,7 +209,7 @@ export default function RankingsPage() {
                     textTransform: 'uppercase',
                     marginTop: 2,
                   }}>
-                    {v.suburb} · {v.review_count} reviews
+                    {v.suburb} · {reviewCountLabel(v.review_count)}
                   </div>
                 </div>
                 <span style={{
@@ -226,6 +234,7 @@ export default function RankingsPage() {
           })}
         </div>
       </section>
+      </>)}
 
       <div className="hazard-strip" style={{ marginTop: 28 }} />
     </>
