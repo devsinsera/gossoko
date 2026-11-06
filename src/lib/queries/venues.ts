@@ -109,19 +109,30 @@ function isOpenNow(opens: string | null, closes: string | null): boolean {
 
 const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until, pro_until, deal_until, save_count, phone';
 
+const PAGE = 500;
+
+/** Every venue, fetched PAGE rows at a time (the API silently caps one response at ~1000 rows,
+ *  which would drop venues from ranking and search). Ordered by name, id so pages never overlap. */
 export async function getAllVenues(): Promise<Venue[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('venues')
-    .select(VENUE_COLS)
-    .is('deleted_at', null)
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('[gossoko] getAllVenues failed:', error.message);
-    return [];
+  const rows: VenueRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('venues')
+      .select(VENUE_COLS)
+      .is('deleted_at', null)
+      .order('name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) {
+      console.error('[gossoko] getAllVenues failed:', error.message);
+      return [];
+    }
+    const page = (data as unknown) as VenueRow[];
+    rows.push(...page);
+    if (page.length < PAGE) break;
   }
-  return ((data as unknown) as VenueRow[]).map(rowToVenue);
+  return rows.map(rowToVenue);
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {

@@ -101,7 +101,7 @@ export default function NewReviewPage() {
             action={submitReview}
             onDone={(r) => {
               const res = r as Awaited<ReturnType<typeof submitReview>>;
-              if (res.ok) navigate(`/venue/${venue.slug}?review=${res.pending ? 'pending' : res.updated ? 'updated' : 'submitted'}`);
+              if (res.ok) navigate(`/venue/${venue.slug}?review=${res.photoError ? 'photofail' : res.pending ? 'pending' : res.updated ? 'updated' : 'submitted'}`);
               else if (res.unauthenticated) navigate(`/login?next=${encodeURIComponent(`/review/new?venue=${venue.slug}`)}`);
               else setError(res.error);
             }}
@@ -141,6 +141,12 @@ export default function NewReviewPage() {
               textarea
               defaultValue={existing?.body}
             />
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: COLORS.textSecondary }}>
+              Photos (optional, up to 3)
+              <input type="file" name="photos" accept="image/*" multiple style={{ color: COLORS.text }} />
+              <span style={{ fontSize: 12 }}>A moderator checks photos before they show.</span>
+            </label>
 
             <button
               type="submit"

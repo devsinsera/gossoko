@@ -277,3 +277,16 @@ export async function resolveQueueItem(formData: FormData | Record<string,string
     });
   invalidate();
 }
+
+export async function resolvePhoto(formData: FormData | Record<string, string>): Promise<void> {
+  const id = get(formData, 'id');
+  const decision = get(formData, 'decision');
+  if (!id || !['approved', 'rejected'].includes(decision)) throw new Error('Invalid photo moderation request');
+  await requirePermission('approve_content');
+  const sb = supabase();
+  const { data, error } = await sb.from('photos').update({ moderation_status: decision }).eq('id', id).select('path').maybeSingle();
+  if (error) throw new Error(`Could not update photo: ${error.message}`);
+  if (decision === 'rejected' && data?.path) await sb.storage.from('gossoko-photos').remove([data.path]);   // a rejected image shouldn't stay reachable
+  await audit({ actionType: `photo.${decision}`, resourceType: 'photos', resourceId: id, newValues: { moderation_status: decision } });
+  invalidate();
+}

@@ -164,3 +164,10 @@ export async function featureVenue(venueId: string, tier: string, days: number):
   invalidate();
   return { ok: true };
 }
+
+export async function setSponsor(brand: string, headline: string, body: string, link: string, days: number): Promise<Result> {
+  const { error } = await supabase().rpc('set_sponsor', { p_brand: brand, p_headline: headline, p_body: body, p_link: link, p_days: days });
+  if (error) return fail(error, 'Couldn\'t set the sponsor slot.');
+  invalidate();
+  return { ok: true };
+}

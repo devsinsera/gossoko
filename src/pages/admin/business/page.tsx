@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import { hasPermission } from '@/lib/auth/permissions';
 import { useLoad, invalidate } from '@/lib/useLoad';
-import { featureVenue, grantPro } from '@/pages/_business/actions';
+import { featureVenue, grantPro, setSponsor } from '@/pages/_business/actions';
 import { COLORS, RADIUS } from '@/lib/theme';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '12px 14px' } as const;
@@ -12,6 +12,7 @@ const ghost = { background: 'none', border: `1px solid ${COLORS.border}`, color:
 
 type VenueOpt = { id: string; name: string; suburb: string; pro_until: string | null };
 type Req = { id: string; note: string | null; created_at: string; venue: { id: string; slug: string; name: string; suburb: string } | null; profile: { username: string | null; email: string } | null };
+type Spon = { id: string; brand: string; headline: string; end_date: string; impressions: number; clicks: number };
 type Promo = { id: string; tier: string; end_date: string; total_impressions: number; total_clicks: number; venue: { name: string } | null };
 
 async function load() {
@@ -20,11 +21,12 @@ async function load() {
   if (!allowed) return null;
   const monthStart = new Date(); monthStart.setDate(1);
   const from = new Date(monthStart.getTime() - monthStart.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  const [venues, reqs, promos, usage] = await Promise.all([
+  const [venues, reqs, promos, usage, sponsors] = await Promise.all([
     sb.from('venues').select('id, name, suburb, pro_until').eq('moderation_status', 'approved').is('deleted_at', null).order('name').limit(500),
     sb.from('pro_requests').select('id, note, created_at, venue:venues ( id, slug, name, suburb ), profile:profiles!pro_requests_user_id_fkey ( username, email )').eq('status', 'open').order('created_at'),
     sb.from('featured_venues').select('id, tier, end_date, total_impressions, total_clicks, venue:venues ( name )').is('deleted_at', null).gt('end_date', new Date().toISOString()).order('end_date'),
     sb.from('venue_analytics').select('venue_id, profile_views, directions_taps, deal_claims, deal_redemptions').gte('date', from),
+    sb.from('sponsor_slots').select('id, brand, headline, end_date, impressions, clicks').is('deleted_at', null).gt('end_date', new Date().toISOString()),
   ]);
   const byVenue = new Map<string, { views: number; directions: number; claims: number; redeemed: number }>();
   for (const r of (usage.data ?? []) as { venue_id: string; profile_views: number; directions_taps: number; deal_claims: number; deal_redemptions: number }[]) {
@@ -35,7 +37,7 @@ async function load() {
   const venueList = (venues.data ?? []) as VenueOpt[];
   const names = new Map(venueList.map((v) => [v.id, v]));
   const sheet = [...byVenue].map(([id, u]) => ({ id, name: names.get(id)?.name ?? '—', ...u })).filter((r) => r.redeemed || r.claims).sort((a, b) => b.redeemed - a.redeemed);
-  return { venues: venueList, reqs: (reqs.data ?? []) as unknown as Req[], promos: (promos.data ?? []) as unknown as Promo[], sheet, from };
+  return { venues: venueList, reqs: (reqs.data ?? []) as unknown as Req[], promos: (promos.data ?? []) as unknown as Promo[], sponsors: (sponsors.data ?? []) as Spon[], sheet, from };
 }
 
 export default function AdminBusinessPage() {
@@ -46,6 +48,7 @@ export default function AdminBusinessPage() {
   const [note, setNote] = useState('');
   const [tier, setTier] = useState('bronze');
   const [promoDays, setPromoDays] = useState(7);
+  const [sp, setSp] = useState({ brand: '', headline: '', body: '', link: 'https://', days: 7 });
   if (loading) return <p style={{ color: COLORS.textSecondary }}>Loading…</p>;
   if (!data) return <p style={{ color: COLORS.textSecondary }}>Only admins can see Business.</p>;
   const now = Date.now();
@@ -116,6 +119,26 @@ export default function AdminBusinessPage() {
             </div>
           ))}
           {data.promos.length === 0 && <span style={{ color: COLORS.textMuted, fontSize: 13 }}>No live promotions.</span>}
+        </div>
+      </section>
+
+      <section style={card}>
+        <h2 style={{ fontSize: 16, marginTop: 0 }}>Smoko of the week (sponsor)</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input aria-label="Brand" placeholder="Brand" value={sp.brand} onChange={(e) => setSp({ ...sp, brand: e.target.value })} style={{ ...input, flex: 1, minWidth: 140 }} />
+          <input aria-label="Headline" placeholder="Headline" value={sp.headline} onChange={(e) => setSp({ ...sp, headline: e.target.value })} style={{ ...input, flex: 2, minWidth: 180 }} />
+          <input aria-label="Details" placeholder="Details (optional)" value={sp.body} onChange={(e) => setSp({ ...sp, body: e.target.value })} style={{ ...input, flex: '1 1 100%' }} />
+          <input aria-label="Link" placeholder="https://…" value={sp.link} onChange={(e) => setSp({ ...sp, link: e.target.value })} style={{ ...input, flex: 1, minWidth: 180 }} />
+          <input aria-label="Sponsor days" type="number" min={1} max={90} value={sp.days} onChange={(e) => setSp({ ...sp, days: Number(e.target.value) })} style={{ ...input, width: 80 }} />
+          <button style={btn} disabled={!sp.brand || !sp.headline} onClick={async () => { const r = await setSponsor(sp.brand, sp.headline, sp.body, sp.link, sp.days); setMsg(r.ok ? 'Sponsor slot live.' : r.error); }}>Set</button>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          {data.sponsors.map((x) => (
+            <div key={x.id} style={{ fontSize: 13, color: COLORS.textSecondary, padding: '4px 0' }}>
+              <strong style={{ color: COLORS.text }}>{x.brand}</strong> · {x.headline} · to {x.end_date.slice(0, 10)} · {x.impressions} shown · {x.clicks} taps
+            </div>
+          ))}
+          {data.sponsors.length === 0 && <span style={{ color: COLORS.textMuted, fontSize: 13 }}>Slot is empty — nothing shows on the feed. A new sale ends the current one.</span>}
         </div>
       </section>
 

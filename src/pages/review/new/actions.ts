@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
 import { invalidate } from '@/lib/useLoad';
+import { MAX_REVIEW_PHOTOS, uploadPhoto } from '@/lib/photos';
 
 export const AXIS_COLS = [
   'coffee_strength_rating', 'feed_size_rating', 'bang_for_buck_rating',
@@ -8,7 +9,7 @@ export const AXIS_COLS = [
 ] as const;
 
 export type SubmitReviewResult =
-  | { ok: true; updated: boolean; pending: boolean }
+  | { ok: true; updated: boolean; pending: boolean; photoError?: string }
   | { ok: false; error: string; unauthenticated?: boolean };
 
 export async function submitReview(form: FormData): Promise<SubmitReviewResult> {
@@ -37,6 +38,7 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
   const sb = supabase();
   let dbError: { message: string; hint?: string } | null;
   let status: string | undefined;
+  let savedId: string | null = null;
 
   if (reviewId) {
     const { data, error } = await sb
@@ -44,18 +46,20 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
       .update({ title, body, ...ratings, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
       .eq('user_id', user.id)
-      .select('moderation_status')
+      .select('id, moderation_status')
       .maybeSingle();
     dbError = error;
     status = data?.moderation_status;
+    savedId = data?.id ?? null;
   } else {
     const { data, error } = await sb
       .from('reviews')
       .insert({ venue_id: venueId, user_id: user.id, title, body, ...ratings })
-      .select('moderation_status')
+      .select('id, moderation_status')
       .single();
     dbError = error;
     status = data?.moderation_status;
+    savedId = data?.id ?? null;
   }
 
   if (dbError) {
@@ -69,6 +73,15 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
         : 'Could not save your review. Please try again.',
     };
   }
+  // Photos are optional and held for a moderator; the review is already saved if one fails.
+  const files = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0).slice(0, MAX_REVIEW_PHOTOS);
+  let photoError: string | undefined;
+  if (savedId) {
+    for (const f of files) {
+      try { await uploadPhoto(user.id, venueId, savedId, f); }
+      catch (e) { photoError = e instanceof Error ? e.message : 'A photo didn\'t upload.'; break; }
+    }
+  }
   invalidate();
-  return { ok: true, updated: Boolean(reviewId), pending: status !== 'approved' };
+  return { ok: true, updated: Boolean(reviewId), pending: status !== 'approved', photoError };
 }

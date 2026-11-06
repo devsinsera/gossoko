@@ -22,6 +22,7 @@ const ProfilePage = lazy(() => import('./pages/profile/page'));
 const VenuePage = lazy(() => import('./pages/venue/[slug]/page'));
 const NewVenuePage = lazy(() => import('./pages/venue/new/page'));
 const NewReviewPage = lazy(() => import('./pages/review/new/page'));
+const NotificationsPage = lazy(() => import('./pages/notifications/page'));
 const DealsPage = lazy(() => import('./pages/deals/page'));
 const ManageIndexPage = lazy(() => import('./pages/manage/page'));
 const ManageVenuePage = lazy(() => import('./pages/manage/[slug]/page'));
@@ -74,6 +75,7 @@ export default function App() {
                   <Route path="rankings" element={<RankingsPage />} />
                   <Route path="search" element={<SearchPage />} />
                   <Route path="profile" element={<ProfilePage />} />
+                  <Route path="notifications" element={<NotificationsPage />} />
                   <Route path="deals" element={<DealsPage />} />
                   <Route path="manage" element={<ManageIndexPage />} />
                   <Route path="manage/:slug" element={<ManageVenuePage />} />

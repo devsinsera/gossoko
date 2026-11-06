@@ -2,7 +2,8 @@ import { supabase as getSupabase } from '@/lib/supabase/client';
 import { useLoad } from '@/lib/useLoad';
 import { ActionForm } from '@/components/ActionForm';
 import { COLORS, RADIUS, SPACE } from '@/lib/theme';
-import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission, resolveCommentSubmission, resolveVenueClaim } from './actions';
+import { resolveQueueItem, resolveVenueSubmission, resolveReviewSubmission, resolveCommentSubmission, resolveVenueClaim, resolvePhoto } from './actions';
+import { photoUrl } from '@/lib/photos';
 
 type QueueRow = {
   id: string;
@@ -119,13 +120,21 @@ async function loadModeration() {
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(50),
+    supabase
+      .from('photos')
+      .select('id, created_at, path, review_id, venue:venues ( name )')
+      .eq('moderation_status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(30),
   ]);
 }
 
 export default function ModerationPage() {
   const { data: res, loading } = useLoad(loadModeration, []);
   if (loading || !res) return <p style={{ color: COLORS.textSecondary }}>Loading…</p>;
-  const [{ data, error }, venueRes, reviewRes, commentRes, claimRes] = res;
+  const [{ data, error }, venueRes, reviewRes, commentRes, claimRes, photoRes] = res;
+  const pendingPhotos = (photoRes.data ?? []) as unknown as { id: string; path: string; review_id: string | null; venue: { name: string } | null }[];
 
   const items = (data ?? []) as unknown as QueueRow[];
   const pendingVenues = (venueRes.data ?? []) as unknown as PendingVenue[];
@@ -309,6 +318,34 @@ export default function ModerationPage() {
           ))}
         </ul>
       )}
+
+      <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Pending Photos
+      </h2>
+      {photoRes.error && <p style={{ color: COLORS.red, fontSize: 13 }}>Couldn’t load photos: {photoRes.error.message}</p>}
+      {pendingPhotos.length === 0 && !photoRes.error && (
+        <p style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACE.lg }}>No photos waiting.</p>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: SPACE.md, marginBottom: SPACE.lg }}>
+        {pendingPhotos.map((p) => (
+          <div key={p.id} style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: SPACE.sm }}>
+            <img src={photoUrl(p.path)} alt="Photo awaiting approval" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 6 }} />
+            <div style={{ fontSize: 12, color: COLORS.textMuted, margin: '6px 0' }}>{p.venue?.name ?? '?'} · {p.review_id ? 'review photo' : 'venue photo'}</div>
+            <div style={{ display: 'flex', gap: SPACE.sm }}>
+              <ActionForm action={resolvePhoto}>
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="decision" value="approved" />
+                <button type="submit" aria-label="Approve photo" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+              </ActionForm>
+              <ActionForm action={resolvePhoto}>
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="decision" value="rejected" />
+                <button type="submit" aria-label="Reject photo" style={btnStyle(COLORS.red)}>Reject</button>
+              </ActionForm>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <h2 style={{ fontSize: 16, margin: `${SPACE.lg}px 0 ${SPACE.md}px`, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Pending Venue Claims

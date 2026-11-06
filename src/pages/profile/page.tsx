@@ -9,7 +9,9 @@ import { getReviewsByUserId } from '@/lib/queries/reviews';
 import { DeleteReviewButton } from './DeleteReviewButton';
 import { ProfileEditor } from './ProfileEditor';
 import { SavedSpots } from './SavedSpots';
+import { AlertsToggle } from './AlertsToggle';
 import { DeleteAccount } from './DeleteAccount';
+import { unreadCount } from '@/lib/queries/notifications';
 import { getAllVenues } from '@/lib/queries/venues';
 import { getManagedVenues, getSavedVenueIds } from '@/lib/queries/business';
 import { TRADES } from './ProfileEditor';
@@ -47,8 +49,8 @@ export default function ProfilePage() {
     if (!authUser) return null;
     const profile = await getOwnProfile(authUser.id);
     const reviews = profile ? await getReviewsByUserId(profile.id) : [];
-    const [venues, savedIds, managed] = await Promise.all([getAllVenues(), getSavedVenueIds(authUser.id), getManagedVenues(authUser.id)]);
-    return { profile, reviews, saved: venues.filter((v) => savedIds.has(v.id)), managed };
+    const [venues, savedIds, managed, unread] = await Promise.all([getAllVenues(), getSavedVenueIds(authUser.id), getManagedVenues(authUser.id), unreadCount()]);
+    return { profile, reviews, saved: venues.filter((v) => savedIds.has(v.id)), managed, unread };
   }, [authUser?.id]);
   if (loading && authUser) return <div style={{ padding: 16 }}><Skeleton width={200} height={26} /></div>;
 
@@ -233,9 +235,11 @@ export default function ProfilePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <ActionTile href="/search" icon={<FlameIcon size={20} />} label="Write a Review" hint="Find the venue first" />
           <ActionTile href="/venue/new" icon={<MapPinIcon size={20} />} label="Add a Venue"    hint="Suggest a new spot" />
+          <ActionTile href="/notifications" icon={<FlameIcon size={20} />} label="Alerts" hint={data?.unread ? `${data.unread} new` : 'Reviews and replies'} />
           <ActionTile href="/deals" icon={<StarIcon size={20} />} label="Deals" hint="Codes for smoko" />
           <ActionTile href="/manage" icon={<HardHatIcon size={20} />} label="My Venues" hint={managed.length ? `${managed.length} you manage` : 'Own a place? Claim it'} />
         </div>
+        {authUser && <div style={{ marginTop: 12 }}><AlertsToggle userId={authUser.id} /></div>}
         {authUser && profile && (
           <div style={{ marginTop: 12 }}>
             <ProfileEditor userId={authUser.id} initial={{ username: profile.username, full_name: profile.full_name, bio: profile.bio, trade: profile.trade_type ?? 'tradie' }} />

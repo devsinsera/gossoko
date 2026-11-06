@@ -7,6 +7,7 @@ import { getCommentsByReviewIds } from '@/lib/queries/comments';
 import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
 import { useQuery } from '@/lib/nav';
+import { VenuePhotos } from '@/components/VenuePhotos';
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import { ActionForm } from '@/components/ActionForm';
 import VenueDetailLoading from './loading';
@@ -48,6 +49,7 @@ const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
   submitted: { color: COLORS.hiVisGreen, text: 'Review posted. Cheers for the rundown.' },
   updated:   { color: COLORS.hiVisGreen, text: 'Review updated.' },
   pending:   { color: COLORS.hiVisYellow, text: 'Saved. A moderator checks it before it goes up — usually within a day.' },
+  photofail: { color: COLORS.hiVisYellow, text: 'Review saved, but a photo didn\'t upload. Edit your review to try again.' },
 };
 
 const CLAIM_BANNER: Record<string, { color: string; text: string }> = {
@@ -433,6 +435,8 @@ export default function VenueDetailPage() {
           </div>
         </section>
       )}
+
+      <VenuePhotos venueId={venue.id} name={venue.name} />
 
       {/* Reviews */}
       <section className="section">

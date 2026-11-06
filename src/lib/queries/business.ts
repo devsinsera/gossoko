@@ -198,3 +198,24 @@ export function trackVenueEvent(venueId: string, kind: VenueEvent): void {
     () => undefined,
   );
 }
+
+export interface Sponsor { id: string; brand: string; headline: string; body: string | null; link_url: string }
+
+/** The one live "Smoko of the week" slot, if an admin has sold it. */
+export async function getSponsor(): Promise<Sponsor | null> {
+  const nowIso = new Date().toISOString();
+  const { data, error } = await getSupabase()
+    .from('sponsor_slots')
+    .select('id, brand, headline, body, link_url')
+    .is('deleted_at', null).lte('start_date', nowIso).gt('end_date', nowIso)
+    .order('start_date', { ascending: false }).limit(1).maybeSingle();
+  if (error) { console.error('[gossoko] getSponsor failed:', error.message); return null; }
+  return (data as Sponsor | null) ?? null;
+}
+
+export function trackSponsor(kind: 'sponsor_view' | 'sponsor_click'): void {
+  void getSupabase().rpc('track_sponsor', { p_kind: kind, p_actor: deviceId() }).then(
+    ({ error }) => { if (error) console.warn('[gossoko] track failed:', error.message); },
+    () => undefined,
+  );
+}

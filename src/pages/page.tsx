@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { getLiveDeals, getMyActiveCodes } from '@/lib/queries/business';
 import { applyFilter, type FilterId } from '@/lib/filters';
 import { haversineKm } from '@/lib/geo';
+import { SponsorSlot } from '@/components/SponsorSlot';
 import { FilterChips } from '@/components/FilterChips';
 import { getAllVenues } from '@/lib/queries/venues';
 import { getRecentReviews } from '@/lib/queries/reviews';
@@ -83,6 +84,8 @@ export default function FeedPage() {
           <FeaturedVenue venue={featured} />
         </section>
       )}
+
+      {filter === 'all' && <SponsorSlot />}
 
       {/* Deals on now */}
       {filter === 'all' && deals.length > 0 && (

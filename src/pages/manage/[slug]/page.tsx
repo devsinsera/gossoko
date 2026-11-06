@@ -15,6 +15,9 @@ import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
 import { COLORS, RADIUS } from '@/lib/theme';
 import NotFound from '../../not-found';
+import { uploadPhoto, photoUrl } from '@/lib/photos';
+import { supabase as getSupabase } from '@/lib/supabase/client';
+import { invalidate } from '@/lib/useLoad';
 import { VenueQr } from '@/components/VenueQr';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '14px 16px' } as const;
@@ -299,6 +302,55 @@ function Plan({ venueId, pro, until }: { venueId: string; pro: boolean; until: s
   );
 }
 
+type OwnPhoto = { id: string; path: string; moderation_status: string };
+
+/** Venue photos: up to 6, each held for a moderator before it shows on the venue page. */
+function OwnerPhotos({ venueId, userId }: { venueId: string; userId: string }) {
+  const { data, reload } = useLoad(async (): Promise<OwnPhoto[]> => {
+    const { data: rows, error } = await getSupabase().from('photos')
+      .select('id, path, moderation_status').eq('venue_id', venueId).is('review_id', null).is('deleted_at', null).order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as OwnPhoto[];
+  }, [venueId]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function add(files: FileList | null) {
+    if (!files?.length) return;
+    setBusy(true); setMsg(null);
+    try {
+      for (const f of Array.from(files)) await uploadPhoto(userId, venueId, null, f);
+      setMsg({ ok: true, text: 'Uploaded. A moderator checks it before it shows.' });
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Upload failed.' }); }
+    setBusy(false); reload(); invalidate();
+  }
+  async function remove(p: OwnPhoto) {
+    const { error } = await getSupabase().from('photos').delete().eq('id', p.id);
+    if (error) { setMsg({ ok: false, text: error.message }); return; }
+    await getSupabase().storage.from('gossoko-photos').remove([p.path]);
+    reload(); invalidate();
+  }
+  return (
+    <section className="section">
+      <div className="section-title"><h2>Photos</h2><span className="mono-chip">{data?.length ?? 0}/6</span></div>
+      <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(data ?? []).map((p) => (
+            <figure key={p.id} style={{ margin: 0, position: 'relative' }}>
+              <img src={photoUrl(p.path)} alt="" style={{ height: 84, width: 112, objectFit: 'cover', borderRadius: 8, opacity: p.moderation_status === 'approved' ? 1 : 0.55 }} />
+              <figcaption style={{ ...mono, fontSize: 9.5, color: COLORS.textMuted }}>{p.moderation_status === 'approved' ? 'Live' : p.moderation_status === 'pending' ? 'Waiting' : 'Rejected'}</figcaption>
+              <button type="button" aria-label="Remove photo" onClick={() => remove(p)} style={{ position: 'absolute', top: 2, right: 2, background: '#000a', color: '#fff', border: 'none', borderRadius: 999, width: 22, height: 22, cursor: 'pointer' }}>×</button>
+            </figure>
+          ))}
+        </div>
+        <input type="file" accept="image/*" multiple disabled={busy || (data?.length ?? 0) >= 6} onChange={(e) => { void add(e.target.files); e.target.value = ''; }} style={{ color: COLORS.text }} />
+        {busy && <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13 }}>Uploading…</p>}
+        {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.hiVisGreen : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
+      </div>
+    </section>
+  );
+}
+
 export default function ManageVenuePage() {
   const { slug = '' } = useParams();
   const { user, status } = useAuth();
@@ -327,6 +379,7 @@ export default function ManageVenuePage() {
       <Stats venueId={venue.id} />
       <Redeem venueId={venue.id} />
       <Deals venueId={venue.id} pro={venue.pro} deals={data.deals} />
+      {user && <OwnerPhotos venueId={venue.id} userId={user.id} />}
       <section className="section">
         <div className="section-title"><h2>Reviews</h2></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
