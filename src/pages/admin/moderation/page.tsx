@@ -8,7 +8,7 @@ import { photoUrl } from '@/lib/photos';
 type QueueRow = {
   id: string;
   created_at: string;
-  content_type: 'review' | 'comment' | 'user';
+  content_type: 'review' | 'comment' | 'user' | 'venue';
   content_id: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   auto_flagged: boolean;

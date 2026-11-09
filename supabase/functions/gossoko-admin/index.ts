@@ -71,9 +71,8 @@ Deno.serve(async (req) => {
         .eq('id', reportId)
         .maybeSingle();
       if (!report || report.reported_by !== user.id) return json({ error: 'Report not found' }, 404);
-      // moderation_queue.content_type only allows review|comment|user today, so a
-      // venue report is filed as 'review' (known gap, see docs/REMAINING.md C2).
-      const contentType = report.reportable_type === 'venue' ? 'review' : report.reportable_type;
+      // moderation_queue.content_type allows review|comment|user|venue (migration 20261110000001).
+      const contentType = report.reportable_type;
       const { error } = await admin.from('moderation_queue').insert({
         content_report_id: report.id,
         content_type: contentType,

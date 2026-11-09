@@ -161,7 +161,7 @@ All §B code items are shipped on `finish-punch-list`. What's left is config (yo
 - ✅ **Queue resolution acts on reported content** — `resolveQueueItem` now flips the reported review/comment's `moderation_status` (approve→approved, hide→flagged, reject→rejected).
 
 **Still open:**
-- **Venue reports don't moderate the venue.** `_report/actions.ts` maps reportableType `venue` → content_type `'review'` (likely to satisfy the `moderation_queue.content_type` CHECK), so resolving a venue report is a harmless 0-row no-op — the venue is never hidden. Fix needs the CHECK widened to allow `'venue'` (a migration) + a venues branch in `resolveQueueItem`. (Pre-existing; inherited, not introduced by this pass.)
+- ~~**Venue reports don't moderate the venue.**~~ Fixed 10 Nov (migration `20261110000001_venue_reports_moderate_the_venue.sql`, `gossoko-admin` files venue reports as `venue`, Hide/Reject flips `venues.moderation_status`, 3 established reporters auto-flag a venue). Migration + edge function NOT yet applied/deployed.
 - **RLS integration test.** The moderator-can-update / user-cannot-update behavior on reviews/comments that migration `20260528000001` creates is only verified by reasoning — no automated check (the 335-test suite is pure-logic, no DB harness). Add an RLS integration test against a local Supabase if/when a harness exists.
 - **§10 email defaults** (real SMTP provider) — only matters once email confirmation is turned on.
 
