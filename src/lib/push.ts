@@ -19,7 +19,7 @@ export async function enablePush(): Promise<void> {
   if (started) return;
   const cap = (globalThis as { Capacitor?: CapacitorLike }).Capacitor;
   const platform = cap?.getPlatform?.();
-  if ((platform !== 'ios' && platform !== 'android') || !cap?.isPluginAvailable?.('PushNotifications')) return;
+  if (platform !== 'ios' ||!cap?.isPluginAvailable?.('PushNotifications')) return;
   started = true;
   try {
     const push = registerPlugin<PushPlugin>('PushNotifications');
