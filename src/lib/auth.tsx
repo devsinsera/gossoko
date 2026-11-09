@@ -6,6 +6,7 @@
 // for the biometric (device passcode as fallback) and, if that fails or is
 // cancelled, drops to a full sign-in.
 
+import { enablePush } from '@/lib/push';
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const booted = useRef(false);
 
-  const finishIn = useCallback((u: User) => { setUser(u); setStatus('in'); }, []);
+  const finishIn = useCallback((u: User) => { setUser(u); setStatus('in'); void enablePush(); }, []);
 
   const boot = useCallback(async () => {
     if (!configured()) { setStatus('out'); return; }
