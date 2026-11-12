@@ -22,8 +22,9 @@ export function setRemember(on: boolean): void {
 }
 
 const authStorage = {
+  // Remember me off = this tab only: a copy left in localStorage is never read back (same rule as TagTrail).
   getItem: (k: string) =>
-    safe(() => sessionStorage.getItem(k), null) ?? safe(() => localStorage.getItem(k), null),
+    safe(() => sessionStorage.getItem(k), null) ?? (getRemember() ? safe(() => localStorage.getItem(k), null) : null),
   setItem: (k: string, v: string) => {
     const keep = getRemember();
     safe(() => (keep ? localStorage : sessionStorage).setItem(k, v), undefined);

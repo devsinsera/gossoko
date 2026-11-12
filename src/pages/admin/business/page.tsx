@@ -25,7 +25,19 @@ async function load() {
     sb.from('venues').select('id, name, suburb, pro_until').eq('moderation_status', 'approved').is('deleted_at', null).order('name').limit(500),
     sb.from('pro_requests').select('id, note, created_at, venue:venues ( id, slug, name, suburb ), profile:profiles!pro_requests_user_id_fkey ( username, email )').eq('status', 'open').order('created_at'),
     sb.from('featured_venues').select('id, tier, end_date, total_impressions, total_clicks, venue:venues ( name )').is('deleted_at', null).gt('end_date', new Date().toISOString()).order('end_date'),
-    sb.from('venue_analytics').select('venue_id, profile_views, directions_taps, deal_claims, deal_redemptions').gte('date', from),
+    /* every row of the month: one request stops at 1 000, and this table has a row per venue per day —
+       so past about thirty busy venues the redemption sheet quietly under-counted (13 Nov 2026) */
+    (async () => {
+      const rows: unknown[] = [];
+      for (let offset = 0; offset < 500_000; offset += 1000) {
+        const page = await sb.from('venue_analytics').select('venue_id, profile_views, directions_taps, deal_claims, deal_redemptions')
+          .gte('date', from).order('date', { ascending: true }).order('venue_id', { ascending: true }).range(offset, offset + 999);
+        if (page.error) return { data: rows, error: page.error };
+        rows.push(...(page.data ?? []));
+        if (!page.data || page.data.length < 1000) break;
+      }
+      return { data: rows, error: null };
+    })(),
     sb.from('sponsor_slots').select('id, brand, headline, end_date, impressions, clicks').is('deleted_at', null).gt('end_date', new Date().toISOString()),
   ]);
   const byVenue = new Map<string, { views: number; directions: number; claims: number; redeemed: number }>();

@@ -45,17 +45,23 @@ async function stripe(path: string, params?: Record<string, string>, method = pa
 }
 
 // Stripe-Signature: t=…,v1=hex — HMAC-SHA256 of `${t}.${raw}`, 5 minute tolerance.
+// While a signing secret is being rolled Stripe sends a v1 for EACH secret: every v1 is tried, not only the last.
 async function verify(raw: string, header: string): Promise<boolean> {
-  const parts = Object.fromEntries(header.split(',').map((p) => p.split('=') as [string, string]));
-  const t = Number(parts.t);
-  if (!t || Math.abs(Date.now() / 1000 - t) > 300 || !parts.v1) return false;
+  const pairs = header.split(',').map((p) => { const i = p.indexOf('='); return [p.slice(0, i).trim(), p.slice(i + 1).trim()] as [string, string]; });
+  const t = Number(pairs.find(([k]) => k === 't')?.[1]);
+  const sent = pairs.filter(([k]) => k === 'v1').map(([, v]) => v);
+  if (!t || Math.abs(Date.now() / 1000 - t) > 300 || !sent.length) return false;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(WHSEC), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${raw}`)));
   const hex = Array.from(mac, (b) => b.toString(16).padStart(2, '0')).join('');
-  if (hex.length !== parts.v1.length) return false;
-  let diff = 0;
-  for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ parts.v1.charCodeAt(i);
-  return diff === 0;
+  let ok = false;
+  for (const v1 of sent) {
+    if (hex.length !== v1.length) continue;
+    let diff = 0;
+    for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ v1.charCodeAt(i);
+    if (diff === 0) ok = true;
+  }
+  return ok;
 }
 
 // One venue per subscription: venue_id rides on the subscription's metadata.
@@ -78,28 +84,50 @@ async function writePlan(sub: Record<string, any>, status: 'active' | 'past_due'
   if (status === 'active') await admin.from('pro_requests').update({ status: 'done' }).eq('venue_id', venueId).eq('status', 'open');
 }
 
+/** What a venue's plan is, from the subscription as Stripe holds it. */
+const planStatus = (sub: Record<string, any>): 'active' | 'past_due' | 'cancelled' =>
+  sub.status === 'active' || sub.status === 'trialing' ? 'active' : sub.status === 'past_due' ? 'past_due' : 'cancelled';
+/** The subscription an invoice belongs to. Newer Stripe API versions moved it under `parent`. */
+const invoiceSubscription = (inv: Record<string, any>): string | null => {
+  const s = inv.subscription ?? inv.parent?.subscription_details?.subscription ?? null;
+  return typeof s === 'string' ? s : s?.id ?? null;
+};
+
 async function webhook(req: Request): Promise<Response> {
   const raw = await req.text();
   if (!enabled || !(await verify(raw, req.headers.get('stripe-signature') ?? ''))) return json({ error: 'Bad signature' }, 400);
   const ev = JSON.parse(raw);
   const obj = ev.data.object;
+  /* ⚑ THE PLAN IS WRITTEN FROM THE SUBSCRIPTION AS STRIPE HOLDS IT NOW (13 Nov 2026) — LoopRoom's
+     rule for its payout accounts. Stripe does not promise the order events arrive in: this wrote the
+     snapshot each event carried, so a late "updated (active)" landing after "deleted" put a
+     cancelled venue back on Pro. And a finished checkout wrote "active" whatever the subscription's
+     own state was. Every event now re-reads the subscription and writes that. */
+  const fresh = (id: string) => stripe(`subscriptions/${id}`);
   try {
     switch (ev.type) {
       case 'checkout.session.completed':
-        if (obj.subscription) await writePlan(await stripe(`subscriptions/${obj.subscription}`), 'active');
+      case 'invoice.paid': {
+        const id = ev.type === 'invoice.paid' ? invoiceSubscription(obj) : obj.subscription;
+        if (id) { const sub = await fresh(id); await writePlan(sub, planStatus(sub)); }
         break;
-      case 'invoice.paid':
-        if (obj.subscription) await writePlan(await stripe(`subscriptions/${obj.subscription}`), 'active');
+      }
+      case 'invoice.payment_failed': {
+        const id = invoiceSubscription(obj);
+        if (id) {
+          const sub = await fresh(id);
+          const now = planStatus(sub);
+          /* Stripe may not have moved the subscription to past_due yet: a failed payment is never "active" */
+          await writePlan(sub, now === 'active' ? 'past_due' : now);
+        }
         break;
-      case 'invoice.payment_failed':
-        if (obj.subscription) await writePlan(await stripe(`subscriptions/${obj.subscription}`), 'past_due');
-        break;
+      }
       case 'customer.subscription.updated':
-        await writePlan(obj, obj.status === 'active' || obj.status === 'trialing' ? 'active' : obj.status === 'past_due' ? 'past_due' : 'cancelled');
+      case 'customer.subscription.deleted': {
+        const sub = await fresh(obj.id);
+        await writePlan(sub, planStatus(sub));
         break;
-      case 'customer.subscription.deleted':
-        await writePlan(obj, 'cancelled');
-        break;
+      }
     }
   } catch (e) {
     // 500 makes Stripe retry; events are idempotent upserts.
