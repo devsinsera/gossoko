@@ -38,9 +38,18 @@ function render(name: string | null, rows: Row[]) {
   };
 }
 
+/** Compare without stopping at the first differing byte, so the answer's timing says nothing about the secret. */
+function sameSecret(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
+  // The caller proves itself before learning anything, even whether mail is switched on.
+  if (!SECRET || req.method !== 'POST' || !sameSecret(req.headers.get('x-cron-secret') ?? '', SECRET)) return json({ error: 'forbidden' }, 403);
   if (!enabled) return json({ enabled: false });
-  if (req.method !== 'POST' || req.headers.get('x-cron-secret') !== SECRET) return json({ error: 'forbidden' }, 403);
   const body = await req.json().catch(() => ({}));
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { db: { schema: 'gossoko' }, auth: { persistSession: false } });
   const { data, error } = await admin.rpc('weekly_digest_rows');
