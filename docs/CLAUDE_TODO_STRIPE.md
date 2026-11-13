@@ -1,5 +1,7 @@
 # Gossoko Stripe: tasks for Claude (TEST MODE)
 
+Master plan (all apps): `~/Dev-Sinsera/Sinsera Core/docs/CLAUDE_STRIPE_PLAN.md`.
+
 Written 13 Nov 2026 by Grok Bot for Peta. Stripe sandbox only: `acct_1UVkItFQ2OSiEJs3` ("Sinsera PTY LTD sandbox").
 
 **Hard rules:** No deploy, no `git push`, no Supabase secret changes, no live keys, no live payments without Peta's explicit OK for that specific step. Never print or commit secret values. Refuse any `sk_live_`/`rk_live_` key.
@@ -15,7 +17,7 @@ Written 13 Nov 2026 by Grok Bot for Peta. Stripe sandbox only: `acct_1UVkItFQ2OS
 | Billing portal config (existing, default; shared with MetreUp) | `bpc_1UW2EtFQ2OSiEJs3I7LDalRQ` (plan switching OFF, cancel ON, so it cannot move a venue onto a MetreUp plan) |
 
 Secret values live ONLY in `~/.config/sinsera-keys/gossoko/stripe-test.env` (chmod 600, not in git):
-`GOSSOKO_STRIPE_WEBHOOK_SECRET=whsec_...` and `STRIPE_PRICE_PRO=price_1UbG8VFQ2OSiEJs3EOw0kxOE`.
+`GOSSOKO_STRIPE_WEBHOOK_SECRET` and `STRIPE_PRICE_PRO`. Do not print the values.
 
 ## Tasks (in order)
 
@@ -25,7 +27,7 @@ Secret values live ONLY in `~/.config/sinsera-keys/gossoko/stripe-test.env` (chm
    - `'subscription_data[metadata][product]': 'gossoko'`, `'subscription_data[metadata][app]': 'gossoko'`
    (MetreUp's products use the `app` key; `product` is what Mop Mate uses. Set both so the revenue dashboard can group by either. See `Sinsera Core/docs/CLAUDE_TODO_REVENUE_DASHBOARD.md`.)
 3. **Commit locally only** (Gossoko repo, branch `main`). No push until Peta OKs.
-4. **Check the shared `STRIPE_SECRET_KEY` on Supabase project `lkhtgkmivqwgnvzmjbhr`** is the sandbox test key (`sk_test_`/`rk_test_` for `acct_1UVkItFQ2OSiEJs3`), not live, before relying on it. Do not print it. If it is live, stop and tell Peta.
+4. **Check the shared `STRIPE_SECRET_KEY` on Supabase project `lkhtgkmivqwgnvzmjbhr`** is the sandbox test key for `acct_1UVkItFQ2OSiEJs3`, not live, before relying on it. Do not print it. Use a no-op Stripe call and read `livemode` from the response (print only true/false). If it is live, stop and tell Peta.
 5. **After Peta OKs:** set Supabase secrets from the env file (do not echo values):
    `supabase secrets set --env-file ~/.config/sinsera-keys/gossoko/stripe-test.env --project-ref lkhtgkmivqwgnvzmjbhr`
    (sets `GOSSOKO_STRIPE_WEBHOOK_SECRET` and `STRIPE_PRICE_PRO`; do NOT touch `STRIPE_WEBHOOK_SECRET`).
