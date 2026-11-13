@@ -5,7 +5,9 @@
 //   POST {action:'portal',   venue_id, return_url}  owner -> Stripe billing portal URL
 //   POST (Stripe-Signature header)              webhook; writes gossoko.venue_plans
 //
-// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_PRO (price_…), STRIPE_WEBHOOK_SECRET (whsec_…).
+// Secrets: STRIPE_SECRET_KEY (shared), STRIPE_PRICE_PRO (price_…), GOSSOKO_STRIPE_WEBHOOK_SECRET (whsec_…).
+// The webhook secret has its own name: STRIPE_WEBHOOK_SECRET belongs to MetreUp's tt-stripe-webhook
+// (one Supabase project, one secret namespace). No fallback to it, on purpose.
 // Until they are set every call answers {enabled:false}; nothing else changes.
 // Deploy WITHOUT jwt verification (Stripe has no JWT; checkout/portal verify the caller below):
 //   supabase functions deploy gossoko-billing --no-verify-jwt --project-ref lkhtgkmivqwgnvzmjbhr
@@ -20,7 +22,7 @@ const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SK = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const PRICE = Deno.env.get('STRIPE_PRICE_PRO') ?? '';
-const WHSEC = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
+const WHSEC = Deno.env.get('GOSSOKO_STRIPE_WEBHOOK_SECRET') ?? '';
 const enabled = Boolean(SK && PRICE && WHSEC);
 
 const SITE = 'https://sinsera.co';
@@ -167,8 +169,13 @@ Deno.serve(async (req) => {
         'line_items[0][quantity]': '1',
         client_reference_id: venueId,
         customer_email: user.email ?? '',
+        // product + app tag every Gossoko payment (Mop Mate groups by product, MetreUp by app).
         'metadata[venue_id]': venueId,
+        'metadata[product]': 'gossoko',
+        'metadata[app]': 'gossoko',
         'subscription_data[metadata][venue_id]': venueId,
+        'subscription_data[metadata][product]': 'gossoko',
+        'subscription_data[metadata][app]': 'gossoko',
         success_url: `${back}${back.includes('?') ? '&' : '?'}paid=1`,
         cancel_url: back,
         allow_promotion_codes: 'true',
