@@ -303,6 +303,10 @@ button { font: inherit; color: inherit; }
   .drop-in > *, .pin-loader, .tab-nav__mark, .map-pin.is-selected img { animation: none !important; }
 }
 
+/* Form ticks and radios in the brand colour (not system blue), glove-sized. */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--orange); }
+input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
+
 /* Scrollers */
 .h-scroll {
   display: flex;
@@ -312,6 +316,9 @@ button { font: inherit; color: inherit; }
   margin: 0 -16px;
   padding: 4px 16px 8px;
   scroll-snap-type: x mandatory;
+  /* Snap to the content edge, not the screen edge: without this WebKit snaps
+     the first chip/card flush against the screen (or under the tablet rail). */
+  scroll-padding-inline: 16px;
 }
 .h-scroll::-webkit-scrollbar { display: none; }
 .h-scroll > * { scroll-snap-align: start; }
@@ -519,7 +526,7 @@ button { font: inherit; color: inherit; }
   .top-bar h1 { font-size: 1.9rem; }
   .section + .section { margin-top: 30px; }
 
-  .h-scroll { margin: 0 calc(var(--gutter) * -1); padding: 4px var(--gutter) 8px; gap: 14px; }
+  .h-scroll { margin: 0 calc(var(--gutter) * -1); padding: 4px var(--gutter) 8px; gap: 14px; scroll-padding-inline: var(--gutter); }
   /* Filter chips all fit on a tablet: wrap them instead of scrolling. */
   .h-scroll.chip-row { flex-wrap: wrap; overflow: visible; margin: 0; padding: 4px 0 8px; gap: 10px; }
 

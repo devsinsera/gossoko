@@ -132,17 +132,16 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
               fontSize: 12.5,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              // No "·" separators: in a narrow card they wrap and dangle at line ends.
+              gap: '4px 12px',
               flexWrap: 'wrap',
             }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <MapPinIcon size={12} /> {venue.suburb}
               </span>
-              <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ fontFamily: 'var(--font-label)', fontSize: 11.5, color: COLORS.textMuted }}>
                 <VenueDistance lat={venue.lat} lng={venue.lng} />
               </span>
-              <span aria-hidden style={{ opacity: 0.5 }}>·</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <ClockIcon size={12} /> {venue.opens_at}
               </span>
