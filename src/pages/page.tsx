@@ -94,7 +94,7 @@ export default function FeedPage() {
             <h2>Deals On Now</h2>
             <Link href="/deals">All deals</Link>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="card-list">
             {deals.map((d) => <DealCard key={d.id} deal={d} code={data?.codes.get(d.id)} signedIn={!!user} showVenue />)}
           </div>
         </section>
@@ -135,7 +135,7 @@ export default function FeedPage() {
           </h2>
           <Link href="/rankings">See rankings</Link>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="card-list">
           {trending.map((v) => (
             <VenueCard key={v.id} venue={v} />
           ))}
@@ -165,7 +165,7 @@ export default function FeedPage() {
         <div className="section-title">
           <h2>Latest from the Crew</h2>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="card-list">
           {recentReviews.length === 0 && (
             <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 13 }}>
               No reviews yet — be the first to rate a feed.

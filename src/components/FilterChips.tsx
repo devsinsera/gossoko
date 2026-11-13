@@ -38,7 +38,7 @@ export function FilterChips({
   const [selected, setSelected] = useState<FilterId>(defaultSelected);
 
   return (
-    <div className="h-scroll" role="tablist" aria-label="Filter venues">
+    <div className="h-scroll chip-row" role="tablist" aria-label="Filter venues">
       {chips.map((chip) => {
         const active = selected === chip.id;
         return (

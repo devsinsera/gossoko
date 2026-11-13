@@ -16,7 +16,7 @@ export function PromotedSpots({ venues, limit = 2 }: { venues: Venue[]; limit?: 
   return (
     <section className="section">
       <div className="section-title"><h2>Promoted</h2></div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="card-list">
         {shown.map((v) => (
           <div key={v.id} onClickCapture={() => trackVenueEvent(v.id, 'promo_click')} style={{ position: 'relative' }}>
             <VenueCard venue={v} />

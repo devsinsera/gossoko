@@ -47,7 +47,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
           <h2>{coords ? 'Closest First' : 'All Venues'}</h2>
           <span className="mono-chip">{sortedByDistance.length} results</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="row-list">
           {sortedByDistance.map((v) => (
             <div
               key={v.id}
@@ -105,7 +105,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
         <div className="section-title">
           <h2>Highest Rated Nearby</h2>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="card-list">
           {nearAndTopRated.map((v) => (
             <VenueCard key={v.id} venue={v} />
           ))}

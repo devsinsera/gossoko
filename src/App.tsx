@@ -34,6 +34,9 @@ const AdminLayout = lazy(() => import('./pages/admin/layout'));
 const ModerationPage = lazy(() => import('./pages/admin/moderation/page'));
 const AdminUsersPage = lazy(() => import('./pages/admin/users/page'));
 
+/** Sections that use the full tablet width; the rest (detail pages, forms) keep a readable column. */
+const WIDE_SECTIONS = new Set(['feed', 'nearby', 'search', 'deals', 'founder', 'manage']);
+
 /** Scroll to top on navigation, like a page load. */
 function Frame() {
   const { pathname } = useLocation();
@@ -44,8 +47,11 @@ function Frame() {
     window.addEventListener(OPEN_EVENT, go);
     return () => window.removeEventListener(OPEN_EVENT, go);
   }, [navigate]);
+  const section = pathname.split('/')[1] || 'feed';
+  const manageIndex = pathname.replace(/\/$/, '') === '/manage';
+  const width = WIDE_SECTIONS.has(section) && (section !== 'manage' || manageIndex) ? 'wide' : 'read';
   return (
-    <div className="app-frame" key={pathname.split('/')[1] || 'feed'}>
+    <div className="app-frame" data-width={width} key={section}>
       <main className="app-content"><Outlet /></main>
       <BottomNav />
     </div>

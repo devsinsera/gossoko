@@ -43,9 +43,8 @@ export function MapShell({ venues }: { venues: Venue[] }) {
       background: COLORS.surface,
     }}>
       {/* Faux-map canvas */}
-      <div style={{
+      <div className="map-canvas" style={{
         position: 'relative',
-        height: 380,
         background:
           `linear-gradient(180deg, #0d0c0a 0%, #0a0908 100%)`,
       }}>

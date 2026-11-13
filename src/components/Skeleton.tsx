@@ -61,7 +61,7 @@ export function VenueCardSkeleton({ compact = false }: { compact?: boolean }) {
 
 export function VenueListSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="card-list">
       {Array.from({ length: count }).map((_, i) => (
         <VenueCardSkeleton key={i} />
       ))}

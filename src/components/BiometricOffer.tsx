@@ -34,7 +34,7 @@ export function BiometricOffer() {
   };
 
   return (
-    <div role="dialog" aria-label={`Use ${words}`} style={{
+    <div role="dialog" aria-label={`Use ${words}`} className="sheet" style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 100,
       padding: `${SPACE.lg}px ${SPACE.lg}px calc(${SPACE.lg}px + env(safe-area-inset-bottom, 0px))`,
       background: COLORS.surface, borderTop: `1.5px solid ${COLORS.orange}`,

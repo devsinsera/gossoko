@@ -42,7 +42,7 @@ export default function DealsPage() {
             <Link href="/manage" style={{ color: COLORS.orange }}>Post one from your dashboard</Link> — it shows up here straight away.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="card-list">
             {deals.map((d) => <DealCard key={d.id} deal={d} code={data?.codes.get(d.id)} signedIn={!!user} showVenue />)}
           </div>
         )}

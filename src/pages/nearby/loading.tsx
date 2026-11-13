@@ -23,7 +23,7 @@ export default function NearbyLoading() {
       </section>
 
       <section className="section">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="row-list">
           {Array.from({ length: 4 }).map((_, i) => (
             <VenueCardSkeleton key={i} />
           ))}

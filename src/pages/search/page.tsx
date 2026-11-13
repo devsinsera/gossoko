@@ -118,7 +118,7 @@ export default function SearchPage() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="row-list">
               {results.map((v) => (
                 <Link key={v.id} href={`/venue/${v.slug}`} onClick={() => { if (searching) setRecent(rememberSearch(q)); }}
                   style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 12, alignItems: 'center', padding: '12px 14px', background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, textDecoration: 'none' }}>

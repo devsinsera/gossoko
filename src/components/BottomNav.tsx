@@ -1,8 +1,6 @@
-
 import { Link } from '@/lib/nav';
 import { useLocation } from 'react-router-dom';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
-import { BRAND_GRADIENT, COLORS, BOTTOM_NAV_HEIGHT } from '@/lib/theme';
 
 type Item = {
   href: string;
@@ -19,36 +17,16 @@ const ITEMS: Item[] = [
   { href: '/profile',  label: 'Profile',  Icon: UserIcon,    matches: (p) => p.startsWith('/profile') },
 ];
 
+/** Bottom tab bar on a phone; a left rail on a tablet (globals.css `.tab-nav`). */
 export function BottomNav() {
   const pathname = useLocation().pathname || '/';
 
   return (
-    <nav
-      aria-label="Primary"
-      style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: `calc(${BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-        background: '#0a0908ee',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderTop: `1px solid ${COLORS.border}`,
-        zIndex: 50,
-        display: 'flex',
-        justifyContent: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          width: '100%',
-          maxWidth: 480,
-          alignItems: 'stretch',
-        }}
-      >
+    <nav aria-label="Primary" className="tab-nav">
+      <span className="tab-nav__brand" aria-hidden>
+        <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" />
+      </span>
+      <div className="tab-nav__items">
         {ITEMS.map(({ href, label, Icon, matches }) => {
           const active = matches(pathname);
           return (
@@ -57,46 +35,13 @@ export function BottomNav() {
               href={href}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                minHeight: 44,
-                color: active ? COLORS.orange : COLORS.textSecondary,
-                position: 'relative',
-              }}
+              className="tab-nav__item"
             >
               <span style={{ display: 'flex' }}>
                 <Icon size={22} />
               </span>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  fontWeight: active ? 700 : 500,
-                }}
-              >
-                {label}
-              </span>
-              {active && (
-                <span
-                  aria-hidden
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    height: 3,
-                    width: 24,
-                    background: BRAND_GRADIENT,
-                    borderRadius: 2,
-                    boxShadow: `0 0 8px ${COLORS.orange}`,
-                  }}
-                />
-              )}
+              <span className="tab-nav__label">{label}</span>
+              {active && <span aria-hidden className="tab-nav__mark" />}
             </Link>
           );
         })}
