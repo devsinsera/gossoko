@@ -1,6 +1,7 @@
 import { Link } from '@/lib/nav';
 import { useLocation } from 'react-router-dom';
 import pinUrl from '@/assets/brand/gossoko-pin.svg';
+import { useIsFounder } from '@/lib/founder';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
 
 type Item = {
@@ -8,6 +9,8 @@ type Item = {
   label: string;
   Icon: (p: { size?: number }) => React.ReactNode;
   matches: (p: string) => boolean;
+  /** Only on the side rail (tablet/desktop); phones reach it from Profile. */
+  railOnly?: boolean;
 };
 
 const ITEMS: Item[] = [
@@ -21,6 +24,11 @@ const ITEMS: Item[] = [
 /** Bottom tab bar on a phone; a left rail on a tablet (globals.css `.tab-nav`). */
 export function BottomNav() {
   const pathname = useLocation().pathname || '/';
+  const founder = useIsFounder();
+  // The owner's Founder tab (like Sona): admins only, on the rail.
+  const items: Item[] = founder
+    ? [...ITEMS, { href: '/founder', label: 'Founder', Icon: TrophyIcon, matches: (p) => p.startsWith('/founder'), railOnly: true }]
+    : ITEMS;
 
   return (
     <nav aria-label="Primary" className="tab-nav">
@@ -28,7 +36,7 @@ export function BottomNav() {
         <img src={pinUrl} alt="" />
       </span>
       <div className="tab-nav__items">
-        {ITEMS.map(({ href, label, Icon, matches }) => {
+        {items.map(({ href, label, Icon, matches, railOnly }) => {
           const active = matches(pathname);
           return (
             <Link
@@ -36,7 +44,7 @@ export function BottomNav() {
               href={href}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
-              className="tab-nav__item"
+              className={railOnly ? 'tab-nav__item tab-nav__item--rail' : 'tab-nav__item'}
             >
               <span style={{ display: 'flex' }}>
                 <Icon size={22} />

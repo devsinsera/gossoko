@@ -509,6 +509,7 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
   animation: pinDrop 420ms cubic-bezier(.3,.7,.4,1) both;
 }
 .tab-nav__brand { display: none; }
+.tab-nav__item--rail { display: none; }
 
 /* ── Tablet (iPad, Android tablets, any window 768 px and wider) ─────── */
 @media (min-width: 768px) {
@@ -559,6 +560,7 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
   .tab-nav__item { flex: 0 0 auto; min-height: 64px; gap: 5px; margin: 0 10px; border-radius: 12px; }
   .tab-nav__item:hover { background: var(--surface); }
   .tab-nav__item[aria-current="page"] { background: var(--orange-faint); }
+  .tab-nav__item--rail { display: flex; }
   .tab-nav__mark { top: 50%; left: -4px; margin-top: -9px; }
 }
 

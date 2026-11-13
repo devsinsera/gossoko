@@ -2,12 +2,14 @@
   "name": "gossoko-native",
   "private": true,
   "version": "0.2.0",
-  "description": "Gossoko phone and tablet shell around https://sinsera.co/gossoko/",
+  "description": "Gossoko phone, tablet and owner Mac shell around https://sinsera.co/gossoko/",
   "scripts": {
     "sync": "cap sync",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
-    "build:ios-sim": "cd ios/App && xcodebuild -scheme App -project App.xcodeproj -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ../../build/ios-sim CODE_SIGNING_ALLOWED=NO build"
+    "build:ios-sim": "cd ios/App && xcodebuild -scheme App -project App.xcodeproj -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ../../build/ios-sim CODE_SIGNING_ALLOWED=NO build",
+    "open:mac": "electron electron/main.cjs",
+    "pack:mac": "electron-builder --config electron/builder.json --mac"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -17,6 +19,9 @@
     "@capgo/capacitor-native-biometric": "^8.8.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.2"
-  }
+    "@capacitor/cli": "^8.5.2",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "main": "electron/main.cjs"
 }

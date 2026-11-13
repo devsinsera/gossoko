@@ -1,0 +1,29 @@
+{
+  "appId": "com.sinsera.gossoko",
+  "productName": "Gossoko",
+  "copyright": "Sinsera",
+  "directories": {
+    "output": "out",
+    "buildResources": "electron"
+  },
+  "files": [
+    "electron/**/*",
+    "capacitor.config.json",
+    "www/offline.html",
+    "package.json",
+    "!node_modules/**/*"
+  ],
+  "mac": {
+    "identity": null,
+    "icon": "electron/icon.icns",
+    "category": "public.app-category.food-and-drink",
+    "target": [
+      {
+        "target": "dir",
+        "arch": [
+          "arm64"
+        ]
+      }
+    ]
+  }
+}

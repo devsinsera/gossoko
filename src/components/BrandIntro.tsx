@@ -24,7 +24,9 @@ function sessionStore(): Storage | null {
 export function BrandIntro() {
   const [active, setActive] = useState(() =>
     typeof window !== 'undefined' &&
-    shouldPlayIntro(sessionStore(), window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false),
+    // Every full load of the site/app plays it (a reload is a new opening). The
+    // component mounts once, so moving between pages never replays it.
+    shouldPlayIntro(null, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false),
   );
   const overlayRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);

@@ -23,12 +23,29 @@ async function loadOverview(): Promise<Overview> {
   return data as Overview;
 }
 
+async function loadPremod(): Promise<boolean> {
+  const { data, error } = await getSupabase().from('app_settings').select('value').eq('key', 'review_premoderation').maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.value === true;
+}
+
 /** The owner's page (admins only): how Gossoko is doing, what's waiting, and a push check per device. */
 export default function FounderPage() {
   const { user } = useAuth();
   const founder = useIsFounder();
   const o = useLoad(() => (founder === true ? loadOverview() : Promise.resolve(undefined)), [founder, user?.id]);
   const [test, setTest] = useState<string | null>(null);
+  const premod = useLoad(() => (founder === true ? loadPremod() : Promise.resolve(undefined)), [founder, user?.id]);
+  const [setting, setSetting] = useState<string | null>(null);
+  const { signOut } = useAuth();
+
+  async function togglePremod(next: boolean) {
+    setSetting('Saving…');
+    const { error } = await getSupabase().rpc('founder_set_setting', { p_key: 'review_premoderation', p_value: next });
+    if (error) { setSetting(`Couldn't save: ${error.message}`); return; }
+    setSetting(null);
+    premod.reload();
+  }
 
   if (!user) return <Navigate to="/login?next=%2Ffounder" replace />;
   if (founder === false) return <Navigate to="/profile" replace />;
@@ -83,6 +100,34 @@ export default function FounderPage() {
           </div>
           <button type="button" onClick={() => { void sendTest(); }} style={button}>Send me a test alert</button>
           {test && <div role="status" style={{ marginTop: 8, fontSize: 13, color: COLORS.textSecondary }}>{test}</div>}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-title"><h2>Settings</h2></div>
+        <div style={card}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={premod.data === true}
+              disabled={premod.data === undefined || setting === 'Saving…'}
+              onChange={(e) => { void togglePremod(e.target.checked); }}
+            />
+            <span>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: COLORS.text }}>Approve new reviews before they show</span>
+              <span style={{ display: 'block', fontSize: 12.5, color: COLORS.textSecondary, lineHeight: 1.5 }}>
+                Off: reviews go live at once (links, phone numbers and spam are still held). Turn on when real sign-ups start.
+              </span>
+            </span>
+          </label>
+          {premod.error && <div style={{ marginTop: 8, fontSize: 13, color: COLORS.red }}>Couldn't load: {premod.error}</div>}
+          {setting && <div role="status" style={{ marginTop: 8, fontSize: 13, color: COLORS.textSecondary }}>{setting}</div>}
+        </div>
+        <div style={{ ...card, marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: COLORS.textSecondary, minWidth: 0, overflowWrap: 'anywhere' }}>
+            Signed in as <span style={{ color: COLORS.text }}>{user.email ?? 'owner'}</span> · admin
+          </div>
+          <button type="button" onClick={() => { void signOut(); }} style={{ ...button, marginTop: 0, background: COLORS.surface, color: COLORS.text, border: `1.5px solid ${COLORS.border}` }}>Sign out</button>
         </div>
       </section>
 
