@@ -42,6 +42,13 @@ export function BrandIntro() {
     const anims: Animation[] = [];
     const timers: number[] = [];
     let done = false;
+    // The header logo we fly onto. Hidden while the flying copy is in the air so
+    // the screen never shows two logos at once; shown again the moment we land.
+    let landing: HTMLElement | null = null;
+    const showLanding = () => {
+      if (landing) landing.style.visibility = '';
+      landing = null;
+    };
 
     const later = (fn: () => void, ms: number) => {
       timers.push(window.setTimeout(fn, ms));
@@ -52,6 +59,7 @@ export function BrandIntro() {
       timers.forEach((t) => window.clearTimeout(t));
       anims.forEach((a) => a.cancel());
       overlay.removeEventListener('pointerdown', finish);
+      showLanding();
       markIntroPlayed(sessionStore());
       setActive(false);
     };
@@ -72,14 +80,28 @@ export function BrandIntro() {
       width: WORDMARK_PIN_SLOT.w * sc,
       height: WORDMARK_PIN_SLOT.h * sc,
     };
-    // Hero pin: about 36% of the screen height, centred. Transforms are relative to the slot.
+    // Hero pin: about 36% of the screen height, centred.
+    //
+    // Sharpness: WebKit (iOS/iPadOS WKWebView, Safari) rasterises an element at
+    // its *layout* size and then scales that bitmap on the GPU for transform
+    // animations. The pin used to be laid out at its small slot size and blown
+    // up with scale(~4.7), so on phones it was a blurry, blocky upscale. Now the
+    // pin is laid out at its LARGEST on-screen size (hero x pulse peak) and every
+    // keyframe scales it DOWN (scale <= 1), so the GPU only ever downsamples a
+    // full-resolution vector raster.
     const hk = (vh * 0.36) / slot.height;
-    const dx = vw / 2 - (slot.left + slot.width / 2);
-    const dy = vh / 2 - (slot.top + slot.height / 2);
+    const peak = hk * 1.08; // biggest the pin gets (top of the pulse)
+    const pinW = slot.width * peak;
+    const pinH = slot.height * peak;
+    const pinL = vw / 2 - pinW / 2;
+    const pinT = vh / 2 - pinH / 2;
+    // Where the pin ends: centred on the slot, at slot size.
+    const endDx = slot.left + slot.width / 2 - vw / 2;
+    const endDy = slot.top + slot.height / 2 - vh / 2;
 
     Object.assign(group.style, { left: `${gx}px`, top: `${gy}px`, width: `${heroW}px`, height: `${heroH}px` });
     Object.assign(pin.style, {
-      left: `${slot.left}px`, top: `${slot.top}px`, width: `${slot.width}px`, height: `${slot.height}px`,
+      left: `${pinL}px`, top: `${pinT}px`, width: `${pinW}px`, height: `${pinH}px`,
     });
     // Reveal: letters open outwards from the pin slot.
     const cxPct = ((slot.left + slot.width / 2 - gx) / heroW) * 100;
@@ -89,18 +111,19 @@ export function BrandIntro() {
     const T = INTRO;
     // One keyframed pin track, timed in ms of the whole intro (offsets = ms / revealEnd).
     const at = (ms: number) => ms / T.revealEnd;
-    const hero = (s: number, yOff = 0) => `translate(${dx}px, ${dy + yOff}px) scale(${s})`;
+    // s is the pin's size relative to the hero size (1 = hero); always <= peak/hk.
+    const hero = (s: number, yOff = 0) => `translate(0px, ${yOff}px) scale(${(hk * s) / peak})`;
     const pinTrack: Keyframe[] = [
       // 0 to 0.8s: drop in from above, bounce to rest.
-      { offset: 0, transform: hero(hk, -vh * 0.6), easing: 'ease-out' },
-      { offset: at(T.dropEnd * 0.9), transform: hero(hk, 0), easing: 'ease-in' },
-      { offset: at(T.dropEnd + 60), transform: hero(hk, -vh * 0.035), easing: 'ease-in' },
-      { offset: at(T.dropEnd + 130), transform: hero(hk, 0), easing: 'ease-out' },
-      // 0.8 to 1.3s: small pulse.
-      { offset: at((T.dropEnd + T.pulseEnd) / 2), transform: hero(hk * 1.08, 0), easing: 'ease-in-out' },
-      { offset: at(T.pulseEnd), transform: hero(hk, 0), easing: 'cubic-bezier(.6,0,.3,1)' },
+      { offset: 0, transform: hero(1, -vh * 0.6), easing: 'ease-out' },
+      { offset: at(T.dropEnd * 0.9), transform: hero(1, 0), easing: 'ease-in' },
+      { offset: at(T.dropEnd + 60), transform: hero(1, -vh * 0.035), easing: 'ease-in' },
+      { offset: at(T.dropEnd + 130), transform: hero(1, 0), easing: 'ease-out' },
+      // 0.8 to 1.3s: small pulse (peak = scale(1), the layout size).
+      { offset: at((T.dropEnd + T.pulseEnd) / 2), transform: hero(1.08, 0), easing: 'ease-in-out' },
+      { offset: at(T.pulseEnd), transform: hero(1, 0), easing: 'cubic-bezier(.6,0,.3,1)' },
       // 1.3 to 2.0s: shrink into the second O.
-      { offset: 1, transform: 'translate(0px, 0px) scale(1)' },
+      { offset: 1, transform: `translate(${endDx}px, ${endDy}px) scale(${1 / peak})` },
     ];
     anims.push(pin.animate(pinTrack, { duration: T.revealEnd, fill: 'forwards' }));
     // The wordmark's own pin takes over at the end of the reveal.
@@ -118,18 +141,26 @@ export function BrandIntro() {
     // Hold, then FLIP to the header logo of the page underneath.
     later(() => {
       const target = document.querySelector<HTMLElement>(TARGET);
-      if (!target) {
+      const tr = target?.getBoundingClientRect();
+      // Land only on a logo that is actually on screen (not display:none, not
+      // scrolled away); otherwise fade out rather than fly to a corner.
+      const visible = !!tr && tr.width > 1 && tr.height > 1 && tr.bottom > 0 && tr.top < window.innerHeight;
+      if (!target || !tr || !visible) {
         // Nothing to land on (a page without the header logo): fade out.
         anims.push(overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }));
         later(finish, 200);
         return;
       }
-      const r = target.getBoundingClientRect();
+      const r = tr;
       const t = flipTransform(
         { left: gx, top: gy, width: heroW, height: heroH },
         { left: r.left, top: r.top, width: r.width, height: r.height },
       );
       overlay.style.pointerEvents = 'none';
+      landing = target;
+      target.style.visibility = 'hidden';
+      const skip = overlay.querySelector<HTMLElement>('[data-intro-skip]');
+      if (skip) anims.push(skip.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' }));
       const flipDur = T.flipEnd - T.holdEnd;
       anims.push(group.animate([
         { transform: 'translate(0px, 0px) scale(1)' },
@@ -143,6 +174,7 @@ export function BrandIntro() {
     }, T.holdEnd);
 
     return () => {
+      showLanding();
       timers.forEach((t) => window.clearTimeout(t));
       anims.forEach((a) => a.cancel());
       overlay.removeEventListener('pointerdown', finish);
@@ -181,6 +213,7 @@ export function BrandIntro() {
         style={{ position: 'absolute', transformOrigin: 'center center', pointerEvents: 'none' }}
       />
       <span
+        data-intro-skip
         style={{
           position: 'absolute',
           left: 0,

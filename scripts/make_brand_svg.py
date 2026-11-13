@@ -116,18 +116,30 @@ def pin_group(prefix):
 """
 
 
+# Shadows: blur ONLY a black silhouette drawn underneath, never the artwork.
+# WebKit (iOS/iPadOS, Safari) renders a filtered group through an offscreen
+# buffer at reduced resolution, so wrapping the whole pin/wordmark in
+# feDropShadow made the art itself soft on Retina screens. With the blur on a
+# separate silhouette the art stays plain vector and pin-sharp.
 PIN_FILTER = """<filter id="{p}shadow" x="-30%" y="-20%" width="160%" height="150%">
-  <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".6"/>
+  <feGaussianBlur stdDeviation="8"/>
 </filter>"""
+
+
+def pin_shadow(prefix):
+    """Soft drop shadow for the pin: the body outline, offset down, blurred."""
+    return (
+        f'<path d="{teardrop(0, 0, 100, 188)}" transform="translate(0 8)" '
+        f'fill="#000" opacity=".6" filter="url(#{prefix}shadow)"/>'
+    )
 
 
 def write_pin():
     p = "pin-"
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -120 240 336" width="240" height="336">
 <defs>{PIN_FILTER.format(p=p)}</defs>
-<g filter="url(#{p}shadow)">
+{pin_shadow(p)}
 {pin_group(p)}
-</g>
 </svg>
 """
     path = os.path.join(OUT, "gossoko-pin.svg")
@@ -197,6 +209,13 @@ def write_wordmark():
             extrude.append(
                 f'<use href="#g{i}" fill="{EXTRUDE}" transform="translate({f(t*0.55)} {f(t)})"/>'
             )
+    # Shadow silhouette: every letter face plus its deepest extrude copy.
+    shadow = []
+    for i in range(len(WORD)):
+        if i == PIN_LABEL_INDEX:
+            continue
+        shadow.append(f'<use href="#g{i}"/>')
+        shadow.append(f'<use href="#g{i}" transform="translate({f(steps*0.55)} {f(steps)})"/>')
     faces = [
         f'<use href="#g{i}" fill="url(#face)"/>'
         for i in range(len(WORD))
@@ -218,20 +237,18 @@ def write_wordmark():
   <stop offset="1" stop-color="#e2cfb8"/>
 </linearGradient>
 <filter id="wshadow" x="-10%" y="-20%" width="120%" height="150%">
-  <feDropShadow dx="0" dy="{f(CAP*0.07)}" stdDeviation="{f(CAP*0.08)}" flood-color="#000" flood-opacity=".7"/>
+  <feGaussianBlur stdDeviation="{f(CAP*0.08)}"/>
 </filter>
 {PIN_FILTER.format(p="wp-")}
 {''.join(defs)}
 {pin_group_defs("wp-")}
 </defs>
-<g filter="url(#wshadow)">
+<g fill="#000" opacity=".7" filter="url(#wshadow)" transform="translate(0 {f(CAP*0.07)})">{''.join(shadow)}</g>
 <g>{''.join(extrude)}</g>
 <g>{''.join(faces)}</g>
-</g>
-<g filter="url(#wp-shadow)">
 <g transform="{pin_tf}">
+{pin_shadow("wp-")}
 {pin_group_body("wp-")}
-</g>
 </g>
 </svg>
 """
