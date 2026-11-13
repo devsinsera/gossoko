@@ -23,8 +23,8 @@ let win = null
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 1000,
+    height: 640,
     minWidth: 960,
     minHeight: 640,
     title: desktop.appName,
