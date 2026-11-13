@@ -58,7 +58,9 @@ export function Field({
   required,
   minLength,
   hint,
+  inputMode,
 }: {
+  inputMode?: 'email' | 'text';
   label: string;
   name: string;
   type?: string;
@@ -80,6 +82,10 @@ export function Field({
         autoComplete={autoComplete}
         required={required}
         minLength={minLength}
+        inputMode={inputMode}
+        autoCapitalize={inputMode === 'email' ? 'none' : undefined}
+        autoCorrect={inputMode === 'email' ? 'off' : undefined}
+        spellCheck={inputMode === 'email' ? false : undefined}
         style={{
           background: COLORS.bgElev,
           color: COLORS.text,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidEmail, isValidUsername, normalizeUsername } from '@/lib/api/auth';
+import { isValidEmail, isValidUsername, normalizeUsername, loginEmail } from '@/lib/api/auth';
 import { enforcePasswordPolicy } from '@/lib/security/password-policy';
 
 // auth.ts builds the Supabase client lazily, so importing it needs no env.
@@ -25,5 +25,20 @@ describe('sign-up validation', () => {
   it('password policy is the shared one', () => {
     expect(enforcePasswordPolicy('short').valid).toBe(false);
     expect(enforcePasswordPolicy('Str0ng!Passw0rd#').valid).toBe(true);
+  });
+});
+
+describe('sign-in box: email or Sona username', () => {
+  it('keeps an email as typed', () => {
+    expect(loginEmail('  a@b.co ')).toBe('a@b.co');
+    expect(loginEmail('a b@c.d')).toBeNull();
+  });
+  it('maps a bare username to its copied Sona account', () => {
+    expect(loginEmail('CarrotSharpner')).toBe('carrotsharpner@sona.sinsera.invalid');
+    expect(loginEmail('owner')).toBe('owner@sona.sinsera.invalid');
+  });
+  it('rejects anything else', () => {
+    expect(loginEmail('')).toBeNull();
+    expect(loginEmail('two words')).toBeNull();
   });
 });

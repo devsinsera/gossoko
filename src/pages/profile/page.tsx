@@ -1,6 +1,7 @@
 import { Link, useQuery } from '@/lib/nav';
 import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
-import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon } from '@/components/icons';
+import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon, TrophyIcon } from '@/components/icons';
+import { useIsFounder } from '@/lib/founder';
 import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
 import { Skeleton } from '@/components/Skeleton';
@@ -44,6 +45,7 @@ interface ReviewRowView {
 
 export default function ProfilePage() {
   const { user: authUser, signOut } = useAuth();
+  const founder = useIsFounder();
   const { venue: venueFlag } = useQuery('venue');
   const { data, loading } = useLoad(async () => {
     if (!authUser) return null;
@@ -238,6 +240,7 @@ export default function ProfilePage() {
           <ActionTile href="/notifications" icon={<FlameIcon size={20} />} label="Alerts" hint={data?.unread ? `${data.unread} new` : 'Reviews and replies'} />
           <ActionTile href="/deals" icon={<StarIcon size={20} />} label="Deals" hint="Codes for smoko" />
           <ActionTile href="/manage" icon={<HardHatIcon size={20} />} label="My Venues" hint={managed.length ? `${managed.length} you manage` : 'Own a place? Claim it'} />
+          {founder && <ActionTile href="/founder" icon={<TrophyIcon size={20} />} label="Founder" hint="Owner tools" />}
         </div>
         {authUser && <div style={{ marginTop: 12 }}><AlertsToggle userId={authUser.id} /></div>}
         {authUser && profile && (

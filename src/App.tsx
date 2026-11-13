@@ -1,5 +1,6 @@
-import { Suspense, lazy, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect, type ReactNode } from 'react';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { OPEN_EVENT } from '@/lib/push';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { configured } from '@/lib/supabase/client';
 import { BottomNav } from '@/components/BottomNav';
@@ -23,6 +24,7 @@ const VenuePage = lazy(() => import('./pages/venue/[slug]/page'));
 const NewVenuePage = lazy(() => import('./pages/venue/new/page'));
 const NewReviewPage = lazy(() => import('./pages/review/new/page'));
 const NotificationsPage = lazy(() => import('./pages/notifications/page'));
+const FounderPage = lazy(() => import('./pages/founder/page'));
 const DealsPage = lazy(() => import('./pages/deals/page'));
 const ManageIndexPage = lazy(() => import('./pages/manage/page'));
 const ManageVenuePage = lazy(() => import('./pages/manage/[slug]/page'));
@@ -34,6 +36,13 @@ const AdminUsersPage = lazy(() => import('./pages/admin/users/page'));
 /** Scroll to top on navigation, like a page load. */
 function Frame() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  // A tapped push alert asks to open a page (lib/push.ts).
+  useEffect(() => {
+    const go = (e: Event) => { const to = (e as CustomEvent<string>).detail; if (typeof to === 'string' && to.startsWith('/')) navigate(to); };
+    window.addEventListener(OPEN_EVENT, go);
+    return () => window.removeEventListener(OPEN_EVENT, go);
+  }, [navigate]);
   return (
     <div className="app-frame" key={pathname.split('/')[1] || 'feed'}>
       <main className="app-content"><Outlet /></main>
@@ -76,6 +85,7 @@ export default function App() {
                   <Route path="search" element={<SearchPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
+                  <Route path="founder" element={<FounderPage />} />
                   <Route path="deals" element={<DealsPage />} />
                   <Route path="manage" element={<ManageIndexPage />} />
                   <Route path="manage/:slug" element={<ManageVenuePage />} />

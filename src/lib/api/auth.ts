@@ -16,6 +16,16 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
 }
 
+/** Sona accounts were copied into Gossoko as <username>@sona.sinsera.invalid (same password as Sona). */
+export const SONA_LOGIN_DOMAIN = 'sona.sinsera.invalid';
+
+/** What the sign-in box holds → the email to sign in with: an email as typed, or a Sona username. */
+export function loginEmail(input: string): string | null {
+  const v = input.trim();
+  if (v.includes('@')) return isValidEmail(v) ? v : null;
+  return /^[A-Za-z0-9_.-]{2,32}$/.test(v) ? `${v.toLowerCase()}@${SONA_LOGIN_DOMAIN}` : null;
+}
+
 export function normalizeUsername(username: string): string {
   return username.trim().replace(/\s+/g, ' ');
 }

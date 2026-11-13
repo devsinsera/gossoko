@@ -4,7 +4,7 @@ import { Link, safeNext, useQuery } from '@/lib/nav';
 import { COLORS, SPACE } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import { getRemember } from '@/lib/supabase/client';
-import { isValidEmail } from '@/lib/api/auth';
+import { loginEmail } from '@/lib/api/auth';
 import { AuthShell, Field, SubmitButton, ErrorBanner, InfoBanner } from '../_auth/AuthShell';
 
 export default function LoginPage() {
@@ -18,14 +18,14 @@ export default function LoginPage() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const em = String(form.get('email') ?? '').trim();
+    const em = loginEmail(String(form.get('email') ?? ''));
     const pw = String(form.get('password') ?? '');
-    if (!isValidEmail(em)) { setError('Enter a valid email address.'); return; }
+    if (!em) { setError('Enter your email address or username.'); return; }
     setBusy(true);
     setError(null);
     const r = await signInPassword(em, pw, remember);
     setBusy(false);
-    if (r.error) { setError(r.error); return; }
+    if (r.error) { setError(/invalid login/i.test(r.error) ? 'That email/username and password don’t match.' : r.error); return; }
     // Leave the form straight away so iOS offers to save the password.
     navigate(safeNext(next), { replace: true });
   }
@@ -35,7 +35,7 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
         {notice && <InfoBanner>{notice}</InfoBanner>}
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        <Field label="Email" name="email" type="email" autoComplete="username" defaultValue={email ?? ''} required />
+        <Field label="Email or username" name="email" type="text" inputMode="email" autoComplete="username" defaultValue={email ?? ''} required />
         <Field label="Password" name="password" type="password" autoComplete="current-password" required />
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: COLORS.textSecondary }}>
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />

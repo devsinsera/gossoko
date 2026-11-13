@@ -6,7 +6,7 @@
 // for the biometric (device passcode as fallback) and, if that fails or is
 // cancelled, drops to a full sign-in.
 
-import { enablePush } from '@/lib/push';
+import { enablePush, disablePush } from '@/lib/push';
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
@@ -135,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [finishIn]);
 
   const signOut = useCallback(async () => {
+    await disablePush();
     await supabase().auth.signOut();
     await keychainClear();
     ls()?.removeItem(BIO_KEY);
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fullSignIn = useCallback(async () => {
+    await disablePush();
     await supabase().auth.signOut();
     await keychainClear();
     setUser(null);

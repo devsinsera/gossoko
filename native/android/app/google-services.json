@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521339938067",
+    "project_id": "gossoko-sinsera",
+    "storage_bucket": "gossoko-sinsera.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521339938067:android:88758f91b827847042a6e6",
+        "android_client_info": {
+          "package_name": "com.sinsera.gossoko"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJkf7cnHKvnxhXTuKrHHLDoqixWbuGf1M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
