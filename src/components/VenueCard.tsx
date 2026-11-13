@@ -115,8 +115,10 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
                 letterSpacing: '0.005em',
                 lineHeight: 1.2,
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                // Compact cards are narrow: wrap to two lines rather than cut "Crowbar C…".
+                ...(isCompact
+                  ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflowWrap: 'anywhere' as const }
+                  : { textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }),
               }}>
                 {venue.name}
               </h3>
