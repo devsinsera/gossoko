@@ -11,6 +11,7 @@ import { DeleteReviewButton } from './DeleteReviewButton';
 import { ProfileEditor } from './ProfileEditor';
 import { SavedSpots } from './SavedSpots';
 import { AlertsToggle } from './AlertsToggle';
+import { BiometricToggle } from './BiometricToggle';
 import { DeleteAccount } from './DeleteAccount';
 import { unreadCount } from '@/lib/queries/notifications';
 import { getAllVenues } from '@/lib/queries/venues';
@@ -385,6 +386,7 @@ export default function ProfilePage() {
             <div style={{ fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
               {authUser.email}
             </div>
+            <BiometricToggle />
             <div>
               <button
                 type="button"

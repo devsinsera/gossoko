@@ -4,6 +4,8 @@
 // through @capacitor/core. On the open web every call reports "unavailable".
 
 import { registerPlugin } from '@capacitor/core';
+import { KEYCHAIN_SERVER } from '@/lib/env';
+import type { SecureSlot } from '@/lib/supabase/sessionStore';
 
 export interface NativeBiometricPlugin {
   isAvailable(options?: { useFallback?: boolean }): Promise<{ isAvailable: boolean; biometryType?: number }>;
@@ -77,4 +79,31 @@ export async function verifyOwner(reason: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** The Keychain item a storage key lives in. The main session key keeps the server older builds used. */
+export function keychainServer(key: string, mainKey: string): string {
+  return key === mainKey ? KEYCHAIN_SERVER : `${KEYCHAIN_SERVER}#${key}`;
+}
+
+/**
+ * The session's Keychain slot (iOS Keychain; Android Keystore-encrypted store),
+ * or null on the open web. `plugin` is injectable for tests.
+ */
+export function keychainSlot(mainKey: string, plugin: NativeBiometricPlugin | null = nativePlugin()): SecureSlot | null {
+  if (!plugin) return null;
+  return {
+    async read(key) {
+      try {
+        const c = await plugin.getCredentials({ server: keychainServer(key, mainKey) });
+        return c?.password || null;
+      } catch {
+        return null;              // nothing saved yet
+      }
+    },
+    write: (key, value) => plugin.setCredentials({ username: 'gossoko-session', password: value, server: keychainServer(key, mainKey) }),
+    async clear(key) {
+      try { await plugin.deleteCredentials({ server: keychainServer(key, mainKey) }); } catch { /* nothing saved */ }
+    },
+  };
 }

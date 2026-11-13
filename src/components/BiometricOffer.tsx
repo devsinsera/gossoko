@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { bioAsked, markBioAsked, setBioEnabled, useAuth } from '@/lib/auth';
 import { bioKind, bioWords, verifyOwner, type BioKind } from '@/lib/bio';
 import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
+import { getRemember } from '@/lib/supabase/client';
+import { enableBiometrics, shouldOfferBiometrics } from '@/lib/authFlow';
 
 /**
  * After a successful sign-in on a phone/tablet that has Face ID / Touch ID /
@@ -14,7 +16,8 @@ export function BiometricOffer() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (status !== 'in' || bioAsked()) return;
+    // Without Remember me nothing is kept for next time, so there is nothing to unlock.
+    if (!shouldOfferBiometrics({ signedIn: status === 'in', asked: bioAsked(), remember: getRemember(), available: true })) return;
     let live = true;
     const t = window.setTimeout(async () => {
       const k = await bioKind();
@@ -28,8 +31,7 @@ export function BiometricOffer() {
 
   const enable = async () => {
     // Prove it works before turning it on, so the owner can't lock themselves out.
-    if (await verifyOwner(`Turn on ${words} for Gossoko`)) setBioEnabled(true);
-    else markBioAsked();
+    await enableBiometrics({ verify: verifyOwner, setOn: setBioEnabled, markAsked: markBioAsked }, words);
     setShow(false);
   };
 

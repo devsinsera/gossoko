@@ -33,11 +33,12 @@ export default function SignupPage() {
     <AuthShell title="CREATE ACCOUNT" subtitle="Get on the queue">
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        <Field label="Email" name="email" type="email" autoComplete="email" required />
+        {/* Keychain AutoFill saves the field marked "username" — that must be the email the login box accepts, not the display name. */}
+        <Field label="Email" name="email" type="email" autoComplete="username" required />
         <Field
           label="Username"
           name="username"
-          autoComplete="username"
+          autoComplete="nickname"
           required
           minLength={3}
           hint="3–32 chars · letters, numbers, spaces, underscore"
