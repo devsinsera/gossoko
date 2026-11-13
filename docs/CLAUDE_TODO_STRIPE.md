@@ -2,6 +2,8 @@
 
 Master plan (all apps): `~/Dev-Sinsera/Sinsera Core/docs/CLAUDE_STRIPE_PLAN.md`.
 
+Status, 13 Nov 2026, 6:56 PM Australia/Brisbane: tasks 1 and 2 are committed locally as `af52cf9` (not pushed, not deployed). Continue from task 4.
+
 Written 13 Nov 2026 by Grok Bot for Peta. Stripe sandbox only: `acct_1UVkItFQ2OSiEJs3` ("Sinsera PTY LTD sandbox").
 
 **Hard rules:** No deploy, no `git push`, no Supabase secret changes, no live keys, no live payments without Peta's explicit OK for that specific step. Never print or commit secret values. Refuse any `sk_live_`/`rk_live_` key.
