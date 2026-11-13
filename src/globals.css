@@ -303,6 +303,12 @@ button { font: inherit; color: inherit; }
   .drop-in > *, .pin-loader, .tab-nav__mark, .map-pin.is-selected img { animation: none !important; }
 }
 
+/* iOS zooms the whole page when a text field under 16px gets focus (and stays
+   zoomed), which threw the layout out on Search. Keep every text control at 16px;
+   !important because most fields set their size inline. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+textarea, select { font-size: 16px !important; }
+
 /* Form ticks and radios in the brand colour (not system blue), glove-sized. */
 input[type="checkbox"], input[type="radio"] { accent-color: var(--orange); }
 input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
