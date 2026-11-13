@@ -5,7 +5,7 @@
 
 Writes two SVGs to src/assets/brand/ (the single source for the app and for
 scripts/make_icons.py):
-  gossoko-pin.svg       the glossy map pin with a latte inset (transparent)
+  gossoko-pin.svg       the map pin with a latte inset (transparent)
   gossoko-wordmark.svg  chunky cream letters, burnt-orange extrude, the pin as
                         the 5th letter (the second O). Transparent background.
 
@@ -110,7 +110,6 @@ def pin_group(prefix):
   </radialGradient>
 </defs>
 <path d="{body}" fill="url(#{prefix}body)" stroke="{CREAM_RIM}" stroke-width="6" stroke-linejoin="round"/>
-<ellipse cx="-42" cy="-50" rx="19" ry="34" transform="rotate(-28 -42 -50)" fill="#ffffff" opacity=".28"/>
 <path d="{inner}" fill="url(#{prefix}crema)" stroke="{CREAM_RIM}" stroke-width="7" stroke-linejoin="round"/>
 {rosetta()}
 """

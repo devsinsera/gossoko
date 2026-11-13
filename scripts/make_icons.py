@@ -4,7 +4,7 @@
     python3 scripts/make_icons.py
 
 Sources (made by scripts/make_brand_svg.py):
-  src/assets/brand/gossoko-pin.svg       the glossy coffee pin
+  src/assets/brand/gossoko-pin.svg       the coffee pin
 
 Writes:
   native/icon.png                   1024 master, full-bleed near-black, no drawn corners
