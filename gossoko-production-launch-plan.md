@@ -17,6 +17,22 @@
 
 **Tech Stack:** Next.js 15, React, Supabase (PostgreSQL, Auth, Real-time), TypeScript, Tailwind CSS, Web Push API, Redis (optional), Sentry (error tracking), PostHog (analytics)
 
+## Status (13 Nov 2026)
+
+> This plan is the original Next.js task list. The app actually shipped on Vite 5 + React 19 + Supabase + Capacitor 8, live at sinsera.co/gossoko/ (native iOS/Android shells load that URL). The tasks below are kept for reference; this section is the current state.
+
+- **Brand:** the coffee pin and the GOSSOKO wordmark (pin as the second O, 3D cream letters) are vector, from `scripts/make_brand_svg.py`. The app icons and splash are drawn from the pin (`6e10889`).
+- **Opening intro:** the pin drops in, the letters reveal, then the logo flies onto the header logo. Once per session, tap to skip, skipped with reduced motion (`6e10889`).
+- **UI restyle:** the whole UI is in the logo's style (orange to coffee gradients, cream on near-black, glossy depth) (`68ff418`). Tablet layout with a side rail and grids (`d2210bc`).
+- **Nearby map:** a real street map, MapLibre + OpenFreeMap, replacing the drawn placeholder (`5d78ad0`).
+- **Sharp-intro fix: LIVE.** The pin is laid out at full size and only scales down, and the SVG shadows no longer blur the art. The FLIP no longer shows two logos (`a60b7fd`). UI polish: scrollers snap to the content edge, tidy venue meta, orange ticks (`c779a28`). Live bundle `index-DQlWD74b.js`. WebKit sharpness 0.99–1.05 against the static vector (phone @3x and iPad @2x).
+- **Open:**
+  - Venue names cut off early on phone cards ("Big Brekki…").
+  - The active-tab mini pin sits 9px above the tab bar, over content.
+  - Eye-check of the intro on the iPhone and iPad.
+  - Worktree cleanup (`~/.sinsera/gossoko-intro-sharp`, `~/.sinsera/gossoko-brand`).
+
+
 ---
 
 ## File Structure
