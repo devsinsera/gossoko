@@ -15,8 +15,10 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
+    "@fontsource/archivo-black": "^5.3.0",
     "@supabase/supabase-js": "^2.106.0",
     "isomorphic-dompurify": "^3.13.0",
+    "maplibre-gl": "^5.24.1",
     "qrcode-generator": "^1.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

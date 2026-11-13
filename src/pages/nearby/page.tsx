@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useLoad } from '@/lib/useLoad';
 import { applyFilter, type FilterId } from '@/lib/filters';
 import NearbyLoading from './loading';
-import { MapShell } from '@/components/MapShell';
+import { VenueMap } from '@/components/VenueMap';
 import { FilterChips } from '@/components/FilterChips';
 import { NearbyList } from './NearbyList';
 import { PromotedSpots } from '@/components/PromotedSpots';
@@ -29,7 +29,7 @@ export default function NearbyPage() {
 
       {VENUES.length > 0 ? (
         <section className="section">
-          <MapShell venues={VENUES} />
+          <VenueMap venues={VENUES} />
         </section>
       ) : (
         <section className="section">
@@ -41,7 +41,7 @@ export default function NearbyPage() {
           geolocation resolves; otherwise fall back to static ordering. */}
       <NearbyList venues={VENUES} />
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }
