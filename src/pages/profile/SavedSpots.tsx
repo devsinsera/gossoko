@@ -18,11 +18,11 @@ export function SavedSpots({ venues }: { venues: Venue[] }) {
             <Link key={v.id} href={`/venue/${v.slug}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, textDecoration: 'none' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
-                <div style={{ color: COLORS.textMuted, fontSize: 11.5, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <div style={{ color: COLORS.textMuted, fontSize: 11.5, fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {v.suburb}{v.open_now ? ' · open now' : ''}{v.has_deal ? ' · ⚡ deal' : ''}
                 </div>
               </div>
-              <span style={{ color: COLORS.orange, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13 }}>{displayScore(v) ? `★ ${displayScore(v)}` : 'NEW'}</span>
+              <span style={{ color: COLORS.orange, fontFamily: 'var(--font-label)', fontWeight: 700, fontSize: 13 }}>{displayScore(v) ? `★ ${displayScore(v)}` : 'NEW'}</span>
             </Link>
           ))}
         </div>

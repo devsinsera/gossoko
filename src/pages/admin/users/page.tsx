@@ -31,7 +31,7 @@ type ProfileRow = {
 const ROLE_COLOR: Record<UserRole, string> = {
   admin: COLORS.orangeHot,
   moderator: COLORS.orange,
-  business: COLORS.hiVisYellow,
+  business: COLORS.gold,
   user: COLORS.textMuted,
 };
 
@@ -63,7 +63,7 @@ export default function AdminUsersPage() {
       {statusMsg && (
         <div role="status" style={{
           background: statusMsg.ok ? COLORS.surface : COLORS.orangeFaint,
-          border: `1px solid ${statusMsg.ok ? COLORS.hiVisGreen : COLORS.orange}`,
+          border: `1px solid ${statusMsg.ok ? COLORS.green : COLORS.orange}`,
           borderRadius: RADIUS.md, padding: SPACE.md, marginBottom: SPACE.lg, fontSize: 13,
         }}>
           {statusMsg.text}
@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
                       borderRadius: RADIUS.md,
                       padding: '6px 10px',
                       fontSize: 13,
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-label)',
                       cursor: 'pointer',
                     }}
                   >

@@ -25,7 +25,7 @@ type QueueRow = {
 const PRIORITY_COLOR: Record<QueueRow['priority'], string> = {
   urgent: COLORS.orangeHot,
   high: COLORS.orange,
-  normal: COLORS.hiVisYellow,
+  normal: COLORS.gold,
   low: COLORS.textMuted,
 };
 
@@ -194,7 +194,7 @@ export default function ModerationPage() {
                 <ActionForm action={resolveVenueSubmission}>
                   <input type="hidden" name="id" value={v.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" aria-label={`Approve venue ${v.name}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve venue ${v.name}`} style={btnStyle(COLORS.green)}>Approve</button>
                 </ActionForm>
                 <ActionForm action={resolveVenueSubmission}>
                   <input type="hidden" name="id" value={v.id} />
@@ -252,7 +252,7 @@ export default function ModerationPage() {
                 <ActionForm action={resolveReviewSubmission}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" aria-label={`Approve review on ${r.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve review on ${r.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.green)}>Approve</button>
                 </ActionForm>
                 <ActionForm action={resolveReviewSubmission}>
                   <input type="hidden" name="id" value={r.id} />
@@ -306,7 +306,7 @@ export default function ModerationPage() {
                 <ActionForm action={resolveCommentSubmission}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" aria-label="Approve comment" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label="Approve comment" style={btnStyle(COLORS.green)}>Approve</button>
                 </ActionForm>
                 <ActionForm action={resolveCommentSubmission}>
                   <input type="hidden" name="id" value={c.id} />
@@ -335,7 +335,7 @@ export default function ModerationPage() {
               <ActionForm action={resolvePhoto}>
                 <input type="hidden" name="id" value={p.id} />
                 <input type="hidden" name="decision" value="approved" />
-                <button type="submit" aria-label="Approve photo" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                <button type="submit" aria-label="Approve photo" style={btnStyle(COLORS.green)}>Approve</button>
               </ActionForm>
               <ActionForm action={resolvePhoto}>
                 <input type="hidden" name="id" value={p.id} />
@@ -386,7 +386,7 @@ export default function ModerationPage() {
                 <ActionForm action={resolveVenueClaim}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="decision" value="approved" />
-                  <button type="submit" aria-label={`Approve claim for ${c.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                  <button type="submit" aria-label={`Approve claim for ${c.venue?.name ?? 'venue'}`} style={btnStyle(COLORS.green)}>Approve</button>
                 </ActionForm>
                 <ActionForm action={resolveVenueClaim}>
                   <input type="hidden" name="id" value={c.id} />
@@ -438,7 +438,7 @@ export default function ModerationPage() {
                 {item.content_type} · {new Date(item.created_at).toLocaleString()}
               </span>
               {item.auto_flagged && (
-                <span style={{ fontSize: 11, color: COLORS.hiVisYellow }}>auto-flagged</span>
+                <span style={{ fontSize: 11, color: COLORS.gold }}>auto-flagged</span>
               )}
             </div>
 
@@ -457,7 +457,7 @@ export default function ModerationPage() {
               <ActionForm action={resolveQueueItem}>
                 <input type="hidden" name="id" value={item.id} />
                 <input type="hidden" name="decision" value="approved" />
-                <button type="submit" style={btnStyle(COLORS.hiVisGreen)}>Approve</button>
+                <button type="submit" style={btnStyle(COLORS.green)}>Approve</button>
               </ActionForm>
               <ActionForm action={resolveQueueItem}>
                 <input type="hidden" name="id" value={item.id} />

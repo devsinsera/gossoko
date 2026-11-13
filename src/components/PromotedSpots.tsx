@@ -20,7 +20,7 @@ export function PromotedSpots({ venues, limit = 2 }: { venues: Venue[]; limit?: 
         {shown.map((v) => (
           <div key={v.id} onClickCapture={() => trackVenueEvent(v.id, 'promo_click')} style={{ position: 'relative' }}>
             <VenueCard venue={v} />
-            <span style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase',
+            <span style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, fontFamily: 'var(--font-label)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase',
               color: COLORS.textSecondary, background: 'rgba(10,9,8,0.8)', border: `1px solid ${COLORS.border}`, borderRadius: 4, padding: '3px 6px' }}>
               Promoted
             </span>

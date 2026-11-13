@@ -28,7 +28,7 @@ function rememberSearch(q: string): string[] {
 
 const chipBtn = {
   padding: '8px 12px', background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 999, color: COLORS.text,
-  cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase',
+  cursor: 'pointer', fontFamily: 'var(--font-label)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase',
 } as const;
 
 export default function SearchPage() {
@@ -122,18 +122,18 @@ export default function SearchPage() {
               {results.map((v) => (
                 <Link key={v.id} href={`/venue/${v.slug}`} onClick={() => { if (searching) setRecent(rememberSearch(q)); }}
                   style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 12, alignItems: 'center', padding: '12px 14px', background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, textDecoration: 'none' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 8, background: `linear-gradient(135deg, ${v.hero_color}, #0a0908)`, border: `1px solid ${v.hero_accent}`, color: v.hero_accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: 'radial-gradient(circle at 50% 30%, rgba(255, 138, 26, 0.45), rgba(142, 74, 28, 0.5) 55%, #1a0f08)', border: `1.5px solid ${COLORS.cream}`, color: COLORS.cream, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <MapPinIcon size={16} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: COLORS.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.name}{v.has_deal ? ' ⚡' : ''}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: COLORS.textMuted, marginTop: 2 }}>
+                    <div style={{ fontFamily: 'var(--font-label)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: COLORS.textMuted, marginTop: 2 }}>
                       {v.suburb} · <VenueDistance lat={v.lat} lng={v.lng} />
                     </div>
                   </div>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: COLORS.orange, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: COLORS.orange, fontFamily: 'var(--font-label)', fontWeight: 700, fontSize: 13 }}>
                     {displayScore(v) ? <><StarIcon size={12} filled /> {displayScore(v)}</> : 'NEW'}
                   </span>
                   <ChevronRightIcon size={16} style={{ color: COLORS.textMuted }} />
@@ -144,7 +144,7 @@ export default function SearchPage() {
         </section>
       )}
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }

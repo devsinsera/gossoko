@@ -1,5 +1,5 @@
 import { Link, useQuery } from '@/lib/nav';
-import { COLORS, HAZARD_STRIPES, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
+import { COLORS, BRAND_RIBBON, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon, TrophyIcon } from '@/components/icons';
 import { useIsFounder } from '@/lib/founder';
 import { useAuth } from '@/lib/auth';
@@ -118,7 +118,7 @@ export default function ProfilePage() {
 
       {venueFlag === 'submitted' && (
         <section className="section">
-          <div role="status" style={{ padding: '10px 14px', background: COLORS.surface, border: `1px solid ${COLORS.hiVisGreen}`, borderLeft: `4px solid ${COLORS.hiVisGreen}`, borderRadius: RADIUS.md, fontSize: 13 }}>
+          <div role="status" style={{ padding: '10px 14px', background: COLORS.surface, border: `1px solid ${COLORS.green}`, borderLeft: `4px solid ${COLORS.green}`, borderRadius: RADIUS.md, fontSize: 13 }}>
             Thanks — an admin will check your venue before it goes live. Run the place? Claim it once it&apos;s up.
           </div>
         </section>
@@ -133,7 +133,7 @@ export default function ProfilePage() {
           borderRadius: 14,
           overflow: 'hidden',
         }}>
-          <div aria-hidden style={{ height: 6, background: HAZARD_STRIPES }} />
+          <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
           <div style={{ padding: '18px 16px 16px', display: 'flex', gap: 14, alignItems: 'center' }}>
             <div style={{
               width: 64, height: 64,
@@ -163,7 +163,7 @@ export default function ProfilePage() {
               <p style={{
                 margin: '2px 0 0',
                 color: COLORS.orange,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 fontSize: 12,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
@@ -173,7 +173,7 @@ export default function ProfilePage() {
                 {u.role && u.role !== 'user' && (
                   <span style={{
                     color: '#0a0908',
-                    background: COLORS.hiVisYellow,
+                    background: COLORS.gold,
                     padding: '1px 6px',
                     borderRadius: 4,
                     letterSpacing: '0.1em',
@@ -196,9 +196,9 @@ export default function ProfilePage() {
             borderTop: `1px solid ${COLORS.border}`,
           }}>
             <Stat label="Reviews"  value={u.stats.reviews}        accent={COLORS.orange} />
-            <Stat label="Helpful"  value={u.stats.helpful_marks}  accent={COLORS.hiVisGreen} />
+            <Stat label="Helpful"  value={u.stats.helpful_marks}  accent={COLORS.green} />
             <Stat label="Venues"   value={u.stats.venues_visited} accent={COLORS.text} />
-            <Stat label="Saved"    value={u.stats.streak_days}    accent={COLORS.hiVisYellow} />
+            <Stat label="Saved"    value={u.stats.streak_days}    accent={COLORS.gold} />
           </div>
         </div>
       </section>
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                 border: `1.5px solid ${b.color}`,
                 borderRadius: 999,
                 color: b.color,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 fontSize: 11.5,
                 fontWeight: 700,
                 letterSpacing: '0.1em',
@@ -310,7 +310,7 @@ export default function ProfilePage() {
                     <div style={{
                       color: COLORS.textSecondary,
                       fontSize: 12,
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-label)',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                       marginTop: 2,
@@ -323,7 +323,7 @@ export default function ProfilePage() {
                     alignItems: 'center',
                     gap: 4,
                     color: COLORS.orange,
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-label)',
                     fontWeight: 700,
                     fontSize: 13,
                   }}>
@@ -343,7 +343,7 @@ export default function ProfilePage() {
                       borderRadius: 6,
                       color: COLORS.textSecondary,
                       padding: '5px 10px',
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-label)',
                       fontSize: 11,
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
@@ -448,7 +448,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }
@@ -457,7 +457,7 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
   return (
     <div style={{ padding: '12px 10px', background: COLORS.surface, textAlign: 'center' }}>
       <div style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 9.5,
         letterSpacing: '0.18em',
         textTransform: 'uppercase',
@@ -466,7 +466,7 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
         {label}
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 18,
         fontWeight: 800,
         color: accent,
@@ -496,7 +496,7 @@ function ActionTile({ icon, label, hint, href }: { icon: React.ReactNode; label:
       <span style={{ color: COLORS.orange }}>{icon}</span>
       <span style={{ fontWeight: 700, fontSize: 14 }}>{label}</span>
       <span style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 10.5,
         letterSpacing: '0.08em',
         textTransform: 'uppercase',

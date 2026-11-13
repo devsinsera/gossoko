@@ -1,6 +1,7 @@
 import { Link } from '@/lib/nav';
 import type { Venue } from '@/lib/types';
 import { VENUE_TYPE_LABELS } from '@/lib/types';
+import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { COLORS, RADIUS } from '@/lib/theme';
 import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, ZapIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
 import { VenueDistance } from './VenueDistance';
@@ -23,90 +24,77 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
       href={`/venue/${venue.slug}`}
       style={{
         display: 'block',
-        background: COLORS.surface,
+        background: `var(--crema), ${COLORS.surface}`,
         border: `1px solid ${COLORS.border}`,
-        borderRadius: RADIUS.lg,
+        borderRadius: RADIUS.xl,
+        boxShadow: '0 14px 30px -22px rgba(0, 0, 0, 0.9)',
         overflow: 'hidden',
         position: 'relative',
         minWidth: isCompact ? 220 : undefined,
         width: isCompact ? 220 : '100%',
       }}
     >
-      {/* Hero block — coloured panel + venue icon (image-free, on-brand) */}
+      {/* Hero block — crema panel with the brand pin and the venue's kind of place */}
       <div
         style={{
           position: 'relative',
-          height: isCompact ? 100 : isWide ? 120 : 140,
-          background: `linear-gradient(135deg, ${venue.hero_color} 0%, #0a0908 100%)`,
+          height: isCompact ? 104 : isWide ? 120 : 138,
+          background: `radial-gradient(120% 120% at 85% 100%, rgba(255, 122, 0, 0.30) 0%, rgba(142, 74, 28, 0.35) 38%, rgba(42, 20, 8, 0.6) 70%, ${COLORS.bgElev} 100%)`,
           overflow: 'hidden',
+          borderBottom: `1px solid ${COLORS.border}`,
         }}
       >
-        {/* Hazard stripe corner */}
-        <div
+        {/* The pin, cropped off the right edge, with the venue glyph in cream beside it */}
+        <img
+          src={pinUrl}
+          alt=""
           aria-hidden
-          style={{
-            position: 'absolute',
-            top: 0, right: 0,
-            width: 70, height: 14,
-            background: `repeating-linear-gradient(135deg, ${venue.hero_accent} 0 8px, #111 8px 16px)`,
-          }}
+          draggable={false}
+          style={{ position: 'absolute', right: -6, bottom: -18, height: isCompact ? 104 : 132, opacity: 0.95, pointerEvents: 'none' }}
         />
-        {/* Venue icon — big, hi-vis tinted */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            right: 12, bottom: 10,
-            color: venue.hero_accent,
-            opacity: 0.85,
-          }}
-        >
-          <VenueIcon size={isCompact ? 44 : 56} />
+        <div aria-hidden style={{ position: 'absolute', right: isCompact ? 70 : 92, bottom: 12, color: COLORS.cream, opacity: 0.55 }}>
+          <VenueIcon size={isCompact ? 26 : 30} />
         </div>
         {/* Top-left badges row */}
         <div
           style={{
             position: 'absolute',
-            top: 10, left: 10,
+            top: 10, left: 10, right: isCompact ? 60 : 80,
             display: 'flex', gap: 6, flexWrap: 'wrap',
           }}
         >
           {venue.open_now ? (
-            <span style={pillStyle('#0a0908', COLORS.hiVisGreen)}>
+            <span className="badge badge--open">
               <span className="pulse-dot" />
-              OPEN NOW
+              Open now
             </span>
           ) : (
-            <span style={pillStyle('#0a0908', COLORS.textMuted)}>
-              <span style={{ width: 8, height: 8, borderRadius: 4, background: COLORS.textMuted, display: 'inline-block' }} />
-              CLOSED
-            </span>
+            <span className="badge badge--closed">Closed</span>
           )}
           {venue.has_deal && (
-            <span style={pillStyle('#0a0908', COLORS.orange)}>
+            <span className="badge badge--deal">
               <ZapIcon size={12} />
-              DEAL
+              Deal
             </span>
           )}
           {venue.trending && (
-            <span style={pillStyle('#0a0908', COLORS.orangeHot)}>
+            <span className="badge badge--hot">
               <FlameIcon size={12} />
-              TRENDING
+              Trending
             </span>
           )}
         </div>
         {/* Bottom-left venue type */}
         <div style={{ position: 'absolute', left: 12, bottom: 10 }}>
           <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: COLORS.textSecondary,
-            background: 'rgba(10, 9, 8, 0.65)',
-            padding: '4px 8px',
-            borderRadius: 4,
-            border: `1px solid ${COLORS.border}`,
+            fontFamily: 'var(--font-label)',
+            fontSize: 11,
+            fontWeight: 700,
+            color: COLORS.cream,
+            background: 'rgba(10, 9, 8, 0.6)',
+            padding: '4px 9px',
+            borderRadius: 999,
+            border: `1px solid ${COLORS.borderStrong}`,
           }}>
             {VENUE_TYPE_LABELS[venue.venue_type]}
           </span>
@@ -120,8 +108,9 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <h3 style={{
                 margin: 0,
-                fontSize: isCompact ? '0.98rem' : '1.08rem',
-                fontWeight: 700,
+                fontFamily: 'var(--font-display)',
+                fontWeight: 400,
+                fontSize: isCompact ? '0.95rem' : '1.05rem',
                 color: COLORS.text,
                 letterSpacing: '0.005em',
                 lineHeight: 1.2,
@@ -150,7 +139,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
                 <MapPinIcon size={12} /> {venue.suburb}
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: COLORS.textMuted }}>
+              <span style={{ fontFamily: 'var(--font-label)', fontSize: 11.5, color: COLORS.textMuted }}>
                 <VenueDistance lat={venue.lat} lng={venue.lng} />
               </span>
               <span aria-hidden style={{ opacity: 0.5 }}>·</span>
@@ -160,29 +149,20 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 8px',
-              background: COLORS.orangeFaint,
-              border: `1px solid ${COLORS.orange}`,
-              borderRadius: 6,
-              color: COLORS.orange,
-            }}>
-              <StarIcon size={13} filled />
-              <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em' }}>
-                {displayScore(venue) ?? 'NEW'}
-              </strong>
-            </div>
+            {displayScore(venue) ? (
+              <span className="score-sticker"><StarIcon size={12} filled />{displayScore(venue)}</span>
+            ) : (
+              <span className="score-sticker score-sticker--new">NEW</span>
+            )}
             <span style={{
-              marginTop: 4,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              letterSpacing: '0.1em',
+              marginTop: 6,
+              fontFamily: 'var(--font-label)',
+              fontSize: 11,
+              fontWeight: 600,
               color: COLORS.textMuted,
+              whiteSpace: 'nowrap',
             }}>
-              {reviewCountLabel(venue.review_count).toUpperCase()}
+              {reviewCountLabel(venue.review_count)}
             </span>
           </div>
         </div>
@@ -206,15 +186,14 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
             {venue.tags.slice(0, 3).map((t) => (
               <span key={t} style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10.5,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
+                fontFamily: 'var(--font-label)',
+                fontSize: 11.5,
+                fontWeight: 700,
                 color: COLORS.textSecondary,
-                padding: '4px 8px',
+                padding: '4px 10px',
                 background: COLORS.surfaceAlt,
                 border: `1px solid ${COLORS.border}`,
-                borderRadius: 4,
+                borderRadius: 999,
               }}>
                 {t}
               </span>
@@ -224,22 +203,4 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
       </div>
     </Link>
   );
-}
-
-function pillStyle(bg: string, color: string): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    padding: '4px 8px',
-    background: bg,
-    color,
-    border: `1px solid ${color}`,
-    borderRadius: 4,
-    fontFamily: 'var(--font-mono)',
-    fontSize: 10,
-    letterSpacing: '0.12em',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-  };
 }

@@ -23,7 +23,7 @@ import { VenueQr } from '@/components/VenueQr';
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '14px 16px' } as const;
 const input = { background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' } as const;
 const primary = { background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' } as const;
-const mono = { fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' } as const;
+const mono = { fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase' } as const;
 
 async function load(slug: string, userId: string | null) {
   const venue = await getVenueBySlug(slug);
@@ -122,7 +122,7 @@ function Redeem({ venueId }: { venueId: string }) {
           <input aria-label="Deal code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="GS-XXXX" autoCapitalize="characters" autoComplete="off" style={{ ...input, ...mono, fontSize: 16 }} />
           <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? '…' : 'Check'}</button>
         </div>
-        {msg && <p role="status" style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: msg.ok ? COLORS.hiVisGreen : COLORS.red }}>{msg.text}</p>}
+        {msg && <p role="status" style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: msg.ok ? COLORS.green : COLORS.red }}>{msg.text}</p>}
       </form>
     </section>
   );
@@ -224,7 +224,7 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
           <input aria-label="Closes" type="time" value={f.closes_at} onChange={(e) => setF({ ...f, closes_at: e.target.value })} style={input} />
         </div>
         <button type="submit" disabled={busy} style={{ ...primary, alignSelf: 'flex-start', opacity: busy ? 0.7 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
-        {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.hiVisGreen : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
+        {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.green : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
       </form>
     </section>
   );
@@ -262,7 +262,7 @@ function Plan({ venueId, pro, until }: { venueId: string; pro: boolean; until: s
       <div style={{ ...card, borderColor: pro ? COLORS.orange : COLORS.border }}>
         {pro ? (
           <>
-          <p style={{ margin: 0, color: COLORS.hiVisGreen, fontWeight: 800 }}>
+          <p style={{ margin: 0, color: COLORS.green, fontWeight: 800 }}>
             Pro{until ? ` until ${new Date(until).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
           </p>
           {online && (
@@ -287,7 +287,7 @@ function Plan({ venueId, pro, until }: { venueId: string; pro: boolean; until: s
               </button>
             )}
             {state === 'sent' ? (
-              <p role="status" style={{ margin: 0, color: COLORS.hiVisGreen, fontWeight: 700, fontSize: 13.5 }}>Got it — we&apos;ll be in touch about Pro.</p>
+              <p role="status" style={{ margin: 0, color: COLORS.green, fontWeight: 700, fontSize: 13.5 }}>Got it — we&apos;ll be in touch about Pro.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <input aria-label="Note" placeholder="Anything we should know? (optional)" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} style={input} />
@@ -345,7 +345,7 @@ function OwnerPhotos({ venueId, userId }: { venueId: string; userId: string }) {
         </div>
         <input type="file" accept="image/*" multiple disabled={busy || (data?.length ?? 0) >= 6} onChange={(e) => { void add(e.target.files); e.target.value = ''; }} style={{ color: COLORS.text }} />
         {busy && <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13 }}>Uploading…</p>}
-        {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.hiVisGreen : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
+        {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.green : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
       </div>
     </section>
   );
@@ -396,7 +396,7 @@ export default function ManageVenuePage() {
       <VenueQr slug={venue.slug} name={venue.name} />
       <Details venue={venue} />
       <Plan venueId={venue.id} pro={venue.pro} until={venue.pro_until} />
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }

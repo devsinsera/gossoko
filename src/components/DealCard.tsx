@@ -57,11 +57,11 @@ export function DealCard({ deal, code, signedIn, showVenue = false }: {
       <header style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 4,
-          background: BRAND_GRADIENT, color: '#0a0908', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
+          background: BRAND_GRADIENT, color: '#0a0908', fontFamily: 'var(--font-label)', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
         }}>
           <ZapIcon size={12} /> {dealBadge(deal)}
         </span>
-        <span style={{ marginLeft: 'auto', color: COLORS.textMuted, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <span style={{ marginLeft: 'auto', color: COLORS.textMuted, fontFamily: 'var(--font-label)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {timeLeft(deal.end_date, now)}
         </span>
       </header>
@@ -74,14 +74,14 @@ export function DealCard({ deal, code, signedIn, showVenue = false }: {
       {deal.description && <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13.5, lineHeight: 1.5 }}>{deal.description}</p>}
       {deal.terms && <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 11.5 }}>{deal.terms}</p>}
       {deal.max_redemptions != null && (
-        <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 11.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 11.5, fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {Math.max(0, deal.max_redemptions - deal.redeemed_count)} of {deal.max_redemptions} left
         </p>
       )}
 
       {codeLive ? (
         <div style={{ textAlign: 'center', padding: '10px 0 4px', borderTop: `1px dashed ${COLORS.borderStrong}` }}>
-          <div aria-label={`Your code is ${mine!.code}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 34, fontWeight: 800, letterSpacing: '0.16em', color: COLORS.hiVisGreen }}>
+          <div aria-label={`Your code is ${mine!.code}`} style={{ fontFamily: 'var(--font-label)', fontSize: 34, fontWeight: 800, letterSpacing: '0.16em', color: COLORS.green }}>
             {mine!.code}
           </div>
           <div style={{ color: COLORS.textSecondary, fontSize: 12.5 }}>

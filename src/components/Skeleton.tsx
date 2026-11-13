@@ -103,7 +103,7 @@ export function RankingRowSkeleton({ rank }: { rank: number }) {
     }}>
       <span style={{
         flex: '0 0 28px',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 18,
         color: COLORS.textMuted,
       }}>

@@ -1,50 +1,62 @@
 /* Gossoko — global reset + design tokens.
-   Dark industrial base, hi-vis safety orange accents.
-   Mobile-first; desktop just centres the same column.
+   The UI follows the logo: near-black ground, glossy orange pin with a cream rim,
+   coffee crema, chunky cream letters with a burnt-orange extrude, and the intro's
+   pin-drop motion. Mobile-first; tablets get a rail and grids (below).
 */
 
 :root {
   --bg: #0a0908;
-  --bg-elev: #0f0d0b;
-  --surface: #15110d;
-  --surface-alt: #1a1612;
-  --surface-hi: #221c17;
-  --border: #2a2520;
-  --border-strong: #3a3530;
+  --bg-elev: #100c09;
+  --surface: #17110d;
+  --surface-alt: #1f1711;
+  --surface-hi: #2a1e15;
+  --border: #33251a;
+  --border-strong: #4a3524;
 
-  --text: #f5f1ec;
-  --text-secondary: #a89e92;
-  --text-muted: #6b645c;
+  --text: #fff3e4;
+  --text-secondary: #cdb79e;
+  --text-muted: #8c7763;
 
   --orange: #FF7A00;
-  --orange-bright: #FF9533;
-  --orange-hot: #FF5500;
+  --orange-bright: #FF8A1A;
+  --orange-hot: #E8590C;
   --orange-dim: rgba(255, 122, 0, 0.18);
-  --orange-faint: rgba(255, 122, 0, 0.08);
+  --orange-faint: rgba(255, 122, 0, 0.09);
 
-  /* Brand: hi-vis orange to coffee brown, cream type on near-black. */
-  --coffee: #8A3A12;
+  --cream: #ffe9cf;
+  --extrude: #a8490c;
+  --coffee: #8e4a1c;
   --coffee-deep: #2a1408;
-  --brand-grad: linear-gradient(135deg, #FF8A1A 0%, #FF7A00 45%, #D9620A 100%);
-  --brand-glow: 0 10px 26px -10px rgba(255, 122, 0, 0.6);
+  --on-orange: #2a1408;
+
+  /* The pin body, top to tip. */
+  --brand-grad: linear-gradient(180deg, #FF8A1A 0%, #FF7A00 42%, #C9590C 100%);
+  /* Pin crema, for card and panel grounds. */
+  --crema: radial-gradient(120% 90% at 50% 0%, rgba(142, 74, 28, 0.32) 0%, rgba(42, 20, 8, 0.18) 55%, transparent 100%);
+  --brand-glow: 0 10px 26px -12px rgba(255, 122, 0, 0.65);
   --card-glow: 0 14px 32px -16px rgba(255, 122, 0, 0.45);
+  /* Letter extrude, as in the wordmark (down and a little right). */
+  --extrude-text: 0.03em 0.05em 0 var(--extrude), 0.05em 0.09em 0 #7a3210;
+  --extrude-text-sm: 1px 2px 0 var(--extrude);
+  /* Chunky sticker drop under buttons and chips. */
+  --extrude-box: 0 4px 0 #7a3210;
 
-  --hi-vis-green: #A8E000;
-  --hi-vis-yellow: #F2C200;
-  --red: #E63946;
+  --green: #9ccc65;
+  --gold: #ffb547;
+  --red: #E5484D;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --pill: 999px;
 
   --bottom-nav-h: 64px;
   --app-max: 480px;
 
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Helvetica Neue", system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-display: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  --font-label: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, Roboto, sans-serif;
 }
 
 * {
@@ -68,9 +80,12 @@ html, body {
 body {
   min-height: 100dvh;
   background:
-    radial-gradient(1200px 600px at 50% -200px, rgba(255, 122, 0, 0.06), transparent 60%),
+    radial-gradient(900px 520px at 50% -220px, rgba(255, 122, 0, 0.10), transparent 62%),
+    radial-gradient(700px 500px at 50% 110%, rgba(142, 74, 28, 0.10), transparent 70%),
     var(--bg);
 }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.005em; }
 
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; }
@@ -82,7 +97,7 @@ button { font: inherit; color: inherit; }
   min-height: 100dvh;
   position: relative;
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
-  background: var(--bg);
+  background: transparent;
 }
 
 .app-content {
@@ -99,22 +114,31 @@ button { font: inherit; color: inherit; }
   gap: 12px;
 }
 
+/* Page titles: the wordmark's chunky cream letters with the burnt-orange extrude. */
 .top-bar h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.55rem;
+  font-weight: 400;
+  font-size: 1.7rem;
+  line-height: 1.05;
   letter-spacing: 0.01em;
-  font-weight: 800;
   text-transform: uppercase;
+  color: var(--text);
+  text-shadow: var(--extrude-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.top-bar h1 svg { color: var(--orange); filter: drop-shadow(1px 2px 0 var(--extrude)); }
+.top-bar h1.wordmark { text-shadow: none; }
 
 .top-bar .top-bar__sub {
-  margin: 2px 0 0;
+  margin: 6px 0 0;
   color: var(--text-secondary);
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.84rem;
+  font-family: var(--font-label);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .wordmark {
@@ -125,13 +149,15 @@ button { font: inherit; color: inherit; }
 .wordmark__brand { color: var(--text); }
 .wordmark__dot { color: var(--orange); }
 /* The brand wordmark (SVG, with the pin as the second O). */
-.wordmark__img { display: block; height: 30px; width: auto; }
+.wordmark__img { display: block; height: 34px; width: auto; }
 
-/* Hazard strip — bookends a section */
-.hazard-strip {
-  height: 6px;
-  border-radius: 2px;
-  background: repeating-linear-gradient(135deg, var(--orange) 0 10px, #111 10px 20px);
+/* Brand rule — the pin between two fading orange lines; closes a page or section. */
+.brand-rule {
+  height: 26px;
+  background:
+    url("./assets/brand/gossoko-pin.svg") center / auto 26px no-repeat,
+    linear-gradient(90deg, transparent 0%, rgba(255, 122, 0, 0.55) 30%, transparent 44%, transparent 56%, rgba(255, 122, 0, 0.55) 70%, transparent 100%) center / 100% 2px no-repeat;
+  opacity: 0.9;
 }
 
 /* Section spacing helpers */
@@ -145,39 +171,52 @@ button { font: inherit; color: inherit; }
   gap: 8px;
   margin: 0 0 10px 0;
 }
+/* Section titles: small chunky cream caps with the extrude, led by a mini pin. */
 .section-title h2 {
   margin: 0;
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  letter-spacing: 0.18em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 0.98rem;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--orange);
+  color: var(--text);
+  text-shadow: var(--extrude-text-sm);
 }
+.section-title h2::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 13px;
+  height: 18px;
+  background: url("./assets/brand/gossoko-pin.svg") center / contain no-repeat;
+}
+.section-title h2 svg { color: var(--orange); }
 .section-title a {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--orange-bright);
+  font-family: var(--font-label);
+  white-space: nowrap;
 }
 
-/* Mono utility chip — for stats, labels */
+/* Small label (stats, counts) */
 .mono-chip {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-label);
+  font-size: 0.76rem;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
 /* Pulse — live "open now" indicator */
 @keyframes pulseGreen {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(168, 224, 0, 0.5); }
-  50%      { box-shadow: 0 0 0 6px rgba(168, 224, 0, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(156, 204, 101, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(156, 204, 101, 0); }
 }
 .pulse-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--hi-vis-green);
+  background: var(--green);
   animation: pulseGreen 2s ease-out infinite;
   display: inline-block;
 }
@@ -188,32 +227,81 @@ button { font: inherit; color: inherit; }
   100% { background-position: 200px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #15110d 0%, #221c17 50%, #15110d 100%);
+  background: linear-gradient(90deg, #17110d 0%, #2a1e15 50%, #17110d 100%);
   background-size: 400px 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: var(--radius-md);
 }
 
-/* Buttons */
+/* Buttons — the pin as a sticker: orange body, cream rim, burnt-orange drop. */
 .btn {
   appearance: none;
-  border: 1.5px solid var(--orange);
-  background: var(--bg-elev);
-  color: var(--orange);
-  padding: 12px 18px;
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px solid var(--border-strong);
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 11px 20px;
+  border-radius: var(--pill);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  min-height: 44px;
-  transition: background 120ms ease, transform 80ms ease;
+  min-height: 46px;
+  box-shadow: 0 4px 0 #0a0807;
+  transition: transform 90ms ease, box-shadow 90ms ease, background 120ms ease;
 }
-.btn:active { transform: translateY(1px); }
-.btn--solid { background: var(--brand-grad); color: #0a0908; box-shadow: var(--brand-glow); }
-.btn--ghost { border-color: var(--border-strong); color: var(--text); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a0807; }
+.btn--solid {
+  background: var(--brand-grad);
+  color: var(--on-orange);
+  border-color: var(--cream);
+  box-shadow: var(--extrude-box), var(--brand-glow);
+  text-shadow: 0 1px 0 rgba(255, 233, 207, 0.35);
+}
+.btn--solid:active { box-shadow: 0 1px 0 #7a3210, var(--brand-glow); }
+.btn--ghost { border-color: var(--border-strong); color: var(--text); background: transparent; }
+.btn--sm { min-height: 38px; padding: 8px 14px; font-size: 0.74rem; flex-shrink: 0; }
+.btn[disabled] { opacity: 0.55; cursor: default; }
+
+/* Brand card — crema glow on coffee black, warm hairline, soft rounded like the pin. */
+.brand-card {
+  background: var(--crema), var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 233, 207, 0.05);
+}
+
+/* Pin-drop entrance (the intro's drop + settle), for cards and the active tab. */
+@keyframes pinDrop {
+  0%   { transform: translateY(-14px); opacity: 0; }
+  60%  { transform: translateY(2px);   opacity: 1; }
+  80%  { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+@keyframes pinBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35%      { transform: translateY(-10px) scale(1.04); }
+  60%      { transform: translateY(0) scale(0.97, 1.03); }
+}
+.drop-in > * { animation: pinDrop 420ms cubic-bezier(.3,.7,.4,1) both; }
+.drop-in > *:nth-child(2) { animation-delay: 50ms; }
+.drop-in > *:nth-child(3) { animation-delay: 100ms; }
+.drop-in > *:nth-child(4) { animation-delay: 150ms; }
+.drop-in > *:nth-child(5) { animation-delay: 200ms; }
+.drop-in > *:nth-child(n+6) { animation-delay: 250ms; }
+
+/* Loading: the pin bouncing on the spot. */
+.pin-loader { display: inline-block; width: 30px; height: 42px; animation: pinBounce 900ms ease-in-out infinite; }
+.pin-loader img { width: 100%; height: 100%; display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-in > *, .pin-loader, .tab-nav__mark, .map-pin.is-selected img { animation: none !important; }
+}
 
 /* Scrollers */
 .h-scroll {
@@ -231,9 +319,9 @@ button { font: inherit; color: inherit; }
 /* Review-axis radio buttons — checked state */
 .review-axis-btn:has(input:checked) {
   background: var(--brand-grad);
-  box-shadow: var(--brand-glow);
-  color: #0a0908;
-  border-color: var(--orange);
+  box-shadow: var(--extrude-box), var(--brand-glow);
+  color: var(--on-orange);
+  border-color: var(--cream);
 }
 .review-axis-btn:hover {
   border-color: var(--orange);
@@ -253,13 +341,133 @@ button { font: inherit; color: inherit; }
 .row-list  { display: flex; flex-direction: column; gap: 10px; }
 .map-canvas { height: 380px; }
 
+/* ── Chips (filters, tabs) — pill stickers; the picked one is the orange pin. ── */
+.chip {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 15px;
+  min-height: 38px;
+  border-radius: var(--pill);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #0a0807;
+  transition: transform 90ms ease, box-shadow 90ms ease, background 120ms ease, color 120ms ease;
+}
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.chip:active { transform: translateY(2px); box-shadow: 0 1px 0 #0a0807; }
+.chip[aria-selected="true"], .chip[aria-pressed="true"], .chip.is-active {
+  background: var(--brand-grad);
+  border-color: var(--cream);
+  color: var(--on-orange);
+  box-shadow: 0 3px 0 #7a3210, var(--brand-glow);
+}
+
+/* ── Status badges on cards ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--pill);
+  font-family: var(--font-label);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+  background: rgba(10, 9, 8, 0.78);
+  border: 1.5px solid currentColor;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.badge--open { color: var(--green); }
+.badge--closed { color: var(--text-muted); }
+.badge--deal { color: var(--on-orange); background: var(--brand-grad); border-color: var(--cream); }
+.badge--hot { color: var(--orange-bright); }
+.score-sticker {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--pill);
+  background: var(--brand-grad);
+  border: 2px solid var(--cream);
+  color: var(--on-orange);
+  font-family: var(--font-display);
+  font-size: 13px; line-height: 1;
+  box-shadow: 0 3px 0 #7a3210;
+}
+.score-sticker--new { background: var(--surface-hi); color: var(--cream); border-color: var(--border-strong); box-shadow: 0 3px 0 #0a0807; font-size: 11px; letter-spacing: 0.05em; }
+
+/* ── Venue map ── */
+.map-card {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+}
+.map-canvas .maplibregl-canvas { outline: none; }
+.map-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  text-align: center; padding: 24px;
+  color: var(--text-secondary); font-family: var(--font-label); font-weight: 600; font-size: 14px;
+  background: var(--crema), var(--bg-elev);
+}
+.map-overlay strong { font-family: var(--font-display); font-weight: 400; color: var(--text); text-transform: uppercase; text-shadow: var(--extrude-text-sm); }
+.map-pin {
+  appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
+  width: 26px; height: 36px;
+  display: block;
+  transition: width 160ms ease, height 160ms ease;
+}
+.map-pin img { width: 100%; height: 100%; display: block; pointer-events: none; transform-origin: 50% 100%; }
+.map-pin.is-selected { width: 38px; height: 53px; }
+.map-pin.is-selected img { animation: pinBounce 700ms ease-out 1; }
+.map-you {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--cream);
+  border: 3px solid var(--orange);
+  box-shadow: 0 0 0 6px rgba(255, 122, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.map-locate {
+  position: absolute; left: 10px; top: 10px; z-index: 2;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--cream); background: var(--brand-grad); color: var(--on-orange);
+  box-shadow: 0 3px 0 #7a3210; cursor: pointer;
+}
+.map-note {
+  position: absolute; left: 58px; top: 18px; z-index: 2;
+  padding: 4px 9px; border-radius: var(--pill);
+  background: rgba(10, 9, 8, 0.8); border: 1px solid var(--border);
+  font-family: var(--font-label); font-size: 11px; font-weight: 700; color: var(--text-secondary);
+}
+.map-panel {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-top: 2px solid var(--border);
+  background: var(--crema), var(--bg-elev);
+}
+.map-panel__main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; color: var(--text-secondary); }
+.map-panel__pin { width: 28px; height: 39px; flex-shrink: 0; }
+.map-panel__pin img { width: 100%; height: 100%; display: block; }
+.map-panel__name { display: block; color: var(--text); font-family: var(--font-display); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-panel__meta { display: block; margin-top: 2px; font-family: var(--font-label); font-size: 12px; font-weight: 600; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-hint { margin: 0; padding: 12px 14px; border-top: 2px solid var(--border); background: var(--bg-elev); font-family: var(--font-label); font-size: 13px; font-weight: 600; color: var(--text-muted); }
+/* MapLibre controls in the brand. */
+.map-card .maplibregl-ctrl-group { background: rgba(16, 12, 9, 0.92); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: none; }
+.map-card .maplibregl-ctrl-group button + button { border-top: 1px solid var(--border-strong); }
+.map-card .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) sepia(0.6) saturate(2) hue-rotate(-12deg) brightness(0.95); }
+.map-card .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib { margin: 0; padding: 2px 8px; border-radius: 10px 0 0 0; background: rgba(10, 9, 8, 0.78); color: var(--text-muted); font-family: var(--font-label); font-size: 10px; line-height: 1.4; }
+.map-card .maplibregl-ctrl-attrib a { color: var(--text-secondary); }
+
 /* ── Primary navigation: bottom tab bar on a phone, side rail on a tablet ── */
 .tab-nav {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: #0a0908ee;
+  background: rgba(13, 10, 8, 0.92);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
@@ -276,13 +484,16 @@ button { font: inherit; color: inherit; }
 }
 .tab-nav__item[aria-current="page"] { color: var(--orange); }
 .tab-nav__label {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-  text-transform: uppercase; font-weight: 500;
+  font-family: var(--font-label); font-size: 10.5px; letter-spacing: 0.02em;
+  font-weight: 600;
 }
-.tab-nav__item[aria-current="page"] .tab-nav__label { font-weight: 700; }
+.tab-nav__item[aria-current="page"] .tab-nav__label { font-weight: 800; color: var(--text); }
+.tab-nav__item[aria-current="page"] svg { filter: drop-shadow(1px 2px 0 var(--extrude)); }
+/* Active tab: a mini pin drops onto it, like the intro. */
 .tab-nav__mark {
-  position: absolute; top: 4px; height: 3px; width: 24px; border-radius: 2px;
-  background: var(--brand-grad); box-shadow: 0 0 8px var(--orange);
+  position: absolute; top: -9px; width: 12px; height: 17px;
+  background: url("./assets/brand/gossoko-pin.svg") center / contain no-repeat;
+  animation: pinDrop 420ms cubic-bezier(.3,.7,.4,1) both;
 }
 .tab-nav__brand { display: none; }
 
@@ -329,13 +540,13 @@ button { font: inherit; color: inherit; }
     align-items: center;
     gap: 18px;
   }
-  .tab-nav__brand { display: block; width: 44px; height: 44px; border-radius: 12px; }
-  .tab-nav__brand img { width: 100%; height: 100%; display: block; border-radius: 12px; }
+  .tab-nav__brand { display: block; width: 34px; height: 48px; }
+  .tab-nav__brand img { width: 100%; height: 100%; display: block; }
   .tab-nav__items { flex-direction: column; width: 100%; max-width: none; gap: 6px; }
   .tab-nav__item { flex: 0 0 auto; min-height: 64px; gap: 5px; margin: 0 10px; border-radius: 12px; }
   .tab-nav__item:hover { background: var(--surface); }
   .tab-nav__item[aria-current="page"] { background: var(--orange-faint); }
-  .tab-nav__mark { top: 14px; bottom: 14px; left: -10px; height: auto; width: 3px; }
+  .tab-nav__mark { top: 50%; left: -4px; margin-top: -9px; }
 }
 
 /* Large tablets / desktop: a little more room. */
@@ -351,7 +562,7 @@ button { font: inherit; color: inherit; }
     left: 50% !important; right: auto !important; bottom: 24px !important;
     width: min(480px, calc(100vw - 48px));
     transform: translateX(-50%);
-    border: 1.5px solid var(--orange) !important;
+    border: 2px solid var(--cream) !important;
     border-radius: 16px;
     box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
   }

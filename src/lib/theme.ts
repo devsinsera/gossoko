@@ -1,33 +1,37 @@
-// Design tokens for the Gossoko app shell.
-// Dark, industrial, hi-vis safety-orange — built for one-handed use under
-// site-light conditions (bright sun, dusty screens, gloved fingertips).
+// Design tokens for the Gossoko app shell — taken straight from the logo:
+// near-black ground, glossy orange pin with a cream rim, coffee crema, chunky
+// cream letters with a burnt-orange extrude.
 
 export const COLORS = {
   bg: '#0a0908',
-  bgElev: '#0f0d0b',
-  surface: '#15110d',
-  surfaceAlt: '#1a1612',
-  surfaceHi: '#221c17',
-  border: '#2a2520',
-  borderStrong: '#3a3530',
+  bgElev: '#100c09',
+  surface: '#17110d',
+  surfaceAlt: '#1f1711',
+  surfaceHi: '#2a1e15',
+  border: '#33251a',
+  borderStrong: '#4a3524',
 
-  text: '#f5f1ec',
-  textSecondary: '#a89e92',
-  textMuted: '#6b645c',
+  text: '#fff3e4',
+  textSecondary: '#cdb79e',
+  textMuted: '#8c7763',
 
   orange: '#FF7A00',
-  orangeBright: '#FF9533',
-  orangeHot: '#FF5500',
+  orangeBright: '#FF8A1A',
+  orangeHot: '#E8590C',
   orangeDim: 'rgba(255, 122, 0, 0.18)',
-  orangeFaint: 'rgba(255, 122, 0, 0.08)',
+  orangeFaint: 'rgba(255, 122, 0, 0.09)',
 
-  // Coffee: the pin's deep end. Pairs with orange for depth; never body text on orange.
-  coffee: '#8A3A12',
+  // Cream: the pin's rim and the letter faces. Extrude: the wordmark's 3D edge.
+  cream: '#ffe9cf',
+  extrude: '#a8490c',
+  // Coffee: the pin's crema. Pairs with orange for depth; never body text on orange.
+  coffee: '#8e4a1c',
   coffeeDeep: '#2a1408',
 
-  hiVisGreen: '#A8E000',
-  hiVisYellow: '#F2C200',
-  red: '#E63946',
+  // Status colours, warmed to sit with the palette.
+  green: '#9ccc65',
+  gold: '#ffb547',
+  red: '#E5484D',
 } as const;
 
 export const RADIUS = {
@@ -49,16 +53,22 @@ export const SPACE = {
 
 export const FONTS = {
   body: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  display: '"Helvetica Neue", system-ui, sans-serif',
-  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+  /** Chunky display face, the web stand-in for the wordmark's Arial Black. */
+  display: '"Archivo Black", "Arial Black", system-ui, sans-serif',
+  /** Small caps labels, chips, stats: rounded system face. */
+  label: 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, Roboto, sans-serif',
 } as const;
 
-/** Primary fill: hi-vis orange shading to burnt orange. Dark text sits on it. */
+/** Primary fill: the pin body, orange shading down to burnt orange. Dark coffee text sits on it. */
 export const BRAND_GRADIENT =
-  'linear-gradient(135deg, #FF8A1A 0%, #FF7A00 45%, #D9620A 100%)';
+  'linear-gradient(180deg, #FF8A1A 0%, #FF7A00 42%, #C9590C 100%)';
 
-export const HAZARD_STRIPES =
-  `repeating-linear-gradient(135deg, ${COLORS.orange} 0 10px, #111 10px 20px)`;
+/** Text that sits on the orange fill. */
+export const ON_ORANGE = '#2a1408';
+
+/** Thin brand ribbon (replaces the old hazard stripes): cream rim, orange, burnt orange. */
+export const BRAND_RIBBON =
+  'linear-gradient(90deg, #ffe9cf 0%, #FF8A1A 18%, #FF7A00 50%, #a8490c 100%)';
 
 export const BOTTOM_NAV_HEIGHT = 64;
 export const APP_MAX_WIDTH = 480;

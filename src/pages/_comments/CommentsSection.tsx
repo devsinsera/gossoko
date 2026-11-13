@@ -95,7 +95,7 @@ export function CommentsSection({
           alignItems: 'center',
           gap: 6,
           color: COLORS.textMuted,
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-label)',
           fontSize: 11,
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
@@ -158,7 +158,7 @@ export function CommentsSection({
                     marginLeft: 6,
                     fontSize: 10,
                     color: COLORS.textMuted,
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-label)',
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                   }}>
@@ -168,11 +168,11 @@ export function CommentsSection({
                     <span style={{
                       marginLeft: 8,
                       fontSize: 9.5,
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-label)',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
-                      color: COLORS.hiVisYellow,
-                      border: `1px solid ${COLORS.hiVisYellow}`,
+                      color: COLORS.gold,
+                      border: `1px solid ${COLORS.gold}`,
                       borderRadius: RADIUS.sm,
                       padding: '1px 5px',
                     }}>
@@ -229,7 +229,7 @@ export function CommentsSection({
               }}
             />
             {notice && !error && (
-              <div style={{ fontSize: 11.5, color: COLORS.hiVisYellow, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: 11.5, color: COLORS.gold, fontFamily: 'var(--font-label)', letterSpacing: '0.04em' }}>
                 {notice}
               </div>
             )}
@@ -237,7 +237,7 @@ export function CommentsSection({
               <div style={{
                 fontSize: 11.5,
                 color: COLORS.red,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 letterSpacing: '0.04em',
               }}>
                 {error}
@@ -247,7 +247,7 @@ export function CommentsSection({
               <span style={{
                 fontSize: 10,
                 color: body.length >= COMMENT_WARN_THRESHOLD ? COLORS.red : COLORS.textMuted,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
               }}>
                 {body.length}/{MAX_COMMENT_LENGTH}
               </span>
@@ -263,7 +263,7 @@ export function CommentsSection({
                   padding: '8px 16px',
                   fontSize: 12,
                   fontWeight: 800,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   cursor: pending ? 'wait' : 'pointer',

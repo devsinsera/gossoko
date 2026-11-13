@@ -28,9 +28,7 @@ export default function DealsPage() {
       </header>
       <div className="h-scroll" role="tablist" style={{ marginTop: 4 }}>
         {[{ id: false, label: 'All deals' }, { id: true, label: 'Ending today' }].map((t) => (
-          <button key={String(t.id)} type="button" role="tab" aria-selected={endingSoon === t.id} onClick={() => setEndingSoon(t.id)}
-            style={{ flex: '0 0 auto', padding: '9px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase',
-              border: `1.5px solid ${endingSoon === t.id ? COLORS.orange : COLORS.border}`, background: endingSoon === t.id ? COLORS.orange : COLORS.surface, color: endingSoon === t.id ? '#0a0908' : COLORS.text }}>
+          <button key={String(t.id)} type="button" role="tab" aria-selected={endingSoon === t.id} onClick={() => setEndingSoon(t.id)} className="chip">
             {t.label}
           </button>
         ))}

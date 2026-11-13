@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import wordmarkUrl from '@/assets/brand/gossoko-wordmark.svg';
+import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { VenueCard } from '@/components/VenueCard';
 import { DealCard } from '@/components/DealCard';
 import { useCoords } from '@/components/DistanceProvider';
@@ -63,13 +64,13 @@ export default function FeedPage() {
           background: COLORS.surface,
           border: `1px solid ${COLORS.border}`,
           borderRadius: 999,
-          color: COLORS.hiVisGreen,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 10.5,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
+          color: COLORS.cream,
+          fontFamily: 'var(--font-label)',
+          fontSize: 12,
+          fontWeight: 700,
+          flexShrink: 0,
         }}>
-          <MapPinIcon size={12} /> Brisbane
+          <MapPinIcon size={13} style={{ color: COLORS.orange }} /> Brisbane
         </div>
       </header>
 
@@ -197,14 +198,14 @@ export default function FeedPage() {
                     @{r.user.username}
                     <span style={{ color: COLORS.textMuted, fontWeight: 400 }}> · {r.user.trade.toLowerCase()}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: COLORS.textMuted, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, color: COLORS.textMuted, fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                     on {r.venue_name}
                   </div>
                 </div>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 3,
                   color: COLORS.orange, fontWeight: 700, fontSize: 13,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                 }}>
                   <StarIcon size={12} filled /> {r.overall.toFixed(1)}
                 </span>
@@ -229,7 +230,7 @@ export default function FeedPage() {
         </div>
       </section>
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }
@@ -241,55 +242,48 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
       style={{
         display: 'block',
         position: 'relative',
-        borderRadius: 14,
+        borderRadius: 22,
         overflow: 'hidden',
-        background: `linear-gradient(135deg, ${venue.hero_color} 0%, #0a0908 100%)`,
-        border: `1px solid ${venue.hero_accent}`,
-        boxShadow: '0 0 0 1px rgba(255, 122, 0, 0.14), var(--card-glow)',
+        // The pin itself: orange body, cream rim, crema inside.
+        background: 'radial-gradient(110% 120% at 100% 0%, rgba(255, 138, 26, 0.38) 0%, rgba(142, 74, 28, 0.45) 35%, rgba(42, 20, 8, 0.85) 75%, #140d08 100%)',
+        border: `2px solid ${COLORS.cream}`,
+        boxShadow: '0 5px 0 #7a3210, var(--card-glow)',
       }}
     >
-      {/* Hazard top */}
-      <div aria-hidden style={{
-        height: 6,
-        background: `repeating-linear-gradient(135deg, ${venue.hero_accent} 0 12px, #111 12px 24px)`,
-      }} />
-      <div style={{ padding: '18px 18px 16px' }}>
-        <span style={{
-          display: 'inline-block',
-          padding: '4px 8px',
-          background: 'rgba(10, 9, 8, 0.7)',
-          color: venue.hero_accent,
-          border: `1px solid ${venue.hero_accent}`,
-          borderRadius: 4,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-        }}>
-          ★ Top Rated · #1
+      <img
+        src={pinUrl}
+        alt=""
+        aria-hidden
+        draggable={false}
+        style={{ position: 'absolute', right: -14, top: -10, height: 150, opacity: 0.9, transform: 'rotate(8deg)', pointerEvents: 'none' }}
+      />
+      <div style={{ position: 'relative', padding: '18px 18px 16px' }}>
+        <span className="badge badge--deal">
+          <StarIcon size={12} filled /> Top rated · #1
         </span>
         <h3 style={{
-          margin: '10px 0 6px',
-          fontSize: '1.55rem',
-          fontWeight: 800,
+          margin: '12px 96px 8px 0',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 400,
+          fontSize: '1.6rem',
           letterSpacing: '0.005em',
           color: COLORS.text,
           textTransform: 'uppercase',
           lineHeight: 1.05,
+          textShadow: 'var(--extrude-text)',
         }}>
           {venue.name}
         </h3>
-        <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 14, lineHeight: 1.5 }}>
+        <p style={{ margin: '0 80px 0 0', color: COLORS.textSecondary, fontSize: 14, lineHeight: 1.5 }}>
           {venue.tagline}
         </p>
         <div style={{
-          marginTop: 12,
+          marginTop: 14,
           display: 'flex',
-          gap: 16,
+          gap: 18,
           flexWrap: 'wrap',
         }}>
-          <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orange} />
+          <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orangeBright} />
           <Stat label="Reviews" value={String(venue.review_count)} />
           <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
           <Stat label="Opens" value={venue.opens_at} />
@@ -303,18 +297,16 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 9.5,
-        letterSpacing: '0.18em',
-        textTransform: 'uppercase',
+        fontFamily: 'var(--font-label)',
+        fontSize: 11,
+        fontWeight: 700,
         color: COLORS.textMuted,
       }}>
         {label}
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-display)',
         fontSize: 18,
-        fontWeight: 700,
         color: accent ?? COLORS.text,
         marginTop: 2,
       }}>

@@ -40,7 +40,7 @@ export function DeleteReviewButton({
         borderRadius: 6,
         color: COLORS.red,
         padding: '5px 10px',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 11,
         letterSpacing: '0.08em',
         textTransform: 'uppercase',

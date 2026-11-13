@@ -9,7 +9,7 @@ import NotFound from '../../not-found';
 import { getVenueBySlug } from '@/lib/queries/venues';
 import { getReviewByUserAndVenue } from '@/lib/queries/reviews';
 import { RATING_LABELS, RATING_ORDER } from '@/lib/types';
-import { COLORS, RADIUS, SPACE, HAZARD_STRIPES, BRAND_GRADIENT } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_RIBBON, BRAND_GRADIENT } from '@/lib/theme';
 import { submitReview } from './actions';
 
 const AXIS_TO_COL: Record<string, string> = {
@@ -62,7 +62,7 @@ export default function NewReviewPage() {
         overflow: 'hidden',
         marginTop: SPACE.sm,
       }}>
-        <div aria-hidden style={{ height: 6, background: HAZARD_STRIPES }} />
+        <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
         <div style={{ padding: SPACE.lg }}>
           <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.5 }}>
             {editMode ? 'EDIT YOUR REVIEW' : 'WRITE A REVIEW'}
@@ -89,7 +89,7 @@ export default function NewReviewPage() {
               marginBottom: SPACE.md,
               padding: '10px 12px',
               background: 'rgba(168,224,0,0.10)',
-              border: `1px solid ${COLORS.hiVisGreen}`,
+              border: `1px solid ${COLORS.green}`,
               borderRadius: RADIUS.md,
               color: COLORS.text, fontSize: 13,
             }}>

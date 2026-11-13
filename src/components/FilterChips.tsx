@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { COLORS } from '@/lib/theme';
 
 import type { FilterId } from '@/lib/filters';
 export type { FilterId };
@@ -50,23 +49,7 @@ export function FilterChips({
               setSelected(chip.id);
               onChange?.(chip.id);
             }}
-            style={{
-              flex: '0 0 auto',
-              padding: '9px 14px',
-              borderRadius: 999,
-              border: `1.5px solid ${active ? COLORS.orange : COLORS.border}`,
-              background: active ? COLORS.orange : COLORS.surface,
-              color: active ? '#0a0908' : COLORS.text,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              minHeight: 36,
-              transition: 'all 120ms ease',
-            }}
+            className="chip"
           >
             {chip.label}
           </button>

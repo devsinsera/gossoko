@@ -16,8 +16,8 @@ import { claimVenue } from '../../_claims/actions';
 import { HelpfulButton } from '../../_likes/HelpfulButton';
 import { CommentsSection } from '../../_comments/CommentsSection';
 import { VENUE_TYPE_LABELS } from '@/lib/types';
-import type { VenueType } from '@/lib/types';
 import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
+import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { RatingBars } from '@/components/RatingBars';
 import { SaveShare } from '@/components/SaveShare';
 import { DealCard } from '@/components/DealCard';
@@ -30,33 +30,27 @@ import { ReportButton } from '../../_report/ReportButton';
 import { displayScore } from '@/lib/ranking';
 import {
   StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon,
-  TruckIcon, CoffeeIcon, HardHatIcon, FlameIcon,
+  FlameIcon,
 } from '@/components/icons';
 
-function venueIconFor(type: VenueType) {
-  if (type === 'gossoko_van') return HardHatIcon;
-  if (type === 'food_truck' || type === 'cafe_and_food_truck') return TruckIcon;
-  return CoffeeIcon;
-}
-
 const REPORT_BANNER: Record<string, { color: string; text: string }> = {
-  submitted: { color: COLORS.hiVisGreen, text: 'Report sent. Moderators will take a look.' },
+  submitted: { color: COLORS.green, text: 'Report sent. Moderators will take a look.' },
   invalid:   { color: COLORS.red,         text: 'Report could not be sent — please pick a reason and add a detail.' },
   error:     { color: COLORS.red,         text: 'Something went wrong saving the report. Try again.' },
 };
 
 const REVIEW_BANNER: Record<string, { color: string; text: string }> = {
-  submitted: { color: COLORS.hiVisGreen, text: 'Review posted. Cheers for the rundown.' },
-  updated:   { color: COLORS.hiVisGreen, text: 'Review updated.' },
-  pending:   { color: COLORS.hiVisYellow, text: 'Saved. A moderator checks it before it goes up — usually within a day.' },
-  photofail: { color: COLORS.hiVisYellow, text: 'Review saved, but a photo didn\'t upload. Edit your review to try again.' },
+  submitted: { color: COLORS.green, text: 'Review posted. Cheers for the rundown.' },
+  updated:   { color: COLORS.green, text: 'Review updated.' },
+  pending:   { color: COLORS.gold, text: 'Saved. A moderator checks it before it goes up — usually within a day.' },
+  photofail: { color: COLORS.gold, text: 'Review saved, but a photo didn\'t upload. Edit your review to try again.' },
 };
 
 const CLAIM_BANNER: Record<string, { color: string; text: string }> = {
-  submitted: { color: COLORS.hiVisGreen, text: 'Claim submitted. An admin will review it shortly.' },
-  exists:    { color: COLORS.hiVisYellow, text: 'You already have a claim pending review for this venue.' },
-  owner:     { color: COLORS.hiVisGreen, text: 'You already manage this venue.' },
-  taken:     { color: COLORS.hiVisYellow, text: 'This venue already has a verified owner. If that’s wrong, report it and an admin will sort it out.' },
+  submitted: { color: COLORS.green, text: 'Claim submitted. An admin will review it shortly.' },
+  exists:    { color: COLORS.gold, text: 'You already have a claim pending review for this venue.' },
+  owner:     { color: COLORS.green, text: 'You already manage this venue.' },
+  taken:     { color: COLORS.gold, text: 'This venue already has a verified owner. If that’s wrong, report it and an admin will sort it out.' },
   error:     { color: COLORS.red,         text: 'Something went wrong saving your claim. Try again.' },
 };
 
@@ -112,7 +106,6 @@ export default function VenueDetailPage() {
   const reportBanner = report ? REPORT_BANNER[report] : null;
   const reviewBanner = review ? REVIEW_BANNER[review] : null;
   const claimBanner = claim ? CLAIM_BANNER[claim] : null;
-  const HeroIcon = venueIconFor(venue.venue_type);
   return (
     <>
       {/* Sticky-feeling top row */}
@@ -139,7 +132,7 @@ export default function VenueDetailPage() {
           }}
         >
           <ChevronLeftIcon size={18} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <span style={{ fontFamily: 'var(--font-label)', fontSize: 11.5, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Back
           </span>
         </Link>
@@ -148,55 +141,52 @@ export default function VenueDetailPage() {
 
       {/* Hero block */}
       <section style={{
-        background: `linear-gradient(135deg, ${venue.hero_color} 0%, #0a0908 100%)`,
-        border: `1px solid ${venue.hero_accent}`,
-        borderRadius: 14,
+        background: 'radial-gradient(110% 120% at 100% 0%, rgba(255, 138, 26, 0.36) 0%, rgba(142, 74, 28, 0.45) 35%, rgba(42, 20, 8, 0.85) 75%, #140d08 100%)',
+        border: `2px solid ${COLORS.cream}`,
+        borderRadius: 22,
+        boxShadow: '0 5px 0 #7a3210, var(--card-glow)',
         overflow: 'hidden',
         position: 'relative',
       }}>
-        <div aria-hidden style={{
-          height: 6,
-          background: `repeating-linear-gradient(135deg, ${venue.hero_accent} 0 12px, #111 12px 24px)`,
-        }} />
+        <img
+          src={pinUrl}
+          alt=""
+          aria-hidden
+          draggable={false}
+          style={{ position: 'absolute', right: -12, top: -8, height: 140, opacity: 0.9, transform: 'rotate(8deg)', pointerEvents: 'none' }}
+        />
         <div style={{ padding: '18px 18px 16px', position: 'relative' }}>
-          <div aria-hidden style={{
-            position: 'absolute',
-            top: 8, right: 12,
-            color: venue.hero_accent,
-            opacity: 0.7,
-          }}>
-            <HeroIcon size={68} />
-          </div>
-
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <Pill color={COLORS.text} bg="rgba(10,9,8,0.7)" border={COLORS.border}>
               {VENUE_TYPE_LABELS[venue.venue_type]}
             </Pill>
             {venue.open_now ? (
-              <Pill color={COLORS.hiVisGreen} bg="rgba(10,9,8,0.7)" border={COLORS.hiVisGreen}>
-                <span className="pulse-dot" /> OPEN NOW
+              <Pill color={COLORS.green} bg="rgba(10,9,8,0.7)" border={COLORS.green}>
+                <span className="pulse-dot" /> Open now
               </Pill>
             ) : (
               <Pill color={COLORS.textMuted} bg="rgba(10,9,8,0.7)" border={COLORS.textMuted}>
-                CLOSED
+                Closed
               </Pill>
             )}
             {venue.trending && (
               <Pill color={COLORS.orangeHot} bg="rgba(10,9,8,0.7)" border={COLORS.orangeHot}>
-                <FlameIcon size={11} /> TRENDING
+                <FlameIcon size={11} /> Trending
               </Pill>
             )}
           </div>
 
           <h1 style={{
             margin: '12px 0 6px',
+            fontFamily: 'var(--font-display)',
             fontSize: '1.8rem',
-            fontWeight: 800,
+            fontWeight: 400,
             color: COLORS.text,
+            textShadow: 'var(--extrude-text)',
             textTransform: 'uppercase',
             letterSpacing: '0.005em',
             lineHeight: 1.05,
-            paddingRight: 70,
+            paddingRight: 90,
           }}>
             {venue.name}
             {venue.verified && (
@@ -296,7 +286,7 @@ export default function VenueDetailPage() {
             <div style={{
               color: COLORS.textSecondary,
               fontSize: 12,
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-label)',
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
               marginTop: 2,
@@ -314,7 +304,7 @@ export default function VenueDetailPage() {
               border: `1.5px solid ${COLORS.orange}`,
               borderRadius: 8,
               color: COLORS.orange,
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-label)',
               fontSize: 11,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
@@ -357,7 +347,7 @@ export default function VenueDetailPage() {
           padding: '14px 16px',
           background: COLORS.surface,
           border: `1px solid ${COLORS.border}`,
-          borderLeft: `4px solid ${venue.hero_accent}`,
+          borderLeft: `4px solid ${COLORS.orange}`,
           borderRadius: 10,
           color: COLORS.text,
           fontSize: 14,
@@ -371,7 +361,7 @@ export default function VenueDetailPage() {
             color: COLORS.orange,
             fontSize: 13,
           }}>
-            <strong style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 10.5, color: COLORS.textMuted, marginRight: 8 }}>
+            <strong style={{ fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 10.5, color: COLORS.textMuted, marginRight: 8 }}>
               Signature
             </strong>
             {venue.signature}
@@ -424,7 +414,7 @@ export default function VenueDetailPage() {
                 border: `1px solid ${COLORS.border}`,
                 borderRadius: 999,
                 color: COLORS.textSecondary,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 fontSize: 11.5,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
@@ -484,7 +474,7 @@ export default function VenueDetailPage() {
                     <div style={{
                       fontSize: 11,
                       color: COLORS.textMuted,
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-label)',
                       letterSpacing: '0.06em',
                       textTransform: 'uppercase',
                     }}>
@@ -496,7 +486,7 @@ export default function VenueDetailPage() {
                     alignItems: 'center',
                     gap: 3,
                     color: COLORS.orange,
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-label)',
                     fontWeight: 700,
                     fontSize: 13,
                   }}>
@@ -515,7 +505,7 @@ export default function VenueDetailPage() {
                   alignItems: 'center',
                   color: COLORS.textMuted,
                   fontSize: 11.5,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   gap: 8,
@@ -577,7 +567,7 @@ export default function VenueDetailPage() {
         }}>
           {ownsVenue ? (
             <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisGreen, fontSize: 13.5, fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.green, fontSize: 13.5, fontWeight: 700 }}>
               <VerifiedIcon size={16} />
               You manage this venue.
             </div>
@@ -589,7 +579,7 @@ export default function VenueDetailPage() {
             </Link>
             </>
           ) : userClaimStatus === 'pending' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.hiVisYellow, fontSize: 13.5, fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.gold, fontSize: 13.5, fontWeight: 700 }}>
               <span className="pulse-dot" />
               Claim pending review.
             </div>
@@ -671,7 +661,7 @@ export default function VenueDetailPage() {
         </section>
       )}
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }
@@ -680,7 +670,7 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   return (
     <div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 9.5,
         letterSpacing: '0.18em',
         textTransform: 'uppercase',
@@ -689,7 +679,7 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
         {label}
       </div>
       <div style={{
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 18,
         fontWeight: 700,
         color: accent ?? COLORS.text,
@@ -710,13 +700,11 @@ function Pill({ children, color, bg, border }: { children: React.ReactNode; colo
       padding: '4px 9px',
       background: bg,
       color,
-      border: `1px solid ${border}`,
-      borderRadius: 4,
-      fontFamily: 'var(--font-mono)',
-      fontSize: 10,
-      letterSpacing: '0.12em',
-      fontWeight: 700,
-      textTransform: 'uppercase',
+      border: `1.5px solid ${border}`,
+      borderRadius: 999,
+      fontFamily: 'var(--font-label)',
+      fontSize: 11,
+      fontWeight: 800,
     }}>
       {children}
     </span>
@@ -736,7 +724,7 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
         alignItems: 'center',
         gap: 6,
         color: COLORS.orange,
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 10,
         letterSpacing: '0.16em',
         textTransform: 'uppercase',
@@ -744,7 +732,7 @@ function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: strin
         {icon}
         {label}
       </div>
-      <div style={{ marginTop: 4, color: COLORS.text, fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>
+      <div style={{ marginTop: 4, color: COLORS.text, fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-label)', letterSpacing: '0.02em' }}>
         {value}
       </div>
     </div>

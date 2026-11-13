@@ -37,7 +37,7 @@ export function ReportButton({
           borderRadius: RADIUS.md,
           padding: '6px 10px',
           fontSize: 11,
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-label)',
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
           cursor: 'pointer',

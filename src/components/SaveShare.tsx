@@ -11,7 +11,7 @@ const btn = {
   border: `1px solid ${COLORS.border}`, borderRadius: 8, background: COLORS.surface,
   color: COLORS.text, cursor: 'pointer', minHeight: 40,
 } as const;
-const label = { fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.1em', textTransform: 'uppercase' } as const;
+const label = { fontFamily: 'var(--font-label)', fontSize: 11.5, letterSpacing: '0.1em', textTransform: 'uppercase' } as const;
 
 /** Save to my spots, and share the venue to a group chat. */
 export function SaveShare({ venueId, slug, name, initialSaved, signedIn }: {

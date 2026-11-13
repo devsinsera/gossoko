@@ -23,7 +23,7 @@ export function ReplyBox({ reviewId, reply, venueName, isOwner }: {
   if (reply) {
     return (
       <div style={{ marginTop: 10, padding: '9px 12px', background: COLORS.surfaceAlt, borderLeft: `3px solid ${COLORS.orange}`, borderRadius: RADIUS.sm }}>
-        <div style={{ fontSize: 11, color: COLORS.orange, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
+        <div style={{ fontSize: 11, color: COLORS.orange, fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
           Reply from {venueName}
         </div>
         <p style={{ margin: '4px 0 0', color: COLORS.text, fontSize: 13.5, lineHeight: 1.5 }}>{reply.body}</p>

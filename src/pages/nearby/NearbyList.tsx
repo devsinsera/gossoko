@@ -64,11 +64,11 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
             >
               <div style={{
                 minWidth: 44, height: 44, borderRadius: 8, padding: '0 6px',
-                background: `linear-gradient(135deg, ${v.hero_color}, #0a0908)`,
-                border: `1px solid ${v.hero_accent}`,
-                color: v.hero_accent,
+                background: 'radial-gradient(circle at 50% 30%, rgba(255, 138, 26, 0.45), rgba(142, 74, 28, 0.5) 55%, #1a0f08)',
+                border: `1.5px solid ${COLORS.cream}`,
+                color: COLORS.cream,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 fontSize: 11,
                 fontWeight: 700,
                 letterSpacing: '0.06em',
@@ -89,7 +89,7 @@ export function NearbyList({ venues }: { venues: Venue[] }) {
                 alignItems: 'center',
                 gap: 3,
                 color: COLORS.orange,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-label)',
                 fontSize: 13,
                 fontWeight: 700,
               }}>

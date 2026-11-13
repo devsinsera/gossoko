@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { ActionForm } from '@/components/ActionForm';
-import { COLORS, RADIUS, SPACE, HAZARD_STRIPES, BRAND_GRADIENT } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_RIBBON, BRAND_GRADIENT } from '@/lib/theme';
 import { VENUE_TYPE_LABELS, type VenueType } from '@/lib/types';
 import { submitVenue } from './actions';
 
@@ -60,7 +60,7 @@ export default function NewVenuePage() {
         overflow: 'hidden',
         marginTop: SPACE.sm,
       }}>
-        <div aria-hidden style={{ height: 6, background: HAZARD_STRIPES }} />
+        <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
         <div style={{ padding: SPACE.lg }}>
           <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.5 }}>SUGGEST A VENUE</h1>
           <p style={{ margin: `${SPACE.xs}px 0 ${SPACE.lg}px`, color: COLORS.textSecondary, fontSize: 13 }}>

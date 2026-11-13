@@ -47,7 +47,7 @@ export default function NotificationsPage() {
                 <>
                   <div style={{ fontWeight: 700, fontSize: 14, color: COLORS.text }}>{n.title}</div>
                   {n.body && <div style={{ marginTop: 3, fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.45 }}>{n.body}</div>}
-                  <div style={{ marginTop: 5, fontFamily: 'var(--font-mono)', fontSize: 11, color: COLORS.textSecondary }}>{ago(n.created_at)}</div>
+                  <div style={{ marginTop: 5, fontFamily: 'var(--font-label)', fontSize: 11, color: COLORS.textSecondary }}>{ago(n.created_at)}</div>
                 </>
               );
               const style = { display: 'block', padding: '12px 14px', background: COLORS.surface, textDecoration: 'none', borderRadius: 12,

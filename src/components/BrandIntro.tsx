@@ -187,7 +187,7 @@ export function BrandIntro() {
           right: 0,
           bottom: 'max(28px, env(safe-area-inset-bottom))',
           textAlign: 'center',
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-label)',
           fontSize: 10,
           letterSpacing: '0.14em',
           textTransform: 'uppercase',

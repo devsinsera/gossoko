@@ -14,7 +14,7 @@ export function RatingBars({ ratings }: { ratings: Ratings }) {
           <div key={axis} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
               flex: '0 0 110px',
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-label)',
               fontSize: 11,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -44,7 +44,7 @@ export function RatingBars({ ratings }: { ratings: Ratings }) {
             <span style={{
               flex: '0 0 28px',
               textAlign: 'right',
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-label)',
               fontSize: 13,
               color: COLORS.text,
               fontWeight: 700,

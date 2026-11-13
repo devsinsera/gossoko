@@ -59,7 +59,7 @@ export function ProfileEditor({ userId, initial }: { userId: string; initial: { 
       <label style={{ fontSize: 12, color: COLORS.textSecondary }}>Bio
         <textarea value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} rows={3} maxLength={280} placeholder="Sparky out of Rocklea. Pie before 6, coffee after." style={{ ...field, resize: 'vertical' }} />
       </label>
-      {msg && <p role={msg.ok ? 'status' : 'alert'} style={{ margin: 0, fontSize: 13, color: msg.ok ? COLORS.hiVisGreen : COLORS.red }}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? 'status' : 'alert'} style={{ margin: 0, fontSize: 13, color: msg.ok ? COLORS.green : COLORS.red }}>{msg.text}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" disabled={busy} style={{ background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
         <button type="button" onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: COLORS.textSecondary, cursor: 'pointer' }}>Cancel</button>

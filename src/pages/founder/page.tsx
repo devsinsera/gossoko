@@ -65,7 +65,7 @@ export default function FounderPage() {
           <Tile label="Venues live" value={d?.venues_live} hint={d?.venues_pending ? `${d.venues_pending} waiting` : 'none waiting'} />
           <Tile label="Reviews live" value={d?.reviews_live} hint={d?.reviews_pending ? `${d.reviews_pending} waiting` : 'none waiting'} />
           <Tile label="Open reports" value={d?.reports_open} accent={d?.reports_open ? COLORS.red : undefined} />
-          <Tile label="Claims to check" value={d?.claims_pending} accent={d?.claims_pending ? COLORS.hiVisYellow : undefined} />
+          <Tile label="Claims to check" value={d?.claims_pending} accent={d?.claims_pending ? COLORS.gold : undefined} />
           <Tile label="Pro venues" value={d?.pro_venues} />
           <Tile label="Alerts this week" value={d?.alerts_week} />
           <Tile label="Phones on push" value={d ? d.push_ios + d.push_android : undefined} hint={d ? `${d.push_ios} Apple · ${d.push_android} Android` : ''} />
@@ -124,7 +124,7 @@ const button = {
 function Tile({ label, value, hint, accent }: { label: string; value: number | undefined; hint?: string; accent?: string }) {
   return (
     <div style={card}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: COLORS.textSecondary }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-label)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: COLORS.textSecondary }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 800, color: accent ?? COLORS.text, marginTop: 2 }}>{value ?? '–'}</div>
       {hint && <div style={{ fontSize: 11.5, color: COLORS.textSecondary }}>{hint}</div>}
     </div>

@@ -1,5 +1,6 @@
 import { Link } from '@/lib/nav';
 import { useLocation } from 'react-router-dom';
+import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
 
 type Item = {
@@ -24,7 +25,7 @@ export function BottomNav() {
   return (
     <nav aria-label="Primary" className="tab-nav">
       <span className="tab-nav__brand" aria-hidden>
-        <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" />
+        <img src={pinUrl} alt="" />
       </span>
       <div className="tab-nav__items">
         {ITEMS.map(({ href, label, Icon, matches }) => {

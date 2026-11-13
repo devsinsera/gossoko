@@ -1,5 +1,5 @@
 import { Link } from '@/lib/nav';
-import { COLORS, HAZARD_STRIPES, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
+import { COLORS, BRAND_RIBBON, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 
 export function AuthShell({
   title,
@@ -34,7 +34,7 @@ export function AuthShell({
         borderRadius: RADIUS.lg,
         overflow: 'hidden',
       }}>
-        <div aria-hidden style={{ height: 6, background: HAZARD_STRIPES }} />
+        <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
         <div style={{ padding: SPACE.lg }}>
           <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 1 }}>{title}</h1>
           {subtitle && (
@@ -145,8 +145,8 @@ export function ErrorBanner({ children }: { children: React.ReactNode }) {
 export function InfoBanner({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      background: 'rgba(168, 224, 0, 0.10)',
-      border: `1px solid ${COLORS.hiVisGreen}`,
+      background: 'rgba(156, 204, 101, 0.12)',
+      border: `1px solid ${COLORS.green}`,
       borderRadius: RADIUS.md,
       padding: '10px 12px',
       fontSize: 13,

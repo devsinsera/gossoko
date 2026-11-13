@@ -49,12 +49,12 @@ export function HelpfulButton({
       disabled={pending}
       aria-pressed={liked}
       style={{
-        background: liked ? COLORS.hiVisGreen : 'transparent',
-        border: `1px solid ${liked ? COLORS.hiVisGreen : COLORS.border}`,
+        background: liked ? COLORS.green : 'transparent',
+        border: `1px solid ${liked ? COLORS.green : COLORS.border}`,
         borderRadius: 6,
         color: liked ? '#0a0908' : COLORS.text,
         padding: '6px 10px',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-label)',
         fontSize: 11,
         letterSpacing: '0.1em',
         textTransform: 'uppercase',

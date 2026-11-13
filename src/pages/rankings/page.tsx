@@ -4,7 +4,7 @@ import { useLoad } from '@/lib/useLoad';
 import { useQuery } from '@/lib/nav';
 import RankingsLoading from './loading';
 import { MIN_REVIEWS_TO_RANK, rankVenues, reviewCountLabel } from '@/lib/ranking';
-import { COLORS } from '@/lib/theme';
+import { COLORS, BRAND_GRADIENT } from '@/lib/theme';
 import { TrophyIcon, FlameIcon, StarIcon, ChevronRightIcon } from '@/components/icons';
 
 type RankingMode = 'overall' | 'speed' | 'feed_size' | 'bang_for_buck' | 'early_open';
@@ -47,20 +47,7 @@ export default function RankingsPage() {
               href={`/rankings?mode=${m.id}`}
               role="tab"
               aria-selected={a}
-              style={{
-                flex: '0 0 auto',
-                padding: '9px 14px',
-                borderRadius: 999,
-                border: `1.5px solid ${a ? COLORS.orange : COLORS.border}`,
-                background: a ? COLORS.orange : COLORS.surface,
-                color: a ? '#0a0908' : COLORS.text,
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}
+              className="chip"
             >
               {m.label}
             </Link>
@@ -92,16 +79,19 @@ export default function RankingsPage() {
             const value = mode === 'overall' ? v.overall.toFixed(1) : v.ratings[mode].toFixed(1);
             const place = idx + 1;
             const tallH = displayPos === 1 ? 156 : 124;
-            const medalColor = place === 1 ? COLORS.orange : place === 2 ? '#cfcfcf' : '#c87a3a';
+            const medalColor = place === 1 ? BRAND_GRADIENT : place === 2 ? 'linear-gradient(180deg, #fff3e4, #cdb79e)' : 'linear-gradient(180deg, #d98a4a, #8e4a1c)';
             return (
               <Link
                 key={v.id}
                 href={`/venue/${v.slug}`}
                 style={{
                   display: 'block',
-                  background: `linear-gradient(180deg, ${v.hero_color}, #0a0908)`,
-                  border: `1.5px solid ${place === 1 ? COLORS.orange : COLORS.border}`,
-                  borderRadius: 10,
+                  background: place === 1
+                    ? 'radial-gradient(120% 100% at 50% 0%, rgba(255, 138, 26, 0.45), rgba(142, 74, 28, 0.5) 45%, #160e08 100%)'
+                    : `var(--crema), ${COLORS.surface}`,
+                  border: `2px solid ${place === 1 ? COLORS.cream : COLORS.border}`,
+                  boxShadow: place === 1 ? '0 4px 0 #7a3210, var(--card-glow)' : '0 4px 0 #0a0807',
+                  borderRadius: 18,
                   padding: 10,
                   height: tallH,
                   position: 'relative',
@@ -112,20 +102,20 @@ export default function RankingsPage() {
                   position: 'absolute', top: 8, right: 8,
                   width: 26, height: 26, borderRadius: '50%',
                   background: medalColor,
-                  color: '#0a0908',
-                  fontWeight: 800,
+                  border: `2px solid ${COLORS.cream}`,
+                  color: '#2a1408',
                   fontSize: 13,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                 }}>
-                  {place}
+                  <span style={{ fontFamily: 'var(--font-display)' }}>{place}</span>
                 </div>
                 <div style={{
                   position: 'absolute', bottom: 10, left: 10, right: 10,
                 }}>
                   <div style={{
+                    fontFamily: 'var(--font-display)',
                     fontSize: 12.5,
-                    fontWeight: 700,
                     color: COLORS.text,
                     lineHeight: 1.2,
                     overflow: 'hidden',
@@ -135,10 +125,9 @@ export default function RankingsPage() {
                     {v.name}
                   </div>
                   <div style={{
-                    fontFamily: 'var(--font-mono)',
-                    color: COLORS.orange,
-                    fontSize: 16,
-                    fontWeight: 700,
+                    color: COLORS.orangeBright,
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 18,
                     marginTop: 4,
                   }}>
                     ★ {value}
@@ -179,7 +168,7 @@ export default function RankingsPage() {
                 }}
               >
                 <span style={{
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                   fontSize: 18,
                   fontWeight: 700,
                   color: isHot ? COLORS.orange : COLORS.textMuted,
@@ -204,7 +193,7 @@ export default function RankingsPage() {
                   <div style={{
                     color: COLORS.textSecondary,
                     fontSize: 12,
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-label)',
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     marginTop: 2,
@@ -221,7 +210,7 @@ export default function RankingsPage() {
                   border: `1px solid ${COLORS.orange}`,
                   borderRadius: 6,
                   color: COLORS.orange,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-label)',
                   fontWeight: 700,
                   fontSize: 13,
                 }}>
@@ -236,7 +225,7 @@ export default function RankingsPage() {
       </section>
       </>)}
 
-      <div className="hazard-strip" style={{ marginTop: 28 }} />
+      <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
   );
 }
