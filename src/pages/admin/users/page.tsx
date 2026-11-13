@@ -3,7 +3,7 @@ import { supabase as getSupabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
 import { ActionForm } from '@/components/ActionForm';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { USER_ROLES, type UserRole } from '@/types/rbac';
 import { updateUserRole } from './actions';
 
@@ -174,7 +174,7 @@ export default function AdminUsersPage() {
                   <button
                     type="submit"
                     style={{
-                      background: COLORS.orange,
+                      background: BRAND_GRADIENT,
                       color: '#000',
                       border: 'none',
                       borderRadius: RADIUS.md,

@@ -13,7 +13,7 @@ import { createDeal, endDeal, redeemDealCode, requestPro, saveVenueDetails } fro
 import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
 import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 import NotFound from '../../not-found';
 import { uploadPhoto, photoUrl } from '@/lib/photos';
 import { supabase as getSupabase } from '@/lib/supabase/client';
@@ -22,7 +22,7 @@ import { VenueQr } from '@/components/VenueQr';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '14px 16px' } as const;
 const input = { background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' } as const;
-const primary = { background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' } as const;
+const primary = { background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' } as const;
 const mono = { fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' } as const;
 
 async function load(slug: string, userId: string | null) {

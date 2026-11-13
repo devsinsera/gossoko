@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { siteUrl } from '@/lib/env';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 
 /** A QR code for the counter. It opens the venue's page (deals, reviews, save). Printable. */
 export function VenueQr({ slug, name }: { slug: string; name: string }) {
@@ -28,7 +28,7 @@ export function VenueQr({ slug, name }: { slug: string; name: string }) {
             Stick it on the counter or the van window. Customers land on your page to rate you, save you and grab a deal code.
           </p>
           <div className="no-print" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {!native && <button type="button" onClick={() => window.print()} style={{ background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '9px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>Print</button>}
+            {!native && <button type="button" onClick={() => window.print()} style={{ background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '9px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>Print</button>}
             <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true); } catch { /* ignore */ } }}
               style={{ background: 'none', border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: RADIUS.md, padding: '9px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               {copied ? 'Link copied' : 'Copy link'}

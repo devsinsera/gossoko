@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@/lib/nav';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 import { dealBadge, soldOut, type Deal, type DealCode } from '@/lib/queries/business';
 import { claimDealCode } from '@/pages/_business/actions';
 import { ZapIcon } from './icons';
@@ -57,7 +57,7 @@ export function DealCard({ deal, code, signedIn, showVenue = false }: {
       <header style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 4,
-          background: COLORS.orange, color: '#0a0908', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
+          background: BRAND_GRADIENT, color: '#0a0908', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
         }}>
           <ZapIcon size={12} /> {dealBadge(deal)}
         </span>
@@ -97,7 +97,7 @@ export function DealCard({ deal, code, signedIn, showVenue = false }: {
         </Link>
       ) : (
         <button type="button" onClick={get} disabled={busy}
-          style={{ padding: 12, borderRadius: RADIUS.md, border: 'none', background: COLORS.orange, color: '#0a0908', fontWeight: 800, fontSize: 14, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+          style={{ padding: 12, borderRadius: RADIUS.md, border: 'none', background: BRAND_GRADIENT, color: '#0a0908', fontWeight: 800, fontSize: 14, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
           {busy ? 'Getting your code…' : 'Get code'}
         </button>
       )}

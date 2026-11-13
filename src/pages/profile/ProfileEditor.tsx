@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { invalidate } from '@/lib/useLoad';
 import { isValidUsername, normalizeUsername } from '@/lib/api/auth';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 
 export const TRADES: { value: string; label: string }[] = [
   { value: 'sparky', label: 'Sparky' }, { value: 'chippy', label: 'Chippy' }, { value: 'plumber', label: 'Plumber' },
@@ -61,7 +61,7 @@ export function ProfileEditor({ userId, initial }: { userId: string; initial: { 
       </label>
       {msg && <p role={msg.ok ? 'status' : 'alert'} style={{ margin: 0, fontSize: 13, color: msg.ok ? COLORS.hiVisGreen : COLORS.red }}>{msg.text}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="submit" disabled={busy} style={{ background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
+        <button type="submit" disabled={busy} style={{ background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
         <button type="button" onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: COLORS.textSecondary, cursor: 'pointer' }}>Cancel</button>
       </div>
     </form>

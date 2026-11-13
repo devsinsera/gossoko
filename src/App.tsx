@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { DistanceProvider } from '@/components/DistanceProvider';
 import { LockScreen } from '@/components/LockScreen';
 import { BiometricOffer } from '@/components/BiometricOffer';
+import { BrandIntro } from '@/components/BrandIntro';
 import { COLORS } from '@/lib/theme';
 import FeedPage from './pages/page';
 import LoginPage from './pages/login/page';
@@ -73,6 +74,7 @@ function Gate({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <BrandIntro />
       <AuthProvider>
         <DistanceProvider>
           <Gate>

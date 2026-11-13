@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { ActionForm } from '@/components/ActionForm';
-import { COLORS, RADIUS, SPACE, HAZARD_STRIPES } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, HAZARD_STRIPES, BRAND_GRADIENT } from '@/lib/theme';
 import { VENUE_TYPE_LABELS, type VenueType } from '@/lib/types';
 import { submitVenue } from './actions';
 
@@ -146,7 +146,7 @@ export default function NewVenuePage() {
             <button
               type="submit"
               style={{
-                background: COLORS.orange,
+                background: BRAND_GRADIENT,
                 color: '#0a0908',
                 border: 'none',
                 borderRadius: RADIUS.md,

@@ -1,11 +1,14 @@
 import { Skeleton, VenueCardSkeleton, VenueListSkeleton } from '@/components/Skeleton';
+import wordmarkUrl from '@/assets/brand/gossoko-wordmark.svg';
 
 export default function FeedLoading() {
   return (
     <>
       <header className="top-bar">
         <div>
-          <Skeleton width={160} height={26} />
+          <h1 className="wordmark">
+            <img src={wordmarkUrl} alt="Gossoko" data-brand-target="header" className="wordmark__img" />
+          </h1>
           <div style={{ marginTop: 6 }}>
             <Skeleton width={220} height={12} />
           </div>

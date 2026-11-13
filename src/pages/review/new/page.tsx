@@ -9,7 +9,7 @@ import NotFound from '../../not-found';
 import { getVenueBySlug } from '@/lib/queries/venues';
 import { getReviewByUserAndVenue } from '@/lib/queries/reviews';
 import { RATING_LABELS, RATING_ORDER } from '@/lib/types';
-import { COLORS, RADIUS, SPACE, HAZARD_STRIPES } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, HAZARD_STRIPES, BRAND_GRADIENT } from '@/lib/theme';
 import { submitReview } from './actions';
 
 const AXIS_TO_COL: Record<string, string> = {
@@ -151,7 +151,7 @@ export default function NewReviewPage() {
             <button
               type="submit"
               style={{
-                background: COLORS.orange,
+                background: BRAND_GRADIENT,
                 color: '#0a0908',
                 border: 'none',
                 borderRadius: RADIUS.md,

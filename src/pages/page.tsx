@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import wordmarkUrl from '@/assets/brand/gossoko-wordmark.svg';
 import { VenueCard } from '@/components/VenueCard';
 import { DealCard } from '@/components/DealCard';
 import { useCoords } from '@/components/DistanceProvider';
@@ -13,7 +14,7 @@ import { getRecentReviews } from '@/lib/queries/reviews';
 import { useLoad } from '@/lib/useLoad';
 import FeedLoading from './loading';
 import type { Venue } from '@/lib/types';
-import { COLORS } from '@/lib/theme';
+import { COLORS, BRAND_GRADIENT } from '@/lib/theme';
 import { StarIcon, FlameIcon, MapPinIcon } from '@/components/icons';
 import { VenueDistance } from '@/components/VenueDistance';
 import { Link } from '@/lib/nav';
@@ -50,8 +51,7 @@ export default function FeedPage() {
       <header className="top-bar">
         <div>
           <h1 className="wordmark">
-            <span className="wordmark__brand">GOSSOKO</span>
-            <span className="wordmark__dot">●</span>
+            <img src={wordmarkUrl} alt="Gossoko" data-brand-target="header" className="wordmark__img" />
           </h1>
           <p className="top-bar__sub">Find the best tradie feed near the site.</p>
         </div>
@@ -186,7 +186,7 @@ export default function FeedPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <span style={{
                   width: 32, height: 32, borderRadius: '50%',
-                  background: COLORS.orange, color: '#0a0908',
+                  background: BRAND_GRADIENT, color: '#0a0908',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 800, fontSize: 12, letterSpacing: '0.04em',
                 }}>
@@ -245,7 +245,7 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
         overflow: 'hidden',
         background: `linear-gradient(135deg, ${venue.hero_color} 0%, #0a0908 100%)`,
         border: `1px solid ${venue.hero_accent}`,
-        boxShadow: `0 0 0 4px rgba(255, 122, 0, 0.08)`,
+        boxShadow: '0 0 0 1px rgba(255, 122, 0, 0.14), var(--card-glow)',
       }}
     >
       {/* Hazard top */}

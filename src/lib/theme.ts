@@ -21,6 +21,10 @@ export const COLORS = {
   orangeDim: 'rgba(255, 122, 0, 0.18)',
   orangeFaint: 'rgba(255, 122, 0, 0.08)',
 
+  // Coffee: the pin's deep end. Pairs with orange for depth; never body text on orange.
+  coffee: '#8A3A12',
+  coffeeDeep: '#2a1408',
+
   hiVisGreen: '#A8E000',
   hiVisYellow: '#F2C200',
   red: '#E63946',
@@ -48,6 +52,10 @@ export const FONTS = {
   display: '"Helvetica Neue", system-ui, sans-serif',
   mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
 } as const;
+
+/** Primary fill: hi-vis orange shading to burnt orange. Dark text sits on it. */
+export const BRAND_GRADIENT =
+  'linear-gradient(135deg, #FF8A1A 0%, #FF7A00 45%, #D9620A 100%)';
 
 export const HAZARD_STRIPES =
   `repeating-linear-gradient(135deg, ${COLORS.orange} 0 10px, #111 10px 20px)`;

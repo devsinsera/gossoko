@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { BRAND_GRADIENT, COLORS, RADIUS, SPACE } from '@/lib/theme';
+import wordmarkUrl from '@/assets/brand/gossoko-wordmark.svg';
 import { bioKind, bioWords, type BioKind } from '@/lib/bio';
 
 /**
@@ -34,14 +35,16 @@ export function LockScreen() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: SPACE.lg, padding: SPACE.lg, textAlign: 'center',
     }}>
-      <h1 style={{ margin: 0, letterSpacing: 4, fontSize: 28 }}>GOSSOKO</h1>
+      <h1 style={{ margin: 0 }}>
+        <img src={wordmarkUrl} alt="Gossoko" style={{ display: 'block', height: 44, width: 'auto' }} />
+      </h1>
       <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 14 }}>Locked. Use {words} to open.</p>
       <button
         type="button"
         onClick={tryUnlock}
         disabled={busy}
         style={{
-          background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md,
+          background: BRAND_GRADIENT, boxShadow: '0 10px 26px -10px rgba(255, 122, 0, 0.6)', color: '#0a0908', border: 'none', borderRadius: RADIUS.md,
           padding: '12px 22px', fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: busy ? 0.6 : 1,
         }}
       >

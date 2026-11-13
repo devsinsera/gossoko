@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionForm } from '@/components/ActionForm';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { reportContent } from './actions';
 
 const REPORT_TYPES = [
@@ -144,7 +144,7 @@ export function ReportButton({
         <button
           type="submit"
           style={{
-            background: COLORS.orange,
+            background: BRAND_GRADIENT,
             color: '#0a0908',
             border: 'none',
             borderRadius: RADIUS.md,

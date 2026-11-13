@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { bioAsked, markBioAsked, setBioEnabled, useAuth } from '@/lib/auth';
 import { bioKind, bioWords, verifyOwner, type BioKind } from '@/lib/bio';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 
 /**
  * After a successful sign-in on a phone/tablet that has Face ID / Touch ID /
@@ -46,7 +46,7 @@ export function BiometricOffer() {
       </span>
       <div style={{ display: 'flex', gap: SPACE.sm }}>
         <button type="button" onClick={enable} style={{
-          flex: 1, background: COLORS.orange, color: '#0a0908', border: 'none',
+          flex: 1, background: BRAND_GRADIENT, color: '#0a0908', border: 'none',
           borderRadius: RADIUS.md, padding: '12px', fontWeight: 800, cursor: 'pointer',
         }}>Turn on</button>
         <button type="button" onClick={() => { markBioAsked(); setShow(false); }} style={{

@@ -1,7 +1,7 @@
 
 import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { ReportButton } from '../_report/ReportButton';
 import { addComment } from './actions';
 import { MAX_COMMENT_LENGTH } from './constants';
@@ -256,7 +256,7 @@ export function CommentsSection({
                 onClick={handleSubmit}
                 disabled={pending}
                 style={{
-                  background: COLORS.orange,
+                  background: BRAND_GRADIENT,
                   color: COLORS.bg,
                   border: 'none',
                   borderRadius: RADIUS.md,

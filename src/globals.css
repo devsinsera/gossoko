@@ -22,6 +22,13 @@
   --orange-dim: rgba(255, 122, 0, 0.18);
   --orange-faint: rgba(255, 122, 0, 0.08);
 
+  /* Brand: hi-vis orange to coffee brown, cream type on near-black. */
+  --coffee: #8A3A12;
+  --coffee-deep: #2a1408;
+  --brand-grad: linear-gradient(135deg, #FF8A1A 0%, #FF7A00 45%, #D9620A 100%);
+  --brand-glow: 0 10px 26px -10px rgba(255, 122, 0, 0.6);
+  --card-glow: 0 14px 32px -16px rgba(255, 122, 0, 0.45);
+
   --hi-vis-green: #A8E000;
   --hi-vis-yellow: #F2C200;
   --red: #E63946;
@@ -117,6 +124,8 @@ button { font: inherit; color: inherit; }
 }
 .wordmark__brand { color: var(--text); }
 .wordmark__dot { color: var(--orange); }
+/* The brand wordmark (SVG, with the pin as the second O). */
+.wordmark__img { display: block; height: 30px; width: auto; }
 
 /* Hazard strip — bookends a section */
 .hazard-strip {
@@ -203,7 +212,7 @@ button { font: inherit; color: inherit; }
   transition: background 120ms ease, transform 80ms ease;
 }
 .btn:active { transform: translateY(1px); }
-.btn--solid { background: var(--orange); color: #0a0908; }
+.btn--solid { background: var(--brand-grad); color: #0a0908; box-shadow: var(--brand-glow); }
 .btn--ghost { border-color: var(--border-strong); color: var(--text); }
 
 /* Scrollers */
@@ -221,7 +230,8 @@ button { font: inherit; color: inherit; }
 
 /* Review-axis radio buttons — checked state */
 .review-axis-btn:has(input:checked) {
-  background: var(--orange);
+  background: var(--brand-grad);
+  box-shadow: var(--brand-glow);
   color: #0a0908;
   border-color: var(--orange);
 }

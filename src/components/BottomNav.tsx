@@ -2,7 +2,7 @@
 import { Link } from '@/lib/nav';
 import { useLocation } from 'react-router-dom';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
-import { COLORS, BOTTOM_NAV_HEIGHT } from '@/lib/theme';
+import { BRAND_GRADIENT, COLORS, BOTTOM_NAV_HEIGHT } from '@/lib/theme';
 
 type Item = {
   href: string;
@@ -91,7 +91,7 @@ export function BottomNav() {
                     top: 4,
                     height: 3,
                     width: 24,
-                    background: COLORS.orange,
+                    background: BRAND_GRADIENT,
                     borderRadius: 2,
                     boxShadow: `0 0 8px ${COLORS.orange}`,
                   }}

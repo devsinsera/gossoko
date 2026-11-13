@@ -1,5 +1,5 @@
 import { Link } from '@/lib/nav';
-import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, HAZARD_STRIPES, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 
 export function AuthShell({
   title,
@@ -111,7 +111,7 @@ export function SubmitButton({ children, busy }: { children: React.ReactNode; bu
       style={{
         opacity: busy ? 0.6 : 1,
         marginTop: SPACE.sm,
-        background: COLORS.orange,
+        background: BRAND_GRADIENT,
         color: '#0a0908',
         border: 'none',
         borderRadius: RADIUS.md,

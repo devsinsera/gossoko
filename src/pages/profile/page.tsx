@@ -1,5 +1,5 @@
 import { Link, useQuery } from '@/lib/nav';
-import { COLORS, HAZARD_STRIPES, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, HAZARD_STRIPES, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { StarIcon, HardHatIcon, FlameIcon, MapPinIcon, ChevronRightIcon, TrophyIcon } from '@/components/icons';
 import { useIsFounder } from '@/lib/founder';
 import { useAuth } from '@/lib/auth';
@@ -424,7 +424,7 @@ export default function ProfilePage() {
                 href="/login"
                 style={{
                   flex: 1, textAlign: 'center',
-                  background: COLORS.orange, color: '#0a0908',
+                  background: BRAND_GRADIENT, color: '#0a0908',
                   borderRadius: RADIUS.md, padding: '10px 12px',
                   fontWeight: 800, textDecoration: 'none', fontSize: 14,
                 }}

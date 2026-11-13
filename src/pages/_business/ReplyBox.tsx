@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 import type { OwnerReply } from '@/lib/queries/business';
 import { postReply, removeReply } from './actions';
 
@@ -53,7 +53,7 @@ export function ReplyBox({ reviewId, reply, venueName, isOwner }: {
       {error && <p role="alert" style={{ margin: 0, color: COLORS.red, fontSize: 12 }}>{error}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={send} disabled={busy}
-          style={{ background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '8px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
+          style={{ background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '8px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
           {busy ? 'Posting…' : 'Post reply'}
         </button>
         <button type="button" onClick={() => setOpen(false)}

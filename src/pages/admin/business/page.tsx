@@ -3,11 +3,11 @@ import { supabase as getSupabase } from '@/lib/supabase/client';
 import { hasPermission } from '@/lib/auth/permissions';
 import { useLoad, invalidate } from '@/lib/useLoad';
 import { featureVenue, grantPro, setSponsor } from '@/pages/_business/actions';
-import { COLORS, RADIUS } from '@/lib/theme';
+import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '12px 14px' } as const;
 const input = { background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '9px 10px', fontSize: 14, fontFamily: 'inherit' } as const;
-const btn = { background: COLORS.orange, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '9px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer' } as const;
+const btn = { background: BRAND_GRADIENT, color: '#0a0908', border: 'none', borderRadius: RADIUS.md, padding: '9px 14px', fontWeight: 800, fontSize: 13, cursor: 'pointer' } as const;
 const ghost = { background: 'none', border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: RADIUS.md, padding: '8px 12px', fontSize: 12.5, cursor: 'pointer' } as const;
 
 type VenueOpt = { id: string; name: string; suburb: string; pro_until: string | null };

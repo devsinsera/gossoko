@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
 import { useIsFounder } from '@/lib/founder';
 import { supabase as getSupabase } from '@/lib/supabase/client';
-import { COLORS } from '@/lib/theme';
+import { COLORS, BRAND_GRADIENT } from '@/lib/theme';
 
 interface Overview {
   people: number; people_week: number;
@@ -118,7 +118,7 @@ export default function FounderPage() {
 const card = { background: COLORS.surface, border: `1.5px solid ${COLORS.border}`, borderRadius: 12, padding: '12px 14px' } as const;
 const button = {
   marginTop: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-  background: COLORS.orange, color: '#0a0908', fontWeight: 800, fontSize: 14,
+  background: BRAND_GRADIENT, color: '#0a0908', fontWeight: 800, fontSize: 14,
 } as const;
 
 function Tile({ label, value, hint, accent }: { label: string; value: number | undefined; hint?: string; accent?: string }) {

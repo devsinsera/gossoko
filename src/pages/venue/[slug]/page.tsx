@@ -17,7 +17,7 @@ import { HelpfulButton } from '../../_likes/HelpfulButton';
 import { CommentsSection } from '../../_comments/CommentsSection';
 import { VENUE_TYPE_LABELS } from '@/lib/types';
 import type { VenueType } from '@/lib/types';
-import { COLORS, RADIUS, SPACE } from '@/lib/theme';
+import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { RatingBars } from '@/components/RatingBars';
 import { SaveShare } from '@/components/SaveShare';
 import { DealCard } from '@/components/DealCard';
@@ -471,7 +471,7 @@ export default function VenueDetailPage() {
                 <header style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{
                     width: 32, height: 32, borderRadius: '50%',
-                    background: COLORS.orange, color: '#0a0908',
+                    background: BRAND_GRADIENT, color: '#0a0908',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 800, fontSize: 12,
                   }}>
@@ -548,7 +548,7 @@ export default function VenueDetailPage() {
             style={{
               marginTop: SPACE.sm,
               textAlign: 'center',
-              background: COLORS.orange,
+              background: BRAND_GRADIENT,
               color: '#0a0908',
               borderRadius: RADIUS.md,
               padding: 12,
@@ -583,7 +583,7 @@ export default function VenueDetailPage() {
             </div>
             <Link
               href={`/manage/${venue.slug}`}
-              style={{ alignSelf: 'flex-start', background: COLORS.orange, color: '#0a0908', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13, textDecoration: 'none', letterSpacing: 0.5 }}
+              style={{ alignSelf: 'flex-start', background: BRAND_GRADIENT, color: '#0a0908', borderRadius: RADIUS.md, padding: '10px 16px', fontWeight: 800, fontSize: 13, textDecoration: 'none', letterSpacing: 0.5 }}
             >
               Open your dashboard
             </Link>
@@ -606,7 +606,7 @@ export default function VenueDetailPage() {
                 href={`/login?next=${encodeURIComponent(`/venue/${venue.slug}`)}`}
                 style={{
                   alignSelf: 'flex-start',
-                  background: COLORS.orange,
+                  background: BRAND_GRADIENT,
                   color: '#0a0908',
                   borderRadius: RADIUS.md,
                   padding: '10px 16px',
@@ -632,7 +632,7 @@ export default function VenueDetailPage() {
                 <button
                   type="submit"
                   style={{
-                    background: COLORS.orange,
+                    background: BRAND_GRADIENT,
                     color: '#0a0908',
                     border: 'none',
                     borderRadius: RADIUS.md,
