@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from '@/lib/nav';
 import { Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
@@ -19,6 +19,9 @@ import { uploadPhoto, photoUrl } from '@/lib/photos';
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import { invalidate } from '@/lib/useLoad';
 import { VenueQr } from '@/components/VenueQr';
+import { PhotoPicker } from '@/components/PhotoPicker';
+import { chartEmpty, dayBars } from '@/lib/chart';
+import { keepScroll } from '@/lib/keepScroll';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '14px 16px' } as const;
 const input = { background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' } as const;
@@ -44,16 +47,36 @@ function Tile({ label, value, locked }: { label: string; value: number | string 
   );
 }
 
-function Bars({ daily }: { daily: VenueStats['daily'] }) {
-  const max = Math.max(1, ...daily.map((d) => d.views));
-  const w = 100 / Math.max(1, daily.length);
+/** Views per day: a labelled bar per day (weekday for a week, date for longer), the count above each bar. */
+function Bars({ daily, days }: { daily: VenueStats['daily']; days: number }) {
+  if (chartEmpty(daily)) {
+    return (
+      <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13, textAlign: 'center', padding: '18px 8px' }}>
+        No views in the last {days} days yet. Share your QR code or post a deal to get tradies looking.
+      </p>
+    );
+  }
+  const bars = dayBars(daily);
+  const dense = bars.length > 14;
   return (
-    <svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="Views per day" style={{ width: '100%', height: 56, display: 'block' }}>
-      {daily.map((d, i) => {
-        const h = (d.views / max) * 28;
-        return <rect key={d.date} x={i * w + w * 0.15} y={30 - h} width={w * 0.7} height={Math.max(h, 0.5)} fill={COLORS.orange} opacity={d.views ? 1 : 0.25} />;
-      })}
-    </svg>
+    <figure style={{ margin: 0 }}>
+      <figcaption style={{ ...mono, fontSize: 10, color: COLORS.textMuted, marginBottom: 6 }}>Views per day</figcaption>
+      <div role="img" aria-label={`Views per day: ${bars.map((b) => `${b.date} ${b.value}`).join(', ')}`}
+        style={{ display: 'flex', alignItems: 'flex-end', gap: dense ? 1 : 6, height: 110 }}>
+        {bars.map((b) => (
+          <div key={b.date} title={`${b.date}: ${b.value} views`} style={{ flex: 1, minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+            {!dense && <span style={{ fontSize: 11, fontWeight: 700, color: b.value ? COLORS.text : COLORS.textMuted, marginBottom: 2 }}>{b.value}</span>}
+            <div style={{ width: '100%', maxWidth: 36, height: `${Math.max(b.pct, b.value ? 4 : 2)}%`, background: b.value ? COLORS.orange : COLORS.border, borderRadius: '3px 3px 0 0' }} />
+          </div>
+        ))}
+      </div>
+      <div aria-hidden style={{ display: 'flex', gap: dense ? 1 : 6, borderTop: `1px solid ${COLORS.border}`, paddingTop: 4 }}>
+        {bars.map((b) => (
+          <span key={b.date} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 10, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'visible' }}>{b.label}</span>
+        ))}
+      </div>
+      {dense && <p style={{ margin: '4px 0 0', fontSize: 11, color: COLORS.textMuted }}>Busiest day: {Math.max(...bars.map((b) => b.value))} views</p>}
+    </figure>
   );
 }
 
@@ -90,7 +113,7 @@ function Stats({ venueId }: { venueId: string }) {
             <Tile label="Redeemed" value={data.deal_redemptions} locked={!data.pro} />
             <Tile label="Rating" value={data.review_count ? Number(data.rating).toFixed(1) : '—'} />
           </div>
-          <div style={{ ...card, marginTop: 8 }}><Bars daily={data.daily} /></div>
+          <div style={{ ...card, marginTop: 8 }}><Bars daily={data.daily} days={data.days ?? days} /></div>
           <p style={{ color: COLORS.textMuted, fontSize: 12, margin: '6px 0 0' }}>
             {data.saves_total} {data.saves_total === 1 ? 'tradie has' : 'tradies have'} saved {`this spot`} in total.
             {!data.pro && ' Pro shows Directions, Calls, Shares and deal numbers, and goes back 90 days.'}
@@ -105,13 +128,22 @@ function Redeem({ venueId }: { venueId: string }) {
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
   async function go(e: React.FormEvent) {
     e.preventDefault();
+    if (inFlight.current) return;
+    // The button isn't disabled while checking (that drops focus and closes the phone keyboard);
+    // a ref stops a double tap. keepScroll holds the page where it was while the check refreshes it.
+    inFlight.current = true;
     setBusy(true);
-    const res = await redeemDealCode(venueId, code);
-    setBusy(false);
-    if (res.ok) { setMsg({ ok: true, text: `✓ ${res.deal} — for @${res.customer}. Serve them.` }); setCode(''); }
-    else setMsg({ ok: false, text: res.error });
+    try {
+      const res = await keepScroll(() => redeemDealCode(venueId, code));
+      if (res.ok) { setMsg({ ok: true, text: `✓ ${res.deal} — for @${res.customer}. Serve them.` }); setCode(''); }
+      else setMsg({ ok: false, text: res.error });
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
   }
   return (
     <section className="section">
@@ -120,7 +152,7 @@ function Redeem({ venueId }: { venueId: string }) {
         <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13 }}>A customer shows a code like GS-7KQ2. Type it here to confirm and use it up.</p>
         <div style={{ display: 'flex', gap: 8 }}>
           <input aria-label="Deal code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="GS-XXXX" autoCapitalize="characters" autoComplete="off" style={{ ...input, ...mono, fontSize: 16 }} />
-          <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? '…' : 'Check'}</button>
+          <button type="submit" aria-busy={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? '…' : 'Check'}</button>
         </div>
         {msg && <p role="status" style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: msg.ok ? COLORS.green : COLORS.red }}>{msg.text}</p>}
       </form>
@@ -315,11 +347,11 @@ function OwnerPhotos({ venueId, userId }: { venueId: string; userId: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  async function add(files: FileList | null) {
-    if (!files?.length) return;
+  async function add(files: File[]) {
+    if (!files.length) return;
     setBusy(true); setMsg(null);
     try {
-      for (const f of Array.from(files)) await uploadPhoto(userId, venueId, null, f);
+      for (const f of files) await uploadPhoto(userId, venueId, null, f);
       setMsg({ ok: true, text: 'Uploaded. A moderator checks it before it shows.' });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'Upload failed.' }); }
     setBusy(false); reload(); invalidate();
@@ -343,7 +375,8 @@ function OwnerPhotos({ venueId, userId }: { venueId: string; userId: string }) {
             </figure>
           ))}
         </div>
-        <input type="file" accept="image/*" multiple disabled={busy || (data?.length ?? 0) >= 6} onChange={(e) => { void add(e.target.files); e.target.value = ''; }} style={{ color: COLORS.text }} />
+        <PhotoPicker accept="image/*" max={6} disabled={busy || (data?.length ?? 0) >= 6} onFiles={(files) => { void add(files); }}
+          label={(data?.length ?? 0) >= 6 ? 'Photo limit reached (6)' : 'Add photos'} hint="Up to 6. A moderator checks each one before it shows." />
         {busy && <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13 }}>Uploading…</p>}
         {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.green : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
       </div>

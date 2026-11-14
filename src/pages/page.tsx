@@ -21,6 +21,7 @@ import { StarIcon, FlameIcon, MapPinIcon } from '@/components/icons';
 import { VenueDistance } from '@/components/VenueDistance';
 import { Link } from '@/lib/nav';
 import { displayScore, rankVenues } from '@/lib/ranking';
+import { hoursLabel, isOpen24h } from '@/lib/hours';
 
 export default function FeedPage() {
   const { user } = useAuth();
@@ -295,7 +296,7 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
           <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orangeBright} />
           <Stat label="Reviews" value={String(venue.review_count)} />
           <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
-          <Stat label="Opens" value={venue.opens_at} />
+          <Stat label={isOpen24h(venue.opens_at, venue.closes_at) ? 'Hours' : 'Opens'} value={hoursLabel(venue.opens_at, venue.closes_at, 'short') || '—'} />
         </div>
       </div>
     </Link>

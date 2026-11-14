@@ -11,6 +11,8 @@ import { getReviewByUserAndVenue } from '@/lib/queries/reviews';
 import { RATING_LABELS, RATING_ORDER } from '@/lib/types';
 import { COLORS, RADIUS, SPACE, BRAND_RIBBON, BRAND_GRADIENT } from '@/lib/theme';
 import { submitReview } from './actions';
+import { PhotoPicker } from '@/components/PhotoPicker';
+import { MAX_REVIEW_PHOTOS } from '@/lib/photos';
 
 const AXIS_TO_COL: Record<string, string> = {
   coffee_strength: 'coffee_strength_rating',
@@ -142,11 +144,12 @@ export default function NewReviewPage() {
               defaultValue={existing?.body}
             />
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: COLORS.textSecondary }}>
-              Photos (optional, up to 3)
-              <input type="file" name="photos" accept="image/*" multiple style={{ color: COLORS.text }} />
-              <span style={{ fontSize: 12 }}>A moderator checks photos before they show.</span>
-            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 11, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Photos (optional, up to {MAX_REVIEW_PHOTOS})
+              </span>
+              <PhotoPicker name="photos" accept="image/*" max={MAX_REVIEW_PHOTOS} hint="A moderator checks photos before they show." />
+            </div>
 
             <button
               type="submit"
@@ -172,48 +175,53 @@ export default function NewReviewPage() {
   );
 }
 
-function AxisField({ axis, label, colName, defaultValue }: { axis: string; label: string; colName: string; defaultValue?: number }) {
+/**
+ * One rating axis: five buttons, the chosen one filled brand orange with dark text (aria-pressed).
+ * The value goes to the form through a hidden input; submitReview() rejects an axis left unrated.
+ */
+export function AxisField({ axis, label, colName, defaultValue }: { axis: string; label: string; colName: string; defaultValue?: number }) {
+  const [value, setValue] = useState<number | null>(defaultValue && defaultValue >= 1 && defaultValue <= 5 ? defaultValue : null);
   return (
     <div>
-      <div style={{
+      <div id={`axis-${axis}`} style={{
         fontSize: 11, color: COLORS.textSecondary,
         textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
+        display: 'flex', justifyContent: 'space-between',
       }}>
-        {label}
+        <span>{label}</span>
+        <span aria-hidden style={{ color: value ? COLORS.orange : COLORS.textMuted, fontWeight: 700 }}>{value ? `${value}/5` : 'Tap to rate'}</span>
       </div>
-      <div role="radiogroup" aria-label={label} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <label
-            key={n}
-            className="review-axis-btn"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              minHeight: 44,
-              background: COLORS.bgElev,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: RADIUS.md,
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 16,
-              color: COLORS.text,
-              position: 'relative',
-              userSelect: 'none',
-            }}
-          >
-            <input
-              type="radio"
-              name={colName}
-              value={n}
-              required
-              defaultChecked={defaultValue === n}
-              data-axis={axis}
+      <input type="hidden" name={colName} value={value ?? ''} data-axis={axis} />
+      <div role="group" aria-labelledby={`axis-${axis}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const on = value === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              aria-pressed={on}
+              aria-label={`${label}: ${n} out of 5`}
+              onClick={() => setValue(n)}
+              className={on ? 'review-axis-btn review-axis-btn--on' : 'review-axis-btn'}
               style={{
-                position: 'absolute', opacity: 0, pointerEvents: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                minHeight: 44,
+                background: on ? COLORS.orange : COLORS.bgElev,
+                border: `1.5px solid ${on ? COLORS.orange : COLORS.border}`,
+                borderRadius: RADIUS.md,
+                cursor: 'pointer',
+                fontWeight: on ? 900 : 700,
+                fontSize: 16,
+                fontFamily: 'inherit',
+                color: on ? '#0a0908' : COLORS.text,
+                boxShadow: on ? '0 0 0 2px rgba(255,122,0,0.35)' : 'none',
+                userSelect: 'none',
               }}
-            />
-            <span>{n}</span>
-          </label>
-        ))}
+            >
+              {n}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

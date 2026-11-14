@@ -2,10 +2,11 @@ import { Link } from '@/lib/nav';
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
-import { getReviewsByVenueId, getUserLikedReviewIds } from '@/lib/queries/reviews';
+import { getReviewByUserAndVenue, getReviewsByVenueId, getUserLikedReviewIds, reviewCta } from '@/lib/queries/reviews';
 import { getCommentsByReviewIds } from '@/lib/queries/comments';
 import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
+import { hoursLabel, isOpen24h } from '@/lib/hours';
 import { useQuery } from '@/lib/nav';
 import { VenuePhotos } from '@/components/VenuePhotos';
 import { supabase as getSupabase } from '@/lib/supabase/client';
@@ -74,7 +75,7 @@ async function loadVenuePage(slug: string, userId: string | null) {
     userClaimStatus = claim?.status ?? null;
   }
   const ownsVenue = userClaimStatus === 'approved';
-  const [likedSet, commentsMap, allVenues, deals, myCodes, savedIds, replies] = await Promise.all([
+  const [likedSet, commentsMap, allVenues, deals, myCodes, savedIds, replies, myReview] = await Promise.all([
     userId
       ? getUserLikedReviewIds(userId, reviews.map((r) => r.id))
       : Promise.resolve(new Set<string>()),
@@ -84,11 +85,13 @@ async function loadVenuePage(slug: string, userId: string | null) {
     userId ? getMyActiveCodes(userId) : Promise.resolve(new Map()),
     userId ? getSavedVenueIds(userId) : Promise.resolve(new Set<string>()),
     getRepliesByReviewIds(reviews.map((r) => r.id)),
+    // Their own review (any moderation state): the button becomes "Edit your review".
+    userId ? getReviewByUserAndVenue(userId, venue.id) : Promise.resolve(null),
   ]);
   const similar = allVenues
     .filter((v) => v.id !== venue.id && v.venue_type === venue.venue_type)
     .slice(0, 4);
-  return { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved: savedIds.has(venue.id), replies };
+  return { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved: savedIds.has(venue.id), replies, myReview };
 }
 
 export default function VenueDetailPage() {
@@ -104,7 +107,8 @@ export default function VenueDetailPage() {
 
   if (loading && !data) return <VenueDetailLoading />;
   if (!data) return <NotFound />;
-  const { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved, replies } = data;
+  const { venue, reviews, ownsVenue, userClaimStatus, likedSet, commentsMap, similar, deals, myCodes, saved, replies, myReview } = data;
+  const cta = reviewCta(venue.slug, myReview);
   const reportBanner = report ? REPORT_BANNER[report] : null;
   const reviewBanner = review ? REVIEW_BANNER[review] : null;
   const claimBanner = claim ? CLAIM_BANNER[claim] : null;
@@ -212,8 +216,14 @@ export default function VenueDetailPage() {
             <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orange} />
             <Stat label="Reviews" value={String(venue.review_count)} />
             <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
-            <Stat label="Opens" value={venue.opens_at} />
-            <Stat label="Closes" value={venue.closes_at} />
+            {isOpen24h(venue.opens_at, venue.closes_at) ? (
+              <Stat label="Hours" value="Open 24 hours" />
+            ) : (
+              <>
+                <Stat label="Opens" value={hoursLabel(venue.opens_at, venue.closes_at, 'short') || '—'} />
+                <Stat label="Closes" value={venue.closes_at ? venue.closes_at.slice(0, 5) : '—'} />
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -376,7 +386,7 @@ export default function VenueDetailPage() {
         <InfoBlock
           icon={<ClockIcon size={18} />}
           label="Hours"
-          value={`${venue.opens_at} – ${venue.closes_at}`}
+          value={hoursLabel(venue.opens_at, venue.closes_at) || 'Not listed'}
         />
         <InfoBlock
           icon={<StarIcon size={18} filled />}
@@ -537,7 +547,7 @@ export default function VenueDetailPage() {
             ))
           )}
           <Link
-            href={`/review/new?venue=${venue.slug}`}
+            href={cta.href}
             style={{
               marginTop: SPACE.sm,
               textAlign: 'center',
@@ -551,7 +561,7 @@ export default function VenueDetailPage() {
               letterSpacing: 0.5,
             }}
           >
-            Write a review
+            {cta.label}
           </Link>
         </div>
       </section>

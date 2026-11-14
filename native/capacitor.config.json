@@ -28,6 +28,10 @@
         "sound",
         "alert"
       ]
+    },
+    "SystemBars": {
+      "style": "DARK",
+      "initialViewportFitValueHint": "cover"
     }
   }
 }

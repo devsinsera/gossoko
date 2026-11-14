@@ -5,6 +5,9 @@
 */
 
 :root {
+  /* Status-bar height. env() works in Safari and newer Android WebViews; the Capacitor 8 Android
+     shell also injects --safe-area-inset-top (SystemBars, insetsHandling "css") for older ones. */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --bg: #0a0908;
   --bg-elev: #100c09;
   --surface: #17110d;
@@ -102,7 +105,19 @@ button { font: inherit; color: inherit; }
 
 .app-content {
   padding: 0 16px;
-  padding-top: max(env(safe-area-inset-top, 0px), 8px);
+  padding-top: max(var(--safe-top), 8px);
+}
+
+/* A solid strip behind the phone's status bar (edge-to-edge Android, iPhone notch): content
+   scrolls under it, not under the clock and battery icons. Zero height where there's no inset. */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--safe-top);
+  background: var(--bg);
+  z-index: 90;
+  pointer-events: none;
 }
 
 /* Top bar — shared by most screens */
@@ -330,15 +345,15 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
 .h-scroll > * { scroll-snap-align: start; }
 
 /* Review-axis radio buttons — checked state */
-.review-axis-btn:has(input:checked) {
-  background: var(--brand-grad);
-  box-shadow: var(--extrude-box), var(--brand-glow);
-  color: var(--on-orange);
-  border-color: var(--cream);
+/* Rating buttons on the review form: the chosen one is filled orange with dark text (aria-pressed). */
+.review-axis-btn[aria-pressed="true"] {
+  background: var(--brand-grad) !important;
+  box-shadow: var(--extrude-box), var(--brand-glow) !important;
+  color: var(--on-orange) !important;
+  border-color: var(--orange-bright) !important;
 }
-.review-axis-btn:hover {
-  border-color: var(--orange);
-}
+.review-axis-btn:hover { border-color: var(--orange) !important; }
+.review-axis-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 
 /* Print only the counter QR poster. */
 @media print {
@@ -510,6 +525,10 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
 }
 .tab-nav__brand { display: none; }
 .tab-nav__item--rail { display: none; }
+/* Keyboard up (lib/keyboard.ts): the phone tab bar steps aside instead of floating over it. */
+@media (max-width: 767px) {
+  .tab-nav--keyboard { display: none; }
+}
 
 /* ── Tablet (iPad, Android tablets, any window 768 px and wider) ─────── */
 @media (min-width: 768px) {
@@ -525,7 +544,7 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
     max-width: 1080px;
     margin: 0 auto;
     padding: 0 var(--gutter);
-    padding-top: max(env(safe-area-inset-top, 0px), 16px);
+    padding-top: max(var(--safe-top), 16px);
   }
   /* Detail pages and forms keep a readable column. */
   .app-frame[data-width="read"] .app-content { max-width: 780px; }
@@ -546,7 +565,7 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
     top: 0; right: auto; bottom: 0;
     width: calc(var(--rail-w) + env(safe-area-inset-left, 0px));
     height: auto;
-    padding: max(env(safe-area-inset-top, 0px), 18px) 0 max(env(safe-area-inset-bottom, 0px), 18px) env(safe-area-inset-left, 0px);
+    padding: max(var(--safe-top), 18px) 0 max(env(safe-area-inset-bottom, 0px), 18px) env(safe-area-inset-left, 0px);
     border-top: none;
     border-right: 1px solid var(--border);
     flex-direction: column;

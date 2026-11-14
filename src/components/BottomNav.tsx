@@ -2,6 +2,7 @@ import { Link } from '@/lib/nav';
 import { useLocation } from 'react-router-dom';
 import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { useIsFounder } from '@/lib/founder';
+import { useKeyboardOpen } from '@/lib/keyboard';
 import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
 
 type Item = {
@@ -25,13 +26,15 @@ const ITEMS: Item[] = [
 export function BottomNav() {
   const pathname = useLocation().pathname || '/';
   const founder = useIsFounder();
+  // Android shrinks the page when the keyboard opens; don't let the tab bar ride up on top of it.
+  const keyboard = useKeyboardOpen();
   // The owner's Founder tab (like Sona): admins only, on the rail.
   const items: Item[] = founder
     ? [...ITEMS, { href: '/founder', label: 'Founder', Icon: TrophyIcon, matches: (p) => p.startsWith('/founder'), railOnly: true }]
     : ITEMS;
 
   return (
-    <nav aria-label="Primary" className="tab-nav">
+    <nav aria-label="Primary" className={keyboard ? 'tab-nav tab-nav--keyboard' : 'tab-nav'}>
       <span className="tab-nav__brand" aria-hidden>
         <img src={pinUrl} alt="" />
       </span>

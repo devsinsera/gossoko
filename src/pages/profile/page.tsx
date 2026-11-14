@@ -126,6 +126,8 @@ export default function ProfilePage() {
         </section>
       )}
 
+      {!authUser && <SignInCard />}
+
       {/* Identity card */}
       <section className="section">
         <div style={{
@@ -368,10 +370,10 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Account block — real Supabase session */}
+      {/* Account block — real Supabase session (signed out, the sign-in card sits at the top) */}
+      {authUser && (
       <section className="section">
         <div className="section-title"><h2>Account</h2></div>
-        {authUser ? (
           <div style={{
             background: COLORS.surface,
             border: `1.5px solid ${COLORS.border}`,
@@ -409,52 +411,64 @@ export default function ProfilePage() {
             </div>
             <DeleteAccount onDeleted={() => { void signOut(); }} />
           </div>
-        ) : (
-          <div style={{
-            background: COLORS.surface,
-            border: `1.5px solid ${COLORS.border}`,
-            borderRadius: RADIUS.lg,
-            padding: SPACE.lg,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: SPACE.sm,
-          }}>
-            <div style={{ fontSize: 13, color: COLORS.textSecondary }}>
-              Not signed in. Sign in to save spots, get deal codes and post reviews.
-            </div>
-            <div style={{ display: 'flex', gap: SPACE.sm }}>
-              <Link
-                href="/login"
-                style={{
-                  flex: 1, textAlign: 'center',
-                  background: BRAND_GRADIENT, color: '#0a0908',
-                  borderRadius: RADIUS.md, padding: '10px 12px',
-                  fontWeight: 800, textDecoration: 'none', fontSize: 14,
-                }}
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                style={{
-                  flex: 1, textAlign: 'center',
-                  background: 'transparent', color: COLORS.orange,
-                  border: `1.5px solid ${COLORS.orange}`,
-                  borderRadius: RADIUS.md, padding: '10px 12px',
-                  fontWeight: 800, textDecoration: 'none', fontSize: 14,
-                }}
-              >
-                Create account
-              </Link>
-            </div>
-          </div>
-        )}
       </section>
+      )}
 
       <LegalLinks style={{ marginTop: 20 }} />
 
       <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
+  );
+}
+
+/** Signed out: the first thing on Profile is how to sign in or make an account. */
+export function SignInCard() {
+  return (
+    <section className="section" aria-labelledby="profile-signin">
+      <div style={{
+        background: COLORS.surface,
+        border: `1.5px solid ${COLORS.orange}`,
+        borderRadius: RADIUS.lg,
+        overflow: 'hidden',
+      }}>
+        <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
+        <div style={{ padding: SPACE.lg, display: 'flex', flexDirection: 'column', gap: SPACE.md }}>
+          <div>
+            <h2 id="profile-signin" style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: COLORS.text, textTransform: 'uppercase' }}>
+              Sign in to Gossoko
+            </h2>
+            <p style={{ margin: '4px 0 0', fontSize: 13.5, color: COLORS.textSecondary, lineHeight: 1.5 }}>
+              Save spots, get deal codes and post reviews.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: SPACE.sm }}>
+            <Link
+              href="/login"
+              style={{
+                flex: 1, textAlign: 'center',
+                background: BRAND_GRADIENT, color: '#0a0908',
+                borderRadius: RADIUS.md, padding: '12px 12px',
+                fontWeight: 800, textDecoration: 'none', fontSize: 15,
+              }}
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signup"
+              style={{
+                flex: 1, textAlign: 'center',
+                background: 'transparent', color: COLORS.orange,
+                border: `1.5px solid ${COLORS.orange}`,
+                borderRadius: RADIUS.md, padding: '12px 12px',
+                fontWeight: 800, textDecoration: 'none', fontSize: 15,
+              }}
+            >
+              Create account
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
