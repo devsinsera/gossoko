@@ -82,7 +82,7 @@ async function loadApp() {
     report: (await import('@/pages/_report/actions')).reportContent,
     claim: (await import('@/pages/_claims/actions')).claimVenue,
     deleteReview: (await import('@/pages/profile/actions')).deleteReview,
-    mod: await import('@/pages/admin/moderation/actions'),
+    mod: await import('@/pages/staff/moderation/actions'),
     biz: await import('@/pages/_business/actions'),
     bq: await import('@/lib/queries/business'),
     adminApi: await import('@/lib/api/admin'),

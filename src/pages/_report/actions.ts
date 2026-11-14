@@ -35,6 +35,7 @@ export async function reportContent(input: {
     })
     .select('id')
     .single();
+  if (error?.hint === 'already_reported') return 'submitted';   // one report per person per thing (15 Nov 2026)
   if (error || !report) {
     console.error('[gossoko] content_reports insert failed:', error?.message);
     return 'error';

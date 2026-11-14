@@ -6,6 +6,7 @@ import { ActionForm } from '@/components/ActionForm';
 import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import { USER_ROLES, type UserRole } from '@/types/rbac';
 import { updateUserRole } from './actions';
+import { getEmails } from '@/lib/queries/profile';
 
 const STATUS_MESSAGES: Record<string, { text: string; ok: boolean }> = {
   updated: { text: 'Role updated and audit-logged.', ok: true },
@@ -40,12 +41,16 @@ export default function AdminUsersPage() {
   const [status, setStatus] = useState<string | undefined>();
   const statusMsg = status ? STATUS_MESSAGES[status] : undefined;
 
-  const { data: res, loading } = useLoad(async () =>
-    getSupabase()
+  const { data: res, loading } = useLoad(async () => {
+    const r = await getSupabase()
       .from('profiles')
-      .select('id, email, username, full_name, role, created_at, trade_type')
+      .select('id, username, full_name, role, created_at, trade_type')
       .order('created_at', { ascending: false })
-      .limit(200), []);
+      .limit(200);
+    const rows = (r.data ?? []) as { id: string }[];
+    const emails = await getEmails(rows.map((x) => x.id));   // staff only; not readable from the table
+    return { ...r, data: rows.map((x) => ({ ...x, email: emails.get(x.id) ?? '' })) };
+  }, []);
   if (loading || !res) return <p style={{ color: COLORS.textSecondary }}>Loading…</p>;
   const { data, error } = res;
 

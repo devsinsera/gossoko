@@ -68,7 +68,7 @@ export async function submitReview(form: FormData): Promise<SubmitReviewResult> 
       ok: false,
       error: dbError.message.includes('unique')
         ? 'You already reviewed this venue. Reload the page to edit.'
-        : dbError.hint === 'rate_limited' ? dbError.message
+        : dbError.hint === 'rate_limited' || dbError.hint === 'own_venue' ? dbError.message
         : /row-level security/i.test(dbError.message) ? 'Your account can\'t post right now.'
         : 'Could not save your review. Please try again.',
     };

@@ -38,7 +38,7 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, username, full_name, bio, avatar_url, trade_type, role, is_verified, reviews_count, followers_count, following_count, created_at')
+    .select('id, username, full_name, bio, avatar_url, trade_type, role, is_verified, reviews_count, followers_count, following_count, created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -47,7 +47,7 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
     return null;
   }
   if (!data) return null;
-  const r = data as Row;
+  const r = { ...(data as Omit<Row, 'email'>), email: (await getEmails([userId])).get(userId) ?? '' } as Row;
   return {
     id: r.id,
     email: r.email,
@@ -70,4 +70,17 @@ export function initialsFromName(name: string): string {
   if (parts.length === 0) return 'GO';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
+ * Email addresses for these profiles: your own, or anyone's when you are staff. The email column
+ * isn't readable through the table (it was public until 15 Nov 2026); the database answers this.
+ */
+export async function getEmails(ids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!ids.length) return out;
+  const { data, error } = await getSupabase().rpc('profile_emails', { p_ids: ids });
+  if (error) { console.error('[gossoko] profile_emails failed:', error.message); return out; }
+  for (const r of (data ?? []) as { id: string; email: string | null }[]) if (r.email) out.set(r.id, r.email);
+  return out;
 }

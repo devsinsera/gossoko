@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { hoursLabel, isOpen24h, isOpenAt, toMinutes } from '@/lib/hours';
+import { brisbaneMinutes, hoursLabel, isOpen24h, isOpenAt, toMinutes } from '@/lib/hours';
 
-const at = (h: number, m = 0) => new Date(2026, 10, 14, h, m);
+// h:m in Brisbane (UTC+10), whatever zone the test machine is in.
+const at = (h: number, m = 0) => new Date(Date.UTC(2026, 10, 13, h + 14, m));
 
 describe('hours', () => {
   it('reads times, including Postgres-style seconds and 24:00', () => {
@@ -45,5 +46,14 @@ describe('hours', () => {
     expect(isOpenAt(null, '14:00', at(9))).toBe(false);
     expect(hoursLabel('05:30', '14:00')).toBe('05:30–14:00');
     expect(hoursLabel('05:30', '14:00', 'short')).toBe('05:30');
+  });
+});
+
+describe('Queensland time, not the phone\'s zone (15 Nov 2026)', () => {
+  it('05:15 in Brisbane is before a 05:30 opening even on a Sydney phone in daylight saving (06:15 there)', () => {
+    const brisbane0515 = new Date('2026-11-16T05:15:00+10:00');
+    expect(brisbaneMinutes(brisbane0515)).toBe(5 * 60 + 15);
+    expect(isOpenAt('05:30', '14:00', brisbane0515)).toBe(false);
+    expect(isOpenAt('05:30', '14:00', new Date('2026-11-16T05:30:00+10:00'))).toBe(true);
   });
 });

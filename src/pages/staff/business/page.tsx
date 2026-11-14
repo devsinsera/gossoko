@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase as getSupabase } from '@/lib/supabase/client';
+import { getEmails } from '@/lib/queries/profile';
 import { hasPermission } from '@/lib/auth/permissions';
 import { useLoad, invalidate } from '@/lib/useLoad';
 import { featureVenue, grantPro, setSponsor } from '@/pages/_business/actions';
@@ -11,7 +12,7 @@ const btn = { background: BRAND_GRADIENT, color: '#0a0908', border: 'none', bord
 const ghost = { background: 'none', border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: RADIUS.md, padding: '8px 12px', fontSize: 12.5, cursor: 'pointer' } as const;
 
 type VenueOpt = { id: string; name: string; suburb: string; pro_until: string | null };
-type Req = { id: string; note: string | null; created_at: string; venue: { id: string; slug: string; name: string; suburb: string } | null; profile: { username: string | null; email: string } | null };
+type Req = { id: string; user_id: string; note: string | null; created_at: string; venue: { id: string; slug: string; name: string; suburb: string } | null; profile: { username: string | null; email?: string } | null };
 type Spon = { id: string; brand: string; headline: string; end_date: string; impressions: number; clicks: number };
 type Promo = { id: string; tier: string; end_date: string; total_impressions: number; total_clicks: number; venue: { name: string } | null };
 
@@ -23,7 +24,7 @@ async function load() {
   const from = new Date(monthStart.getTime() - monthStart.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const [venues, reqs, promos, usage, sponsors] = await Promise.all([
     sb.from('venues').select('id, name, suburb, pro_until').eq('moderation_status', 'approved').is('deleted_at', null).order('name').limit(500),
-    sb.from('pro_requests').select('id, note, created_at, venue:venues ( id, slug, name, suburb ), profile:profiles!pro_requests_user_id_fkey ( username, email )').eq('status', 'open').order('created_at'),
+    sb.from('pro_requests').select('id, note, created_at, venue:venues ( id, slug, name, suburb ), user_id, profile:profiles!pro_requests_user_id_fkey ( username )').eq('status', 'open').order('created_at'),
     sb.from('featured_venues').select('id, tier, end_date, total_impressions, total_clicks, venue:venues ( name )').is('deleted_at', null).gt('end_date', new Date().toISOString()).order('end_date'),
     /* every row of the month: one request stops at 1 000, and this table has a row per venue per day —
        so past about thirty busy venues the redemption sheet quietly under-counted (13 Nov 2026) */
@@ -49,7 +50,10 @@ async function load() {
   const venueList = (venues.data ?? []) as VenueOpt[];
   const names = new Map(venueList.map((v) => [v.id, v]));
   const sheet = [...byVenue].map(([id, u]) => ({ id, name: names.get(id)?.name ?? '—', ...u })).filter((r) => r.redeemed || r.claims).sort((a, b) => b.redeemed - a.redeemed);
-  return { venues: venueList, reqs: (reqs.data ?? []) as unknown as Req[], promos: (promos.data ?? []) as unknown as Promo[], sponsors: (sponsors.data ?? []) as Spon[], sheet, from };
+  const reqList = (reqs.data ?? []) as unknown as Req[];
+  const emails = await getEmails(reqList.map((r) => r.user_id));   // not readable from the table since 15 Nov 2026
+  for (const r of reqList) if (r.profile) r.profile.email = emails.get(r.user_id);
+  return { venues: venueList, reqs: reqList, promos: (promos.data ?? []) as unknown as Promo[], sponsors: (sponsors.data ?? []) as Spon[], sheet, from };
 }
 
 export default function AdminBusinessPage() {

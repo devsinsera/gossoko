@@ -22,13 +22,19 @@ export function isOpen24h(opens: string | null | undefined, closes: string | nul
   return false;
 }
 
-/** Open at this moment (the device's local time), including windows that cross midnight. */
+/** Minutes after midnight in Brisbane (UTC+10 all year, no daylight saving) — venue hours are Queensland time,
+ *  so a phone set to Sydney/Melbourne time in summer (an hour ahead) still reads them right. */
+export function brisbaneMinutes(at: Date): number {
+  return ((at.getUTCHours() + 10) % 24) * 60 + at.getUTCMinutes();
+}
+
+/** Open at this moment in Queensland time, including windows that cross midnight. */
 export function isOpenAt(opens: string | null | undefined, closes: string | null | undefined, at: Date = new Date()): boolean {
   const o = toMinutes(opens);
   const c = toMinutes(closes);
   if (o == null || c == null) return false;
   if (isOpen24h(opens, closes)) return true;
-  const now = at.getHours() * 60 + at.getMinutes();
+  const now = brisbaneMinutes(at);
   return c > o ? now >= o && now < c : now >= o || now < c;
 }
 

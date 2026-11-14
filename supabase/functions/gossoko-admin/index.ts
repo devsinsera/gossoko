@@ -74,6 +74,11 @@ Deno.serve(async (req) => {
       if (!report || report.reported_by !== user.id) return json({ error: 'Report not found' }, 404);
       // moderation_queue.content_type allows review|comment|user|venue (migration 20261110000001).
       const contentType = report.reportable_type;
+      // One open queue item per reported thing: more reports on it don't add more work (15 Nov 2026 —
+      // one review reported 11 times made 13 queue items in the launch-week sim).
+      const { data: open } = await admin.from('moderation_queue').select('id')
+        .eq('content_type', contentType).eq('content_id', report.reportable_id).eq('status', 'pending').limit(1);
+      if (open?.length) return json({ ok: true, queued: false });
       const { error } = await admin.from('moderation_queue').insert({
         content_report_id: report.id,
         content_type: contentType,
