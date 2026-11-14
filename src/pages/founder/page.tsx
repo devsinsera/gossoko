@@ -69,7 +69,7 @@ export default function FounderPage() {
       <header className="top-bar">
         <div>
           <h1>FOUNDER</h1>
-          <p className="top-bar__sub">Owner tools · only admins see this</p>
+          <p className="top-bar__sub">Owner tools · only this login sees this</p>
         </div>
       </header>
 

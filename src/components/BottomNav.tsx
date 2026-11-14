@@ -28,7 +28,7 @@ export function BottomNav() {
   const founder = useIsFounder();
   // Android shrinks the page when the keyboard opens; don't let the tab bar ride up on top of it.
   const keyboard = useKeyboardOpen();
-  // The owner's Founder tab (like Sona): admins only, on the rail.
+  // The owner's Founder tab: only the owner login (src/lib/founder.ts), on the rail.
   const items: Item[] = founder
     ? [...ITEMS, { href: '/founder', label: 'Founder', Icon: TrophyIcon, matches: (p) => p.startsWith('/founder'), railOnly: true }]
     : ITEMS;
