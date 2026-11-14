@@ -1,6 +1,7 @@
 // Queries behind deals, saved spots, promoted placement, owner replies and the owner dashboard.
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import { CLOCK_SKEW_MS, dealState } from '@/lib/deals';
+import { withSchedule } from './dealSchema';
 
 export interface Deal {
   id: string;
@@ -22,11 +23,11 @@ export interface Deal {
   venue: { slug: string; name: string; suburb: string } | null;
 }
 
-const DEAL_COLS = `id, venue_id, title, description, terms, discount_percentage, discount_amount,
-  start_date, end_date, days_of_week, max_redemptions, redeemed_count, claimed_count, venue:venues ( slug, name, suburb )`;
+const dealCols = (withDays: boolean) => `id, venue_id, title, description, terms, discount_percentage, discount_amount,
+  start_date, end_date,${withDays ? ' days_of_week,' : ''} max_redemptions, redeemed_count, claimed_count, venue:venues ( slug, name, suburb )`;
 
-type DealRow = Omit<Deal, 'description' | 'terms'> & { description: string | null; terms: string | null };
-const toDeal = (r: DealRow): Deal => ({ ...r, description: r.description ?? '', terms: r.terms ?? '' });
+type DealRow = Omit<Deal, 'description' | 'terms' | 'days_of_week'> & { description: string | null; terms: string | null; days_of_week?: number[] | null };
+const toDeal = (r: DealRow): Deal => ({ ...r, days_of_week: r.days_of_week ?? null, description: r.description ?? '', terms: r.terms ?? '' });
 
 /** "20% OFF", "$5 OFF" or "DEAL". */
 export function dealBadge(d: Pick<Deal, 'discount_percentage' | 'discount_amount'>): string {
@@ -43,16 +44,18 @@ export function soldOut(d: Pick<Deal, 'max_redemptions' | 'redeemed_count'>): bo
  *  Pass a venue id for one venue's deals. */
 export async function getLiveDeals(venueId?: string): Promise<Deal[]> {
   const nowIso = new Date().toISOString();
-  let q = getSupabase()
-    .from('venue_specials')
-    .select(DEAL_COLS)
-    .is('deleted_at', null)
-    .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
-    .gt('end_date', nowIso)
-    .order('end_date', { ascending: true })
-    .limit(60);
-  if (venueId) q = q.eq('venue_id', venueId);
-  const { data, error } = await q;
+  const { data, error } = await withSchedule((withDays) => {
+    let q = getSupabase()
+      .from('venue_specials')
+      .select(dealCols(withDays))
+      .is('deleted_at', null)
+      .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
+      .gt('end_date', nowIso)
+      .order('end_date', { ascending: true })
+      .limit(60);
+    if (venueId) q = q.eq('venue_id', venueId);
+    return q;
+  });
   if (error) {
     console.error('[gossoko] getLiveDeals failed:', error.message);
     return [];
@@ -64,12 +67,12 @@ export async function getLiveDeals(venueId?: string): Promise<Deal[]> {
 /** Every deal a venue has (live, scheduled, finished, ended early), for its owner. RLS shows owners
  *  their own ended deals (migration 20261115000001); others only ever see live ones. */
 export async function getDealsForOwner(venueId: string): Promise<Deal[]> {
-  const { data, error } = await getSupabase()
+  const { data, error } = await withSchedule((withDays) => getSupabase()
     .from('venue_specials')
-    .select(`${DEAL_COLS}, deleted_at`)
+    .select(`${dealCols(withDays)}, deleted_at`)
     .eq('venue_id', venueId)
     .order('end_date', { ascending: false })
-    .limit(30);
+    .limit(30));
   if (error) {
     console.error('[gossoko] getDealsForOwner failed:', error.message);
     return [];

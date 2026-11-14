@@ -115,3 +115,28 @@ describe('ended deals', () => {
     expect(dealRunsAt(d, MON_7AM)).toBe(false);
   });
 });
+
+describe('deploy-safe before migration 20261115000002', async () => {
+  const { withSchedule, isMissingColumn, scheduleSupported, resetScheduleSupport } = await import('@/lib/queries/dealSchema');
+  it('recognises "no such column" from a select and an insert', () => {
+    expect(isMissingColumn({ code: '42703', message: 'column venue_specials.days_of_week does not exist' })).toBe(true);
+    expect(isMissingColumn({ code: 'PGRST204', message: "Could not find the 'days_of_week' column of 'venue_specials' in the schema cache" })).toBe(true);
+    expect(isMissingColumn({ code: '42501', message: 'permission denied' })).toBe(false);
+  });
+  it('falls back to the old columns and remembers it', async () => {
+    resetScheduleSupport();
+    const run = vi.fn(async (withDays: boolean) => (withDays
+      ? { data: null, error: { code: '42703', message: 'column venue_specials.days_of_week does not exist' } }
+      : { data: [1], error: null }));
+    expect(await withSchedule(run)).toEqual({ data: [1], error: null });
+    expect(scheduleSupported()).toBe(false);
+    await withSchedule(run);
+    expect(run.mock.calls.map((c) => c[0])).toEqual([true, false, false]);
+  });
+  it('uses the new columns when they are there', async () => {
+    resetScheduleSupport();
+    const r = await withSchedule(async () => ({ data: [2], error: null }));
+    expect(r.data).toEqual([2]);
+    expect(scheduleSupported()).toBe(true);
+  });
+});

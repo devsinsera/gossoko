@@ -4,6 +4,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
 import { invalidate } from '@/lib/useLoad';
+import { isMissingColumn, markSchedule } from '@/lib/queries/dealSchema';
 
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; hint?: string };
 
@@ -96,10 +97,17 @@ export async function createDeal(d: NewDeal): Promise<Result> {
     // Starting now: the database stamps its own clock (a phone's clock can be off).
     start_date: d.startsAt ? new Date(from).toISOString() : null,
     end_date: new Date(from + d.hours * 3600_000).toISOString(),
-    days_of_week: days,
+    // Only sent when used, so an every-day deal still posts on a database without the column yet.
+    ...(days ? { days_of_week: days } : {}),
     max_redemptions: d.maxRedemptions && d.maxRedemptions > 0 ? Math.floor(d.maxRedemptions) : null,
   });
-  if (error) return fail(error, 'Couldn\'t post the deal. Try again.');
+  if (error) {
+    if (isMissingColumn(error)) {
+      markSchedule(false);
+      return { ok: false, error: 'Picking weekdays needs an update to Gossoko that isn\'t live yet. Post it for every day for now.' };
+    }
+    return fail(error, 'Couldn\'t post the deal. Try again.');
+  }
   invalidate();
   return { ok: true };
 }

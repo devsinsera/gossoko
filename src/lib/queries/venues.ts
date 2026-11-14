@@ -7,6 +7,7 @@ import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
 import { brisbaneWeekday, hoursOn, isOpenWeek, type DayHours } from '@/lib/hours';
 import { CLOCK_SKEW_MS, dealState, type DealWindow } from '@/lib/deals';
+import { withSchedule } from './dealSchema';
 
 type VenueRow = {
   id: string;
@@ -140,20 +141,20 @@ export async function getAllVenues(): Promise<Venue[]> {
 /** Venue ids with a deal running now; null when the read fails (callers keep deal_until). */
 async function liveDealVenueIds(): Promise<Set<string> | null> {
   const nowIso = new Date().toISOString();
-  const { data, error } = await getSupabase()
+  const { data, error } = await withSchedule((withDays) => getSupabase()
     .from('venue_specials')
-    .select('venue_id, start_date, end_date, days_of_week')
+    .select(withDays ? 'venue_id, start_date, end_date, days_of_week' : 'venue_id, start_date, end_date')
     .is('deleted_at', null)
     .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
     .gt('end_date', nowIso)
-    .limit(2000);
+    .limit(2000));
   if (error) {
     console.error('[gossoko] live deals read failed:', error.message);
     return null;
   }
   const now = Date.now();
   type Row = { venue_id: string } & DealWindow;
-  return new Set((data as Row[]).filter((d) => dealState(d, now) === 'live').map((d) => d.venue_id));
+  return new Set((data as unknown as Row[]).filter((d) => dealState(d, now) === 'live').map((d) => d.venue_id));
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {

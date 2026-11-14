@@ -11,6 +11,7 @@ import {
 import { ReplyBox } from '../../_business/ReplyBox';
 import { createDeal, endDeal, MAX_SCHEDULE_DAYS, redeemDealCode, requestPro, saveVenueDetails, saveWeekHours } from '../../_business/actions';
 import { hoursOn, WEEK_ORDER, WEEKDAY_NAMES } from '@/lib/hours';
+import { scheduleSupported } from '@/lib/queries/dealSchema';
 import { brisbaneLocalToIso, daysLabel, dealState, isoToBrisbaneLocal, WEEKDAYS, type DealState } from '@/lib/deals';
 import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
 import { isNative } from '@/lib/bio';
@@ -181,6 +182,10 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
   const live = deals.filter((d) => states.get(d.id) === 'live');
   const upcoming = deals.filter((d) => states.get(d.id) === 'scheduled' || states.get(d.id) === 'not-today');
   const limit = pro ? PRO_DEAL_LIMIT : FREE_DEAL_LIMIT;
+  // Weekdays + booking the next deal while one is live need migration 20261115000002. Until it's on the
+  // database, the controls that would fail are hidden (the deal list itself loaded without them).
+  const scheduling = scheduleSupported() !== false;
+  const full = live.length >= limit;
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(blankDeal);
   const [err, setErr] = useState<string | null>(null);
@@ -241,7 +246,7 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
         {!pro && deals.length > 0 && <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 12 }}>Pro shows how many codes each deal issued and how many were used.</p>}
         {!open && (
           <button type="button" onClick={() => setOpen(true)} style={{ ...primary, alignSelf: 'flex-start' }}>
-            {live.length >= limit ? 'Schedule the next deal' : 'Post a deal'}
+            {full ? (scheduling ? 'Schedule the next deal' : pro ? 'Deal limit reached' : 'Add another (needs Pro)') : 'Post a deal'}
           </button>
         )}
       </div>
@@ -258,12 +263,15 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
             </select>
             {f.kind !== 'other' && <input aria-label="Amount" type="number" min={1} step={f.kind === 'amount' ? 0.5 : 1} value={f.value} onChange={(e) => setF({ ...f, value: Number(e.target.value) })} style={{ ...input, width: 90 }} />}
           </div>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
+          {!scheduling && (
+            <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 12.5 }}>Scheduling needs an update: picking weekdays{full ? ' and booking the next deal while one is live' : ''} will work once it&apos;s live.</p>
+          )}
+          {(scheduling || !full) && <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
             Starts (leave empty to start now)
             <input aria-label="Starts" type="datetime-local" value={f.start} min={isoToBrisbaneLocal(now)} max={isoToBrisbaneLocal(now + MAX_SCHEDULE_DAYS * 86400_000)}
               onChange={(e) => setF({ ...f, start: e.target.value })} style={input} />
-          </label>
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+          </label>}
+          {scheduling && <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 }}>Runs on {f.days.length === 0 ? '(every day)' : daysLabel(f.days)}</legend>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {WEEKDAYS.map((w) => {
@@ -276,14 +284,14 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
                 );
               })}
             </div>
-          </fieldset>
+          </fieldset>}
           <div style={{ display: 'flex', gap: 8 }}>
             <select aria-label="Runs for" value={f.hours} onChange={(e) => setF({ ...f, hours: Number(e.target.value) })} style={input}>
               <option value={4}>Runs 4 hours</option><option value={24}>Runs 1 day</option><option value={24 * 7}>Runs 1 week</option><option value={24 * 14}>Runs 2 weeks</option><option value={24 * 30}>Runs 30 days</option><option value={24 * 60}>Runs 60 days</option>
             </select>
             <input aria-label="Limit" type="number" min={1} placeholder="Limit (optional)" value={f.max} onChange={(e) => setF({ ...f, max: e.target.value })} style={input} />
           </div>
-          {!pro && live.length >= limit && (
+          {!pro && full && scheduling && (
             <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 12.5 }}>Free runs one deal at a time: start this one after your live deal ends, or on other days.</p>
           )}
           {err && <p role="alert" style={{ margin: 0, color: COLORS.red, fontSize: 13 }}>{err}</p>}
@@ -349,7 +357,7 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
     setBusy(false);
     if (res.ok) setPin(null);
     setMsg(res.ok
-      ? { ok: true, text: placeChanged ? 'Saved. The new name/address is live; our team checks changed listings.' : 'Saved.' }
+      ? { ok: true, text: 'Saved.' }
       : { ok: false, text: res.error });
   }
   const small = { fontSize: 12, color: COLORS.textSecondary } as const;
@@ -371,7 +379,7 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
             {pin ? `New pin: ${pin.label.split(',').slice(0, 3).join(',')} (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)})` : `Pin: ${venue.lat.toFixed(5)}, ${venue.lng.toFixed(5)}`}
           </span>
         </div>
-        {placeChanged && <p style={{ ...small, margin: 0 }}>Changing the name or address goes live straight away, and our team gets a note to check it.</p>}
+        {placeChanged && <p style={{ ...small, margin: 0 }}>A new name or address goes live straight away.</p>}
         <input aria-label="Tagline" placeholder="One line that sells it" maxLength={120} value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} style={input} />
         <textarea aria-label="About" rows={3} maxLength={600} placeholder="About the place" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} style={{ ...input, resize: 'vertical' }} />
         <input aria-label="Phone" type="tel" placeholder="Phone (shows a Call button)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} style={input} />

@@ -93,7 +93,18 @@ export async function resetPassword(newPassword: string): Promise<{ success: boo
  * confirmation has no session yet, so the row is created on the first sign-in
  * from the username captured at sign-up.
  */
-export async function ensureProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): Promise<void> {
+const ensuring = new Map<string, Promise<void>>();
+
+export function ensureProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): Promise<void> {
+  // Sign-up, sign-in and the auth listener can all ask at once: one check per user at a time.
+  const running = ensuring.get(user.id);
+  if (running) return running;
+  const p = ensureProfileOnce(user).finally(() => ensuring.delete(user.id));
+  ensuring.set(user.id, p);
+  return p;
+}
+
+async function ensureProfileOnce(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): Promise<void> {
   const sb = supabase();
   const { data, error } = await sb.from('profiles').select('id').eq('id', user.id).maybeSingle();
   if (error || data) return;
