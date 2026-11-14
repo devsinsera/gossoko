@@ -12,15 +12,20 @@ export function AuthShell({
 }) {
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: COLORS.bg,
       color: COLORS.text,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'safe center',
       padding: SPACE.lg,
+      overflowY: 'auto',
+      boxSizing: 'border-box',
     }}>
-      <header style={{ width: '100%', maxWidth: 420, marginTop: SPACE.xl, marginBottom: SPACE.xl }}>
+      {/* margin:auto centres the login / create-account card on the screen; when it is taller than the phone it scrolls from the top. */}
+      <div style={{ width: '100%', maxWidth: 420, margin: 'auto', flexShrink: 0 }}>
+      <header style={{ width: '100%', marginBottom: SPACE.md }}>
         <Link href="/" style={{ color: COLORS.textSecondary, textDecoration: 'none', fontSize: 13 }}>
           ← Gossoko
         </Link>
@@ -28,7 +33,6 @@ export function AuthShell({
 
       <section style={{
         width: '100%',
-        maxWidth: 420,
         background: COLORS.surface,
         border: `1.5px solid ${COLORS.border}`,
         borderRadius: RADIUS.lg,
@@ -45,6 +49,7 @@ export function AuthShell({
           {children}
         </div>
       </section>
+      </div>
     </div>
   );
 }
