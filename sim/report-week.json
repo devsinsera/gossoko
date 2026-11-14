@@ -1,0 +1,103 @@
+{
+  "simulated": "2026-05-07 → 2026-05-13",
+  "people": {
+    "admin": 1,
+    "lurker": 29,
+    "spammer": 8,
+    "tradie": 72,
+    "owner": 6,
+    "moderator": 1
+  },
+  "totals": {
+    "profiles": 117,
+    "venues": 18,
+    "reviews": 18,
+    "comments": 8,
+    "review_likes": 5,
+    "content_reports": 3,
+    "venue_claims": 6,
+    "moderation_queue": 3,
+    "audit_logs": 12
+  },
+  "activity": {
+    "claims": 6,
+    "venuesSubmitted": 2,
+    "reviewsPosted": 11,
+    "dealsPosted": 2,
+    "spamPosted": 6,
+    "ownerReplies": 1,
+    "probesPassed": 32,
+    "avgVenueWaitDays": 0.6
+  },
+  "feedLatency": {
+    "2026-05": {
+      "visits": 139,
+      "p50ms": 6,
+      "p95ms": 7
+    }
+  },
+  "issues": {
+    "sign-up refused: \"Liam_sparky\" is taken — try adding your trade or a number.": {
+      "count": 2,
+      "first": "2026-05-11",
+      "example": "Liam_sparky"
+    },
+    "sign-up refused: \"Kirra\" is taken — try adding your trade or a number.": {
+      "count": 2,
+      "first": "2026-05-11",
+      "example": "Kirra"
+    },
+    "sign-up refused: \"Shane_landscaper\" is taken — try adding your trade or a number.": {
+      "count": 2,
+      "first": "2026-05-12",
+      "example": "Shane_landscaper"
+    },
+    "sign-up refused: \"Brodie_tiler\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-11",
+      "example": "Brodie_tiler"
+    },
+    "sign-up refused: \"Tom_brickie\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-11",
+      "example": "Tom_brickie"
+    },
+    "sign-up refused: \"Nat\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-13",
+      "example": "Nat"
+    },
+    "sign-up refused: \"Tom\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-13",
+      "example": "Tom"
+    },
+    "sign-up refused: \"Steph_landscaper\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-13",
+      "example": "Steph_landscaper"
+    },
+    "sign-up refused: \"Shane\" is taken — try adding your trade or a number.": {
+      "count": 1,
+      "first": "2026-05-13",
+      "example": "Shane"
+    }
+  },
+  "appErrors": {},
+  "lastDay": {
+    "day": "2026-05-13",
+    "users": 117,
+    "venuesShown": 16,
+    "reviews": 17,
+    "hiddenReviews": 6,
+    "pendingVenues": 0,
+    "worstScoreGap": 0,
+    "venuesWithWrongCount": 0,
+    "venuesShowing0WithReviews": 0,
+    "spamLive": 0,
+    "abuseLive": 0,
+    "helpfulDrift": 0,
+    "profileDrift": 0
+  },
+  "monthly": []
+}
