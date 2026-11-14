@@ -70,6 +70,7 @@ function Bare({ children }: { children: ReactNode }) {
 
 function Gate({ children }: { children: ReactNode }) {
   const { status } = useAuth();
+  const { pathname } = useLocation();
   if (!configured()) {
     return (
       <p style={{ padding: 24, color: COLORS.text }}>
@@ -79,6 +80,10 @@ function Gate({ children }: { children: ReactNode }) {
   }
   if (status === 'loading') return <div style={{ minHeight: '100vh', background: COLORS.bg }} />;
   if (status === 'locked') return <LockScreen />;
+  // The phone/tablet app has no public feed: signed out, it opens on the sign-in page.
+  const native = Boolean((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+  const authPath = /^\/(login|signup|auth)(\/|$)/.test(pathname);
+  if (native && status === 'out' && !authPath) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
