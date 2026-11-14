@@ -16,6 +16,7 @@ import ForgotPage from './pages/auth/forgot/page';
 import ResetPage from './pages/auth/reset/page';
 import ConfirmPage from './pages/auth/confirm/page';
 import NotFound from './pages/not-found';
+import SalesRedirect from './pages/sales-redirect';
 
 const NearbyPage = lazy(() => import('./pages/nearby/page'));
 const RankingsPage = lazy(() => import('./pages/rankings/page'));
@@ -102,6 +103,8 @@ export default function App() {
                   <Route path="review/new" element={<NewReviewPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
+                <Route path="about/*" element={<SalesRedirect page="about" />} />
+                <Route path="business/*" element={<SalesRedirect page="business" />} />
                 <Route path="login" element={<Bare><LoginPage /></Bare>} />
                 <Route path="signup" element={<Bare><SignupPage /></Bare>} />
                 <Route path="auth/forgot" element={<Bare><ForgotPage /></Bare>} />

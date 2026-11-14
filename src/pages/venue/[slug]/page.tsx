@@ -23,6 +23,7 @@ import { SaveShare } from '@/components/SaveShare';
 import { DealCard } from '@/components/DealCard';
 import { ReplyBox } from '../../_business/ReplyBox';
 import { directionsUrl } from '@/lib/geo';
+import { salesHref, salesLinksVisible } from '@/site/native';
 import { getLiveDeals, getMyActiveCodes, getRepliesByReviewIds, getSavedVenueIds, trackVenueEvent } from '@/lib/queries/business';
 import { VenueCard } from '@/components/VenueCard';
 import { VenueDistance } from '@/components/VenueDistance';
@@ -591,6 +592,9 @@ export default function VenueDetailPage() {
             <>
               <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13, lineHeight: 1.5 }}>
                 Run this gossoko van, food truck or café? Sign in to claim it and keep its listing accurate.
+                {salesLinksVisible() && (
+                  <> <a href={salesHref('business', import.meta.env.BASE_URL)} style={{ color: COLORS.orange, fontWeight: 700 }}>What you get</a></>
+                )}
               </p>
               <Link
                 href={`/login?next=${encodeURIComponent(`/venue/${venue.slug}`)}`}
