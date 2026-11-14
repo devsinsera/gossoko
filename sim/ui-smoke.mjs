@@ -7,10 +7,13 @@ import { mkdirSync } from 'node:fs';
 const PW = process.env.PLAYWRIGHT_PATH ?? `${process.env.HOME}/Dev-Sinsera/Sinsera Core/Ui/node_modules/playwright/index.mjs`;
 const { chromium } = await import(PW);
 const DB = process.env.SIM_DB ?? 'postgresql://postgres:postgres@127.0.0.1:55422/postgres';
-const API = 'http://127.0.0.1:55421';
+const API = process.env.SIM_API ?? 'http://127.0.0.1:55421';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 const OUT = process.env.SMOKE_OUT ?? 'sim/shots';
 const PORT = 4791;
+// Layout since 14 Nov: /gossoko/ = website, /gossoko/admin/ = the app, /gossoko/login/ = sign-in.
+const APP = `http://127.0.0.1:${PORT}/gossoko/admin`;
+const LOGIN = `http://127.0.0.1:${PORT}/gossoko/login/`;
 const q = (s) => execFileSync('psql', [DB, '-AtqX', '-F', '|', '-c', s], { encoding: 'utf8' }).trim();
 
 mkdirSync(OUT, { recursive: true });
@@ -34,16 +37,16 @@ async function session(email) {
   page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   page.on('pageerror', (e) => errs.push('UNCAUGHT ' + e.message));
   if (email) {
-    await page.goto(`http://127.0.0.1:${PORT}/gossoko/login`);
+    await page.goto(LOGIN);
     await page.fill('input[name=email]', email);
     await page.fill('input[name=password]', 'Tradie2026!sim');
     await page.click('button[type=submit]');
-    await page.waitForURL((u) => !u.pathname.endsWith('/login'), { timeout: 15000 });
+    await page.waitForURL((u) => !/\/login\/?$/.test(u.pathname), { timeout: 15000 });
   }
   return { page, errs, ctx };
 }
 async function visit(s, path, expects, shot) {
-  await s.page.goto(`http://127.0.0.1:${PORT}/gossoko${path}`);
+  await s.page.goto(`${APP}${path}`);
   await s.page.waitForLoadState('networkidle');
   await s.page.waitForTimeout(400);
   const body = await s.page.locator('body').innerText();

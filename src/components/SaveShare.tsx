@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COLORS } from '@/lib/theme';
 import { HeartIcon } from './icons';
 import { toggleSave } from '@/pages/_business/actions';
@@ -21,16 +21,29 @@ export function SaveShare({ venueId, slug, name, initialSaved, signedIn }: {
   const [saved, setSaved] = useState(initialSaved);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
   useEffect(() => setSaved(initialSaved), [initialSaved]);
 
-  async function save() {
-    if (!signedIn) { navigate(`/login?next=${encodeURIComponent(`/venue/${slug}`)}`); return; }
+  async function save(force?: boolean) {
+    // Signed out: sign in, come back here and finish the save (?save=1 below).
+    if (!signedIn) { navigate(`/login?next=${encodeURIComponent(`/venue/${slug}?save=1`)}`); return; }
     setBusy(true);
-    const res = await toggleSave(venueId, saved);
+    const res = await toggleSave(venueId, force ? false : saved);
     setBusy(false);
-    if (res.ok) setSaved(res.saved);
+    if (res.ok) { setSaved(res.saved); if (force) setNote('Saved to your spots.'); }
     else setNote(res.error);
   }
+
+  // Back from sign-in with ?save=1: save it once (already saved = nothing to do), then drop the flag.
+  const pending = params.get('save') === '1';
+  useEffect(() => {
+    if (!pending || !signedIn) return;
+    const next = new URLSearchParams(params);
+    next.delete('save');
+    setParams(next, { replace: true });
+    if (!initialSaved) void save(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, signedIn]);
 
   async function share() {
     const out = await shareVenue(slug, name);
@@ -44,7 +57,7 @@ export function SaveShare({ venueId, slug, name, initialSaved, signedIn }: {
       <button type="button" onClick={share} aria-label="Share this venue" style={btn}>
         <span style={label}>Share</span>
       </button>
-      <button type="button" onClick={save} disabled={busy} aria-pressed={saved} aria-label={saved ? 'Remove from saved spots' : 'Save this venue'}
+      <button type="button" onClick={() => save()} disabled={busy} aria-pressed={saved} aria-label={saved ? 'Remove from saved spots' : 'Save this venue'}
         style={{ ...btn, color: saved ? COLORS.orange : COLORS.text, borderColor: saved ? COLORS.orange : COLORS.border, opacity: busy ? 0.7 : 1 }}>
         <HeartIcon size={16} filled={saved} />
         <span style={label}>{saved ? 'Saved' : 'Save'}</span>

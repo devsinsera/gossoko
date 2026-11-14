@@ -39,6 +39,9 @@ const AdminUsersPage = lazy(() => import('./pages/staff/users/page'));
 /** Sections that use the full tablet width; the rest (detail pages, forms) keep a readable column. */
 const WIDE_SECTIONS = new Set(['feed', 'nearby', 'search', 'deals', 'founder', 'manage']);
 
+/** Sections whose pages carry their own top-right buttons, so the floating Log in pill stays off them. */
+const OWN_TOP_ACTIONS = new Set(['venue', 'review']);
+
 /** Scroll to top on navigation, like a page load. */
 function Frame() {
   const { pathname } = useLocation();
@@ -55,7 +58,9 @@ function Frame() {
   const width = WIDE_SECTIONS.has(section) && (section !== 'manage' || manageIndex) ? 'wide' : 'read';
   return (
     <div className="app-frame" data-width={width} data-out={!user && status === 'out' ? '1' : undefined} key={section}>
-      {!user && status === 'out' && (
+      {/* Signed-out Log in pill. Not on a venue page: its top row has Back / Share / Save right where the pill
+          floats, and Save itself goes to sign-in (fortnight sim 15 Nov: the pill sat on Save on phones). */}
+      {!user && status === 'out' && !OWN_TOP_ACTIONS.has(section) && (
         <Link to="/login" aria-label="Log in" style={{ position: 'fixed', top: 'calc(var(--safe-top, 0px) + 10px)', right: 14, zIndex: 60, minHeight: 40, display: 'inline-flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, background: COLORS.text, color: COLORS.bg, fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 6px 18px rgba(0,0,0,.35)' }}>Log in</Link>
       )}
       <main className="app-content"><Outlet /></main>

@@ -15,7 +15,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase, getRemember, setRemember, configured, authStore, AUTH_STORAGE_KEY } from '@/lib/supabase/client';
 import { looksLikeSession } from '@/lib/supabase/sessionStore';
 import { keychainSlot, nativePlugin, verifyOwner } from '@/lib/bio';
-import { bootStep, passBiometricGate, signInWithRemember } from '@/lib/authFlow';
+import { authEventStep, bootStep, passBiometricGate, signInWithRemember } from '@/lib/authFlow';
 import { ensureProfile } from '@/lib/api/auth';
 
 const BIO_KEY = 'gossoko.bio';
@@ -92,12 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     boot().catch((e) => { console.error('[gossoko] boot failed', e); setStatus('out'); });
   }, [boot]);
 
-  // Follow sign-outs. (The session store itself keeps the Keychain copy current.)
+  // Follow sign-ins that don't come through the sign-in form (create account, emailed links), token
+  // refreshes and sign-outs. (The session store itself keeps the Keychain copy current.)
+  const statusRef = useRef<AuthStatus>(status);
+  statusRef.current = status;
   useEffect(() => {
     if (!configured()) return;
     const { data: sub } = supabase().auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') { setUser(null); setStatus('out'); return; }
-      if (event === 'PASSWORD_RECOVERY' && session) finishIn(session.user);
+      const step = authEventStep(event, Boolean(session), statusRef.current);
+      if (step === 'out') { setUser(null); setStatus('out'); statusRef.current = 'out'; return; }
+      if (step !== 'in' || !session) return;
+      if (statusRef.current === 'in') { setUser(session.user); return; }
+      statusRef.current = 'in';
+      // Supabase runs these callbacks inside its auth lock: no awaiting Supabase calls here.
+      setTimeout(() => { void ensureProfile(session.user); }, 0);
+      finishIn(session.user);
     });
     return () => sub.subscription.unsubscribe();
   }, [finishIn]);
@@ -124,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ensureProfile,
     }, email, password, remember);
     if (r.error || !r.user) return { error: r.error ?? 'Invalid email or password' };
+    if (statusRef.current === 'in') { setUser(r.user); return {}; } // the SIGNED_IN event got here first
+    statusRef.current = 'in';
     finishIn(r.user);
     return {};
   }, [finishIn]);

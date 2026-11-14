@@ -9,8 +9,9 @@ import {
   dealBadge, getDealsForOwner, getManagedVenues, getRepliesByReviewIds, getVenueStats, type VenueStats,
 } from '@/lib/queries/business';
 import { ReplyBox } from '../../_business/ReplyBox';
-import { createDeal, endDeal, redeemDealCode, requestPro, saveVenueDetails, saveWeekHours } from '../../_business/actions';
+import { createDeal, endDeal, MAX_SCHEDULE_DAYS, redeemDealCode, requestPro, saveVenueDetails, saveWeekHours } from '../../_business/actions';
 import { hoursOn, WEEK_ORDER, WEEKDAY_NAMES } from '@/lib/hours';
+import { brisbaneLocalToIso, daysLabel, dealState, isoToBrisbaneLocal, WEEKDAYS, type DealState } from '@/lib/deals';
 import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
 import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
@@ -23,6 +24,7 @@ import { VenueQr } from '@/components/VenueQr';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { chartEmpty, dayBars } from '@/lib/chart';
 import { keepScroll } from '@/lib/keepScroll';
+import { geocodeAddress } from '@/lib/geocode';
 
 const card = { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, padding: '14px 16px' } as const;
 const input = { background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' } as const;
@@ -161,46 +163,85 @@ function Redeem({ venueId }: { venueId: string }) {
   );
 }
 
+function dealWhen(d: { start_date: string; end_date: string; days_of_week: number[] | null; deleted_at?: string | null }, state: DealState): string {
+  const at = (iso: string) => new Date(iso).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const days = d.days_of_week?.length ? ` · ${daysLabel(d.days_of_week)}` : '';
+  if (state === 'finished') return d.deleted_at ? (Date.parse(d.deleted_at) < Date.parse(d.start_date) ? 'Cancelled' : `Ended ${at(d.deleted_at)}`) : 'Finished';
+  if (state === 'scheduled') return `Starts ${at(d.start_date)} · ends ${at(d.end_date)}${days}`;
+  if (state === 'not-today') return `Not today${days} · ends ${at(d.end_date)}`;
+  return `Live · ends ${at(d.end_date)}${days}`;
+}
+
+const blankDeal = { title: '', description: '', terms: '', kind: 'other' as 'percent' | 'amount' | 'other', value: 10, hours: 24 * 7, max: '', start: '', days: [] as number[] };
+
 function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: Awaited<ReturnType<typeof getDealsForOwner>> }) {
   const now = Date.now();
-  const live = deals.filter((d) => Date.parse(d.end_date) > now);
+  const states = new Map(deals.map((d) => [d.id, dealState(d, now)] as const));
+  // "One deal at a time" = one LIVE at a time; scheduled deals wait their turn.
+  const live = deals.filter((d) => states.get(d.id) === 'live');
+  const upcoming = deals.filter((d) => states.get(d.id) === 'scheduled' || states.get(d.id) === 'not-today');
   const limit = pro ? PRO_DEAL_LIMIT : FREE_DEAL_LIMIT;
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ title: '', description: '', terms: '', kind: 'other' as 'percent' | 'amount' | 'other', value: 10, hours: 24 * 7, max: '' });
+  const [f, setF] = useState(blankDeal);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ending, setEnding] = useState<string | null>(null);
+  const [endErr, setEndErr] = useState<{ id: string; text: string } | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const startsAt = f.start ? brisbaneLocalToIso(f.start) : null;
+    if (f.start && !startsAt) { setErr('Pick a start date and time.'); return; }
     setBusy(true);
     setErr(null);
-    const res = await createDeal({ venueId, title: f.title, description: f.description, terms: f.terms, kind: f.kind, value: Number(f.value), hours: f.hours, maxRedemptions: f.max ? Number(f.max) : null });
+    const res = await createDeal({ venueId, title: f.title, description: f.description, terms: f.terms, kind: f.kind, value: Number(f.value), hours: f.hours, maxRedemptions: f.max ? Number(f.max) : null, startsAt, days: f.days });
     setBusy(false);
-    if (res.ok) { setOpen(false); setF({ ...f, title: '', description: '', terms: '' }); } else setErr(res.error);
+    if (res.ok) { setOpen(false); setF(blankDeal); } else setErr(res.error);
   }
+
+  async function end(id: string) {
+    setEnding(id);
+    setEndErr(null);
+    const res = await endDeal(id);
+    setEnding(null);
+    // Success: endDeal refreshes the page's data (the row moves to Finished). Failure: say why, on the row.
+    if (!res.ok) setEndErr({ id, text: res.error });
+  }
+
+  const toggleDay = (n: number) => setF({ ...f, days: f.days.includes(n) ? f.days.filter((x) => x !== n) : [...f.days, n] });
 
   return (
     <section className="section">
-      <div className="section-title"><h2>Deals</h2><span className="mono-chip">{live.length}/{limit} live</span></div>
+      <div className="section-title"><h2>Deals</h2><span className="mono-chip">{live.length}/{limit} live{upcoming.length ? ` · ${upcoming.length} coming up` : ''}</span></div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {deals.slice(0, 8).map((d) => {
-          const isLive = Date.parse(d.end_date) > now;
+          const state = states.get(d.id) ?? 'finished';
+          const active = state !== 'finished';
           return (
-            <div key={d.id} style={{ ...card, opacity: isLive ? 1 : 0.6 }}>
+            <div key={d.id} style={{ ...card, opacity: active ? 1 : 0.6 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <strong style={{ color: COLORS.orange, ...mono, fontSize: 11 }}>{dealBadge(d)}</strong>
                 <span style={{ color: COLORS.text, fontWeight: 700, flex: 1 }}>{d.title}</span>
-                {isLive && <button type="button" onClick={() => endDeal(d.id)} style={{ background: 'none', border: 'none', color: COLORS.textMuted, textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>End</button>}
+                {active && (
+                  <button type="button" onClick={() => end(d.id)} disabled={ending === d.id}
+                    style={{ background: 'none', border: 'none', color: COLORS.textMuted, textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>
+                    {ending === d.id ? 'Ending…' : state === 'scheduled' ? 'Cancel' : 'End'}
+                  </button>
+                )}
               </div>
               <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 4 }}>
-                {isLive ? `Ends ${new Date(d.end_date).toLocaleString('en-AU', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : 'Finished'} · {d.claimed_count} codes · {d.redeemed_count} redeemed
+                {dealWhen(d, state)}
+                {/* Deal numbers are a Pro feature (business page: "Deal codes issued and redeemed"), same as the tiles above. */}
+                {pro ? ` · ${d.claimed_count} codes · ${d.redeemed_count} redeemed` : ''}
               </div>
+              {endErr?.id === d.id && <p role="alert" style={{ margin: '6px 0 0', color: COLORS.red, fontSize: 13 }}>{endErr.text}</p>}
             </div>
           );
         })}
+        {!pro && deals.length > 0 && <p style={{ margin: 0, color: COLORS.textMuted, fontSize: 12 }}>Pro shows how many codes each deal issued and how many were used.</p>}
         {!open && (
           <button type="button" onClick={() => setOpen(true)} style={{ ...primary, alignSelf: 'flex-start' }}>
-            {live.length >= limit ? (pro ? 'Deal limit reached' : 'Add another (needs Pro)') : 'Post a deal'}
+            {live.length >= limit ? 'Schedule the next deal' : 'Post a deal'}
           </button>
         )}
       </div>
@@ -217,15 +258,37 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
             </select>
             {f.kind !== 'other' && <input aria-label="Amount" type="number" min={1} step={f.kind === 'amount' ? 0.5 : 1} value={f.value} onChange={(e) => setF({ ...f, value: Number(e.target.value) })} style={{ ...input, width: 90 }} />}
           </div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
+            Starts (leave empty to start now)
+            <input aria-label="Starts" type="datetime-local" value={f.start} min={isoToBrisbaneLocal(now)} max={isoToBrisbaneLocal(now + MAX_SCHEDULE_DAYS * 86400_000)}
+              onChange={(e) => setF({ ...f, start: e.target.value })} style={input} />
+          </label>
+          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 }}>Runs on {f.days.length === 0 ? '(every day)' : daysLabel(f.days)}</legend>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {WEEKDAYS.map((w) => {
+                const on = f.days.includes(w.value);
+                return (
+                  <button key={w.value} type="button" aria-pressed={on} onClick={() => toggleDay(w.value)}
+                    style={{ ...mono, fontSize: 11, padding: '6px 10px', borderRadius: 999, cursor: 'pointer', border: `1.5px solid ${on ? COLORS.orange : COLORS.border}`, background: on ? COLORS.orange : COLORS.surface, color: on ? '#0a0908' : COLORS.text }}>
+                    {w.label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
           <div style={{ display: 'flex', gap: 8 }}>
             <select aria-label="Runs for" value={f.hours} onChange={(e) => setF({ ...f, hours: Number(e.target.value) })} style={input}>
-              <option value={4}>Runs 4 hours</option><option value={24}>Runs 1 day</option><option value={24 * 7}>Runs 1 week</option><option value={24 * 30}>Runs 30 days</option>
+              <option value={4}>Runs 4 hours</option><option value={24}>Runs 1 day</option><option value={24 * 7}>Runs 1 week</option><option value={24 * 14}>Runs 2 weeks</option><option value={24 * 30}>Runs 30 days</option><option value={24 * 60}>Runs 60 days</option>
             </select>
             <input aria-label="Limit" type="number" min={1} placeholder="Limit (optional)" value={f.max} onChange={(e) => setF({ ...f, max: e.target.value })} style={input} />
           </div>
+          {!pro && live.length >= limit && (
+            <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 12.5 }}>Free runs one deal at a time: start this one after your live deal ends, or on other days.</p>
+          )}
           {err && <p role="alert" style={{ margin: 0, color: COLORS.red, fontSize: 13 }}>{err}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? 'Posting…' : 'Post deal'}</button>
+            <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? 'Posting…' : f.start ? 'Schedule deal' : 'Post deal'}</button>
             <button type="button" onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: COLORS.textSecondary, cursor: 'pointer' }}>Cancel</button>
           </div>
         </form>
@@ -235,7 +298,10 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
 }
 
 function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>>['venue']> }) {
-  const [f, setF] = useState({ tagline: venue.tagline, description: venue.description, phone: venue.phone ?? '', opens_at: venue.opens_at, closes_at: venue.closes_at });
+  const [f, setF] = useState({
+    name: venue.name, address: venue.address ?? '', suburb: venue.suburb, postcode: venue.postcode ?? '',
+    tagline: venue.tagline, description: venue.description, phone: venue.phone ?? '', opens_at: venue.opens_at, closes_at: venue.closes_at,
+  });
   // Weekday hours (Peta, 15 Nov 2026): off = the usual hours every day.
   const [byDay, setByDay] = useState(Boolean(venue.week?.length));
   const [days, setDays] = useState(() => WEEK_ORDER.map((d) => {
@@ -243,20 +309,69 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
     return { day: d, opens: h.opens.slice(0, 5), closes: h.closes.slice(0, 5), closed: h.closed };
   }));
   const setDay = (i: number, patch: Partial<(typeof days)[number]>) => setDays(days.map((d, k) => (k === i ? { ...d, ...patch } : d)));
+  // A new map position from Find on map / this phone's location; null = keep the current pin.
+  const [pin, setPin] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const placeChanged = f.name.trim() !== venue.name || f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb
+    || f.postcode.trim() !== (venue.postcode ?? '') || pin !== null;
+  const addressChanged = f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb;
+
+  async function findOnMap() {
+    setLocating(true); setMsg(null);
+    const r = await geocodeAddress({ address: f.address, suburb: f.suburb, postcode: f.postcode });
+    setLocating(false);
+    if (r.ok) setPin(r.hit); else setMsg({ ok: false, text: r.error });
+  }
+  function useHere() {
+    if (!navigator.geolocation) { setMsg({ ok: false, text: 'This device can\'t share its location.' }); return; }
+    setLocating(true); setMsg(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setLocating(false); setPin({ lat: p.coords.latitude, lng: p.coords.longitude, label: 'This phone\'s location' }); },
+      (e) => { setLocating(false); setMsg({ ok: false, text: `Couldn't get your location: ${e.message}` }); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    // A moved address needs a matching pin, or Nearby and Directions send tradies to the old spot.
+    if (addressChanged && !pin) { setMsg({ ok: false, text: 'The address changed: tap Find on map (or use this phone\'s location at the venue) so the pin moves too.' }); return; }
     setBusy(true);
-    let res = await saveVenueDetails(venue.id, f);
-    if (res.ok) res = await saveWeekHours(venue.id, byDay ? days : []);
+    let res = await saveVenueDetails(venue.id, {
+      tagline: f.tagline, description: f.description, phone: f.phone, opens_at: f.opens_at, closes_at: f.closes_at,
+      ...(placeChanged ? { name: f.name, address: f.address, suburb: f.suburb, postcode: f.postcode } : {}),
+      ...(pin ? { latitude: pin.lat, longitude: pin.lng } : {}),
+    });
+    // Weekday hours: only call when there is something to set or clear (keeps a plain details save
+    // working on a database without set_venue_hours yet).
+    if (res.ok && (byDay || venue.week?.length)) res = await saveWeekHours(venue.id, byDay ? days : []);
     setBusy(false);
-    setMsg(res.ok ? { ok: true, text: 'Saved.' } : { ok: false, text: res.error });
+    if (res.ok) setPin(null);
+    setMsg(res.ok
+      ? { ok: true, text: placeChanged ? 'Saved. The new name/address is live; our team checks changed listings.' : 'Saved.' }
+      : { ok: false, text: res.error });
   }
+  const small = { fontSize: 12, color: COLORS.textSecondary } as const;
+  const ghost = { background: COLORS.surface, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '8px 12px', fontSize: 13, cursor: 'pointer' } as const;
   return (
     <section className="section">
       <div className="section-title"><h2>Your listing</h2></div>
       <form onSubmit={save} style={{ ...card, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <input aria-label="Venue name" placeholder="Venue name" maxLength={80} required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} style={input} />
+        <input aria-label="Street address" placeholder="Street address" maxLength={200} required value={f.address} onChange={(e) => { setF({ ...f, address: e.target.value }); setPin(null); }} style={input} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input aria-label="Suburb" placeholder="Suburb" maxLength={80} required value={f.suburb} onChange={(e) => { setF({ ...f, suburb: e.target.value }); setPin(null); }} style={input} />
+          <input aria-label="Postcode" placeholder="Postcode" inputMode="numeric" maxLength={4} value={f.postcode} onChange={(e) => setF({ ...f, postcode: e.target.value })} style={{ ...input, width: 110 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button type="button" onClick={findOnMap} disabled={locating} style={ghost}>{locating ? 'Looking…' : 'Find on map'}</button>
+          <button type="button" onClick={useHere} disabled={locating} style={ghost}>Use this phone&apos;s location</button>
+          <span style={small}>
+            {pin ? `New pin: ${pin.label.split(',').slice(0, 3).join(',')} (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)})` : `Pin: ${venue.lat.toFixed(5)}, ${venue.lng.toFixed(5)}`}
+          </span>
+        </div>
+        {placeChanged && <p style={{ ...small, margin: 0 }}>Changing the name or address goes live straight away, and our team gets a note to check it.</p>}
         <input aria-label="Tagline" placeholder="One line that sells it" maxLength={120} value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} style={input} />
         <textarea aria-label="About" rows={3} maxLength={600} placeholder="About the place" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} style={{ ...input, resize: 'vertical' }} />
         <input aria-label="Phone" type="tel" placeholder="Phone (shows a Call button)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} style={input} />

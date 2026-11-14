@@ -3,7 +3,10 @@ import { useLocation } from 'react-router-dom';
 import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { useIsFounder } from '@/lib/founder';
 import { useKeyboardOpen } from '@/lib/keyboard';
-import { HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
+import { CoffeeIcon, HomeIcon, MapPinIcon, SearchIcon, TrophyIcon, UserIcon } from './icons';
+import { useAuth } from '@/lib/auth';
+import { useLoad } from '@/lib/useLoad';
+import { getManagedVenues } from '@/lib/queries/business';
 
 type Item = {
   href: string;
@@ -29,9 +32,16 @@ export function BottomNav() {
   // Android shrinks the page when the keyboard opens; don't let the tab bar ride up on top of it.
   const keyboard = useKeyboardOpen();
   // The owner's Founder tab: only the owner login (src/lib/founder.ts), on the rail.
-  const items: Item[] = founder
-    ? [...ITEMS, { href: '/founder', label: 'Founder', Icon: TrophyIcon, matches: (p) => p.startsWith('/founder'), railOnly: true }]
-    : ITEMS;
+  // Venue owners get their dashboard on the rail (tablet/Mac); one venue → straight to it.
+  const { user } = useAuth();
+  const { data: managed } = useLoad(async () => (user ? getManagedVenues(user.id) : []), [user?.id]);
+  const dash: Item[] = managed && managed.length > 0
+    ? [{ href: managed.length === 1 ? `/manage/${managed[0].slug}` : '/manage', label: 'Dashboard', Icon: CoffeeIcon, matches: (p) => p.startsWith('/manage'), railOnly: true }]
+    : [];
+  const items: Item[] = [
+    ...ITEMS, ...dash,
+    ...(founder ? [{ href: '/founder', label: 'Founder', Icon: TrophyIcon, matches: (p: string) => p.startsWith('/founder'), railOnly: true }] : []),
+  ];
 
   return (
     <nav aria-label="Primary" className={keyboard ? 'tab-nav tab-nav--keyboard' : 'tab-nav'}>

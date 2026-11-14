@@ -6,6 +6,7 @@
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
 import { brisbaneWeekday, hoursOn, isOpenWeek, type DayHours } from '@/lib/hours';
+import { CLOCK_SKEW_MS, dealState, type DealWindow } from '@/lib/deals';
 
 type VenueRow = {
   id: string;
@@ -129,7 +130,30 @@ export async function getAllVenues(): Promise<Venue[]> {
     rows.push(...page);
     if (page.length < PAGE) break;
   }
-  return rows.map(rowToVenue);
+  const venues = rows.map(rowToVenue);
+  // "Has a deal" = a deal running right now. venues.deal_until can't tell a deal that starts next
+  // week or runs Mon–Wed only, so read the live window from the deals themselves.
+  const live = await liveDealVenueIds();
+  return live ? venues.map((v) => ({ ...v, has_deal: live.has(v.id) })) : venues;
+}
+
+/** Venue ids with a deal running now; null when the read fails (callers keep deal_until). */
+async function liveDealVenueIds(): Promise<Set<string> | null> {
+  const nowIso = new Date().toISOString();
+  const { data, error } = await getSupabase()
+    .from('venue_specials')
+    .select('venue_id, start_date, end_date, days_of_week')
+    .is('deleted_at', null)
+    .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
+    .gt('end_date', nowIso)
+    .limit(2000);
+  if (error) {
+    console.error('[gossoko] live deals read failed:', error.message);
+    return null;
+  }
+  const now = Date.now();
+  type Row = { venue_id: string } & DealWindow;
+  return new Set((data as Row[]).filter((d) => dealState(d, now) === 'live').map((d) => d.venue_id));
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { bootStep, enableBiometrics, passBiometricGate, shouldOfferBiometrics, signInWithRemember } from '@/lib/authFlow';
+import { authEventStep, bootStep, enableBiometrics, passBiometricGate, shouldOfferBiometrics, signInWithRemember } from '@/lib/authFlow';
 
 describe('bootStep (app opening)', () => {
   const base = { hasSession: false, native: true, bioOn: false, remember: true, legacyToken: false };
@@ -91,5 +91,29 @@ describe('Enable Face ID', () => {
     expect(await enableBiometrics({ verify: async () => false, setOn, markAsked }, 'Face ID')).toBe(false);
     expect(setOn).not.toHaveBeenCalled();
     expect(markAsked).toHaveBeenCalled();
+  });
+});
+
+describe('authEventStep (session changes while the app runs)', () => {
+  it('picks up the session that create-account returns (fortnight sim 15 Nov: sign-up looked signed out)', () => {
+    expect(authEventStep('SIGNED_IN', true, 'out')).toBe('in');
+  });
+  it('keeps a signed-in user current on refresh / profile update', () => {
+    expect(authEventStep('TOKEN_REFRESHED', true, 'in')).toBe('in');
+    expect(authEventStep('USER_UPDATED', true, 'in')).toBe('in');
+  });
+  it('never lets a background refresh skip the Face ID lock or the boot decision', () => {
+    for (const ev of ['SIGNED_IN', 'TOKEN_REFRESHED', 'INITIAL_SESSION', 'USER_UPDATED']) {
+      expect(authEventStep(ev, true, 'locked')).toBeNull();
+      expect(authEventStep(ev, true, 'loading')).toBeNull();
+    }
+  });
+  it('signs out on SIGNED_OUT; recovery links sign in', () => {
+    expect(authEventStep('SIGNED_OUT', false, 'in')).toBe('out');
+    expect(authEventStep('PASSWORD_RECOVERY', true, 'out')).toBe('in');
+  });
+  it('ignores INITIAL_SESSION and events without a session', () => {
+    expect(authEventStep('INITIAL_SESSION', true, 'out')).toBeNull();
+    expect(authEventStep('SIGNED_IN', false, 'out')).toBeNull();
   });
 });

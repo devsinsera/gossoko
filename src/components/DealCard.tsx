@@ -4,6 +4,7 @@ import { COLORS, RADIUS, BRAND_GRADIENT } from '@/lib/theme';
 import { dealBadge, soldOut, type Deal, type DealCode } from '@/lib/queries/business';
 import { claimDealCode } from '@/pages/_business/actions';
 import { ZapIcon } from './icons';
+import { daysLabel } from '@/lib/deals';
 
 function timeLeft(iso: string, now: number): string {
   const ms = Date.parse(iso) - now;
@@ -62,7 +63,7 @@ export function DealCard({ deal, code, signedIn, showVenue = false }: {
           <ZapIcon size={12} /> {dealBadge(deal)}
         </span>
         <span style={{ marginLeft: 'auto', color: COLORS.textMuted, fontFamily: 'var(--font-label)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          {timeLeft(deal.end_date, now)}
+          {deal.days_of_week?.length ? `${daysLabel(deal.days_of_week)} · ` : ''}{timeLeft(deal.end_date, now)}
         </span>
       </header>
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: COLORS.text }}>{deal.title}</h3>

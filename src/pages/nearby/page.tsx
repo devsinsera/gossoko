@@ -7,10 +7,12 @@ import { VenueMap } from '@/components/VenueMap';
 import { FilterChips } from '@/components/FilterChips';
 import { NearbyList } from './NearbyList';
 import { PromotedSpots } from '@/components/PromotedSpots';
+import { useNear } from '@/components/DistanceProvider';
 
 export default function NearbyPage() {
   const { data, loading } = useLoad(getAllVenues, []);
   const [filter, setFilter] = useState<FilterId>('all');
+  const { near, clearNear } = useNear();
   if (loading && !data) return <NearbyLoading />;
   const ALL = data ?? [];
   const VENUES = applyFilter(ALL, filter);
@@ -22,6 +24,13 @@ export default function NearbyPage() {
           <p className="top-bar__sub">{VENUES.length} {VENUES.length === 1 ? 'venue' : 'venues'}{filter !== 'all' ? ' match' : ''}</p>
         </div>
       </header>
+
+      {near && (
+        <p role="status" style={{ margin: '0 0 10px', fontSize: 13, color: '#a89e92' }}>
+          Distances from the spot in your link ({near.lat.toFixed(4)}, {near.lng.toFixed(4)}).{' '}
+          <button type="button" onClick={clearNear} style={{ background: 'none', border: 'none', padding: 0, color: '#FF8A1A', cursor: 'pointer', fontSize: 13, textDecoration: 'underline' }}>Use my location</button>
+        </p>
+      )}
 
       <FilterChips onChange={setFilter} />
 

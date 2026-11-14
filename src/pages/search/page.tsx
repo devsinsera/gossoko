@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from '@/lib/nav';
+import { Link, useQuery } from '@/lib/nav';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips, DEFAULT_CHIPS } from '@/components/FilterChips';
 import { PromotedSpots } from '@/components/PromotedSpots';
@@ -32,7 +32,9 @@ const chipBtn = {
 } as const;
 
 export default function SearchPage() {
-  const [q, setQ] = useState('');
+  // ?q= from a link (another app, a shared search) fills the box.
+  const { q: linked } = useQuery('q');
+  const [q, setQ] = useState(() => (linked ?? '').slice(0, 80));
   const [filter, setFilter] = useState<FilterId>('all');
   const [recent, setRecent] = useState<string[]>(readRecent);
   const { data } = useLoad(getAllVenues, []);

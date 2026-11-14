@@ -67,11 +67,15 @@ export default function ProfilePage() {
   let myReviews: ReviewRowView[];
 
   if (authUser && profile) {
+    // A shop account (signed up as a shop, or runs a venue) isn't a "Tradie", and nobody is "Brisbane" by default.
+    const shop = managed.length > 0 || authUser.user_metadata?.account_type === 'shop';
     u = {
       handle: profile.username,
       display_name: profile.full_name || profile.username,
-      trade: TRADES.find((t) => t.value === profile.trade_type)?.label ?? 'Tradie',
-      suburb: 'Brisbane',
+      trade: shop
+        ? (managed.length === 1 ? `Runs ${managed[0].name}` : managed.length > 1 ? `Runs ${managed.length} venues` : 'Shop')
+        : TRADES.find((t) => t.value === profile.trade_type)?.label ?? 'Tradie',
+      suburb: shop && managed.length === 1 ? managed[0].suburb : '',
       avatar_color: COLORS.orange,
       initials: initialsFromName(profile.full_name || profile.username),
       bio: profile.bio || 'No bio yet — tap Edit profile to add your trade and a line about you.',
@@ -97,7 +101,7 @@ export default function ProfilePage() {
       handle: 'guest',
       display_name: 'Guest',
       trade: 'tradie',
-      suburb: 'Brisbane',
+      suburb: '',
       avatar_color: COLORS.orange,
       initials: 'GO',
       bio: 'Sign in to see your reviews, badges and stats.',
@@ -113,7 +117,7 @@ export default function ProfilePage() {
         <div>
           <h1>PROFILE</h1>
           <p className="top-bar__sub">
-            {authUser ? 'Signed in' : 'Signed out'} · {u.suburb.toUpperCase()}
+            {authUser ? 'Signed in' : 'Signed out'}{u.suburb ? ` · ${u.suburb.toUpperCase()}` : ''}
           </p>
         </div>
       </header>

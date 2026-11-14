@@ -60,9 +60,16 @@ export interface NewDeal {
   terms: string;
   kind: 'percent' | 'amount' | 'other';
   value: number;
-  hours: number;          // how long it runs from now
+  hours: number;          // how long it runs from its start
   maxRedemptions: number | null;
+  /** When it starts (ISO); null = now. */
+  startsAt?: string | null;
+  /** ISO weekdays it runs on (1 = Mon … 7 = Sun); null/empty = every day. */
+  days?: number[] | null;
 }
+
+/** Most days ahead a deal can be scheduled (the database says the same). */
+export const MAX_SCHEDULE_DAYS = 60;
 
 export async function createDeal(d: NewDeal): Promise<Result> {
   const user = await getCurrentUser();
@@ -72,6 +79,12 @@ export async function createDeal(d: NewDeal): Promise<Result> {
   }
   if (d.kind === 'amount' && !(d.value > 0 && d.value <= 500)) return { ok: false, error: 'Dollars off must be between $0.01 and $500.' };
   if (!(d.hours >= 1 && d.hours <= 24 * 60)) return { ok: false, error: 'A deal can run from 1 hour to 60 days.' };
+  const now = Date.now();
+  const start = d.startsAt ? Date.parse(d.startsAt) : now;
+  if (!Number.isFinite(start)) return { ok: false, error: 'Pick a start date.' };
+  if (start > now + MAX_SCHEDULE_DAYS * 86400_000) return { ok: false, error: `A deal can be scheduled at most ${MAX_SCHEDULE_DAYS} days ahead.` };
+  const from = Math.max(start, now);
+  const days = d.days && d.days.length > 0 && d.days.length < 7 ? [...new Set(d.days)].filter((n) => n >= 1 && n <= 7).sort() : null;
   const { error } = await supabase().from('venue_specials').insert({
     venue_id: d.venueId,
     created_by: user.id,
@@ -80,8 +93,10 @@ export async function createDeal(d: NewDeal): Promise<Result> {
     terms: d.terms.trim() || null,
     discount_percentage: d.kind === 'percent' ? d.value : null,
     discount_amount: d.kind === 'amount' ? d.value : null,
-    start_date: new Date().toISOString(),
-    end_date: new Date(Date.now() + d.hours * 3600_000).toISOString(),
+    // Starting now: the database stamps its own clock (a phone's clock can be off).
+    start_date: d.startsAt ? new Date(from).toISOString() : null,
+    end_date: new Date(from + d.hours * 3600_000).toISOString(),
+    days_of_week: days,
     max_redemptions: d.maxRedemptions && d.maxRedemptions > 0 ? Math.floor(d.maxRedemptions) : null,
   });
   if (error) return fail(error, 'Couldn\'t post the deal. Try again.');
@@ -90,9 +105,11 @@ export async function createDeal(d: NewDeal): Promise<Result> {
 }
 
 export async function endDeal(dealId: string): Promise<Result> {
-  const { error } = await supabase().from('venue_specials')
-    .update({ deleted_at: new Date().toISOString() }).eq('id', dealId);
+  // .select() so a row the database refused to touch (RLS hides it) is an error, not a silent "done".
+  const { data, error } = await supabase().from('venue_specials')
+    .update({ deleted_at: new Date().toISOString() }).eq('id', dealId).select('id');
   if (error) return fail(error, 'Couldn\'t end that deal. Try again.');
+  if (!data?.length) return { ok: false, error: 'That deal couldn\'t be ended from this account. Reload and try again.' };
   invalidate();
   return { ok: true };
 }
@@ -122,14 +139,46 @@ export async function removeReply(replyId: string): Promise<Result> {
 }
 
 // ── listing details ─────────────────────────────────────────────────────────
-export interface VenueDetails { tagline: string; description: string; phone: string; opens_at: string; closes_at: string }
+export interface VenueDetails {
+  tagline: string; description: string; phone: string; opens_at: string; closes_at: string;
+  /** Name and place. Changing them alerts staff to re-check the listing (the claim was for the old ones). */
+  name?: string; address?: string; suburb?: string; postcode?: string;
+  /** New map position (from Find on map / this phone's location); omit to keep the pin. */
+  latitude?: number; longitude?: number;
+}
 
 export async function saveVenueDetails(venueId: string, d: VenueDetails): Promise<Result> {
   const timeOk = (t: string) => t === '' || /^\d{2}:\d{2}$/.test(t);
   if (!timeOk(d.opens_at) || !timeOk(d.closes_at)) return { ok: false, error: 'Opening times must be HH:MM (24h).' };
   const phone = d.phone.replace(/[^\d+ ()-]/g, '').trim();
   if (phone && phone.replace(/\D/g, '').length < 8) return { ok: false, error: 'That phone number looks too short.' };
+  const place: Record<string, string | number | null> = {};
+  if (d.name !== undefined) {
+    const name = d.name.trim().replace(/\s+/g, ' ');
+    if (name.length < 2 || name.length > 80) return { ok: false, error: 'The venue name needs 2–80 characters.' };
+    place.name = name;
+  }
+  if (d.address !== undefined) {
+    if (d.address.trim().length < 4) return { ok: false, error: 'Street address is required.' };
+    place.address = d.address.trim().slice(0, 200);
+  }
+  if (d.suburb !== undefined) {
+    if (d.suburb.trim().length < 2) return { ok: false, error: 'Suburb is required.' };
+    place.suburb = d.suburb.trim().slice(0, 80);
+  }
+  if (d.postcode !== undefined) {
+    const pc = d.postcode.trim();
+    if (pc && !/^\d{4}$/.test(pc)) return { ok: false, error: 'Postcode is 4 digits.' };
+    place.postcode = pc || null;
+  }
+  if (d.latitude !== undefined || d.longitude !== undefined) {
+    const { latitude: lat, longitude: lng } = d;
+    if (!(Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat!) <= 90 && Math.abs(lng!) <= 180)) return { ok: false, error: 'That map position isn\'t valid.' };
+    place.latitude = Number(lat!.toFixed(6));
+    place.longitude = Number(lng!.toFixed(6));
+  }
   const { data, error } = await supabase().from('venues').update({
+    ...place,
     tagline: d.tagline.trim().slice(0, 120) || null,
     description: d.description.trim().slice(0, 600) || null,
     phone: phone || null,

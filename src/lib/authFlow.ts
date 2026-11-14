@@ -69,3 +69,25 @@ export async function enableBiometrics(
   deps.markAsked();
   return false;
 }
+
+/**
+ * A Supabase auth event while the app is running → what the app's state becomes (null = no change).
+ *  - SIGNED_OUT → out.
+ *  - PASSWORD_RECOVERY with a session → in (the reset page needs it).
+ *  - SIGNED_IN while signed out → in: a session that arrived without the sign-in form, e.g. create
+ *    account (signUp returns a session when email confirmation is off) or an emailed link.
+ *  - SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED while signed in → in (fresh user object).
+ *  - Anything while opening ('loading') or behind Face ID ('locked') → no change: boot() and the
+ *    lock screen decide those, so a background token refresh can never skip the biometric check.
+ *  - INITIAL_SESSION → no change (boot() reads the same session).
+ */
+export function authEventStep(
+  event: string, hasSession: boolean, status: 'loading' | 'locked' | 'out' | 'in',
+): 'in' | 'out' | null {
+  if (event === 'SIGNED_OUT') return 'out';
+  if (!hasSession) return null;
+  if (event === 'PASSWORD_RECOVERY') return 'in';
+  if (status === 'out' && event === 'SIGNED_IN') return 'in';
+  if (status === 'in' && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) return 'in';
+  return null;
+}

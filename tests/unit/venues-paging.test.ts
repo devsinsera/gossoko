@@ -6,7 +6,9 @@ vi.mock('@/lib/supabase/client', () => ({
   supabase: () => ({
     from: () => {
       const q: any = {
-        select: () => q, is: () => q, order: () => q,
+        select: () => q, is: () => q, order: () => q, lte: () => q, gt: () => q,
+        // The live-deals read behind has_deal (venue v1 has a deal running now).
+        limit: () => Promise.resolve({ data: [{ venue_id: 'v1', start_date: '2020-01-01T00:00:00Z', end_date: '2999-01-01T00:00:00Z', days_of_week: null }], error: null }),
         range: (a: number, b: number) => {
           calls.push([a, b]);
           const n = Math.max(0, Math.min(b, total - 1) - a + 1);
@@ -26,5 +28,6 @@ describe('getAllVenues paging', () => {
     expect(v).toHaveLength(total);
     expect(new Set(v.map((x) => x.id)).size).toBe(total);
     expect(calls).toEqual([[0, 499], [500, 999], [1000, 1499]]);
+    expect(v.filter((x) => x.has_deal).map((x) => x.id)).toEqual(['v1']);
   });
 });

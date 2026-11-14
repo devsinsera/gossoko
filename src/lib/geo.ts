@@ -38,3 +38,16 @@ export function directionsUrl(lat: number, lng: number, name: string): string {
     ? `https://maps.apple.com/?daddr=${lat},${lng}&q=${label}&dirflg=d`
     : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
 }
+
+/**
+ * `?near=lat,lng` from a link another app made (e.g. Callout: "food near this job") → a point, or null
+ * when it's missing or nonsense. Only Australia-ish coordinates are taken.
+ */
+export function parseNear(value: string | null | undefined): { lat: number; lng: number } | null {
+  const m = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(value ?? '');
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  if (!(lat <= -9 && lat >= -45 && lng >= 112 && lng <= 155)) return null;
+  return { lat, lng };
+}

@@ -1,21 +1,32 @@
-
-import { createContext, useContext, useEffect, useState } from 'react';
-import { haversineKm } from '@/lib/geo';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { haversineKm, parseNear } from '@/lib/geo';
 
 type Coords = { lat: number; lng: number };
 
 const CoordsContext = createContext<Coords | null>(null);
+const NearContext = createContext<{ near: Coords | null; clearNear: () => void }>({ near: null, clearNear: () => {} });
 
 /**
  * Wraps the app shell. On mount (after hydration) it asks the browser for the
  * device location. Children render immediately with static fallbacks; once (if)
  * the user grants permission, consumers re-render with real distances.
  *
+ * A link with `?near=lat,lng` (another app's "food near this job") measures from that spot
+ * instead, for the rest of the visit, until "Use my location" clears it.
+ *
  * Never blocks render and never throws — any denial / timeout / unsupported
  * browser leaves `coords` as null, so consumers keep their static fallback.
  */
 export function DistanceProvider({ children }: { children: React.ReactNode }) {
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const [device, setDevice] = useState<Coords | null>(null);
+  const { search } = useLocation();
+  const [near, setNear] = useState<Coords | null>(() => parseNear(new URLSearchParams(search).get('near')));
+
+  useEffect(() => {
+    const n = parseNear(new URLSearchParams(search).get('near'));
+    if (n) setNear(n);
+  }, [search]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -24,7 +35,7 @@ export function DistanceProvider({ children }: { children: React.ReactNode }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (cancelled) return;
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setDevice({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
         // Denied / position unavailable / timeout — stay on static fallback.
@@ -37,12 +48,22 @@ export function DistanceProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <CoordsContext.Provider value={coords}>{children}</CoordsContext.Provider>;
+  const clearNear = useCallback(() => setNear(null), []);
+  return (
+    <NearContext.Provider value={{ near, clearNear }}>
+      <CoordsContext.Provider value={near ?? device}>{children}</CoordsContext.Provider>
+    </NearContext.Provider>
+  );
 }
 
-/** Raw device coords, or null when geolocation is unavailable/denied/pending. */
+/** Where distances are measured from: a linked `?near=` spot, else the device; null when unknown. */
 export function useCoords(): Coords | null {
   return useContext(CoordsContext);
+}
+
+/** The linked `?near=` spot (null when measuring from the device) and a way back to the device. */
+export function useNear(): { near: Coords | null; clearNear: () => void } {
+  return useContext(NearContext);
 }
 
 /**
