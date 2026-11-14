@@ -31,15 +31,11 @@ export function AuthShell({
         </Link>
       </header>
 
-      <section style={{
-        width: '100%',
-        background: COLORS.surface,
-        border: `1.5px solid ${COLORS.border}`,
-        borderRadius: RADIUS.lg,
-        overflow: 'hidden',
-      }}>
-        <div aria-hidden style={{ height: 6, background: BRAND_RIBBON }} />
-        <div style={{ padding: SPACE.lg }}>
+      {/* Sign-in rule (Peta, 14 Nov 2026): no box around the credentials — the fields sit straight on the
+          page background; each field keeps its own outline. */}
+      <section style={{ width: '100%' }}>
+        <div aria-hidden style={{ height: 4, width: 56, borderRadius: 2, background: BRAND_RIBBON, marginBottom: SPACE.md }} />
+        <div>
           <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 1 }}>{title}</h1>
           {subtitle && (
             <p style={{ margin: `${SPACE.xs}px 0 ${SPACE.lg}px`, color: COLORS.textSecondary, fontSize: 13 }}>

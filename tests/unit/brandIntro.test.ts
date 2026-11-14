@@ -3,6 +3,7 @@ import {
   INTRO,
   INTRO_SESSION_KEY,
   flipTransform,
+  introWanted,
   letterEmergeDelay,
   letterSpring,
   markIntroPlayed,
@@ -136,5 +137,26 @@ describe('flipTransform', () => {
   it('is the identity when the target equals the start', () => {
     const b = { left: 4, top: 8, width: 200, height: 40 };
     expect(flipTransform(b, b)).toEqual({ x: 0, y: 0, scale: 1 });
+  });
+});
+
+describe('where the opening plays (15 Nov 2026, like metreup.com.au)', () => {
+  const mem = () => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }; };
+  it('website: the first page of the visit plays it, later pages and Log in do not', () => {
+    const s = mem();
+    expect(introWanted({ native: false, path: '/gossoko/', storage: s, reducedMotion: false })).toBe(true);
+    markIntroPlayed(s);
+    expect(introWanted({ native: false, path: '/gossoko/business/', storage: s, reducedMotion: false })).toBe(false);
+    expect(introWanted({ native: false, path: '/', storage: s, reducedMotion: false })).toBe(false);
+  });
+  it('web sign-in pages never play it, even on a fresh visit', () => {
+    for (const path of ['/login', '/signup', '/auth/confirm', '/gossoko/admin/login']) {
+      expect(introWanted({ native: false, path, storage: mem(), reducedMotion: false })).toBe(false);
+    }
+  });
+  it('phone apps play it on every launch, sign-in screen included; reduced motion never', () => {
+    const s = mem(); markIntroPlayed(s);
+    expect(introWanted({ native: true, path: '/login', storage: s, reducedMotion: false })).toBe(true);
+    expect(introWanted({ native: true, path: '/', storage: null, reducedMotion: true })).toBe(false);
   });
 });

@@ -67,6 +67,19 @@ export function shouldPlayIntro(storage: IntroStorage | null, reducedMotion: boo
   }
 }
 
+/**
+ * Where the opening plays (Peta, 15 Nov 2026 — "like metreup.com.au"):
+ *   * phone/tablet apps: every launch;
+ *   * the website: once, on its first page this session (the sales site or the app, whichever comes first);
+ *     clicking Log in / Get started never replays it, and the web sign-in pages never play it.
+ */
+export function introWanted(o: { native: boolean; path: string; storage: IntroStorage | null; reducedMotion: boolean }): boolean {
+  if (o.reducedMotion) return false;
+  if (o.native) return true;
+  if (/(^|\/)(login|signup|auth)(\/|$)/.test(o.path)) return false;
+  return shouldPlayIntro(o.storage, false);
+}
+
 /** Record that the intro has played this session. Never throws. */
 export function markIntroPlayed(storage: IntroStorage | null): void {
   try {
