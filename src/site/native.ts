@@ -46,6 +46,18 @@ export function nativeGuardScript(appHome: string): string {
 export const SALES_PAGES = { about: 'about/', business: 'business/' } as const;
 export type SalesPage = keyof typeof SALES_PAGES;
 
+/**
+ * The legal pages (privacy/, terms/). Unlike the sales pages these carry NO price and NO native
+ * guard, so they open inside the apps (Apple and Google require both to be reachable there).
+ */
+export const LEGAL_PAGES = { privacy: 'privacy/', terms: 'terms/' } as const;
+export type LegalPage = keyof typeof LEGAL_PAGES;
+
+/** Full path of a legal page under the app base (e.g. '/gossoko/' -> '/gossoko/privacy/'). */
+export function legalHref(page: LegalPage, base: string): string {
+  return `${base.replace(/\/?$/, '/')}${LEGAL_PAGES[page]}`;
+}
+
 /** Full path of a sales page under the app base (e.g. '/gossoko/' -> '/gossoko/business/'). */
 export function salesHref(page: SalesPage, base: string): string {
   return `${base.replace(/\/?$/, '/')}${SALES_PAGES[page]}`;
