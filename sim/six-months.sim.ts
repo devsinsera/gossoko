@@ -17,6 +17,7 @@ const FN = process.env.SIM_FN ?? 'http://127.0.0.1:55430';
 const JWT_SECRET = process.env.SIM_JWT_SECRET ?? 'super-secret-jwt-token-with-at-least-32-characters-long';
 const DAYS = Number(process.env.SIM_DAYS ?? 182);
 const START = new Date('2026-05-07T12:00:00+10:00');
+const LAUNCH = Number(process.env.SIM_LAUNCH_USERS ?? 0);
 const OUT = process.env.SIM_OUT ?? 'sim/report.json';
 
 // ── plumbing ────────────────────────────────────────────────────────────────
@@ -749,13 +750,14 @@ test('Gossoko — six months of operation', async () => {
     for (let i = promoEnds.length - 1; i >= 0; i--) if (promoEnds[i].endDay <= day) promoEnds.splice(i, 1);
 
     // Launch → word of mouth: ~0.4/day at first, ~6/day by month five.
-    const target = Math.round(650 / (1 + Math.exp(-(day - 105) / 24)));
+    // SIM_LAUNCH_USERS=N: a launch week instead (founding venues + flyers): N people spread evenly over the run.
+    const target = LAUNCH ? Math.round(LAUNCH * (day + 1) / DAYS) : Math.round(650 / (1 + Math.exp(-(day - 105) / 24)));
     const realUsers = people.filter((p) => !['admin', 'moderator'].includes(p.kind)).length;
     for (let i = realUsers; i < target; i++) {
       const r = rnd();
       await join(r < 0.66 ? 'tradie' : r < 0.9 ? 'lurker' : r < 0.94 ? 'owner' : 'spammer', day);
     }
-    if (day === 45) {
+    if (day === (LAUNCH ? 1 : 45)) {
       const m = await join('moderator', day);
       if (m) sql(`update gossoko.profiles set role = 'moderator' where id = '${m.id}'`);
     }
