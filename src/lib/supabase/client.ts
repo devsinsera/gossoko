@@ -1,13 +1,17 @@
 // The one Supabase client. Defaults to the `gossoko` schema, so
 // supabase.from('venues') hits gossoko.venues.
 //
-// Remember me decides where the session lives: on = localStorage (kept across
-// launches), off = sessionStorage (gone when the tab/app closes).
+// Remember me decides whether the session outlives the app/tab. Where it lives
+// is decided in sessionStore.ts: the Keychain on a phone/tablet, Web Storage
+// on the open web.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/env';
+import { createSessionStore, type SessionStore } from '@/lib/supabase/sessionStore';
+import { keychainSlot } from '@/lib/bio';
 
 const REMEMBER_KEY = 'gossoko.remember';
+export const AUTH_STORAGE_KEY = 'gossoko.auth';
 
 function safe<T>(fn: () => T, fallback: T): T {
   try { return fn(); } catch { return fallback; }
@@ -21,20 +25,18 @@ export function setRemember(on: boolean): void {
   safe(() => localStorage.setItem(REMEMBER_KEY, on ? '1' : '0'), undefined);
 }
 
-const authStorage = {
-  // Remember me off = this tab only: a copy left in localStorage is never read back (same rule as TagTrail).
-  getItem: (k: string) =>
-    safe(() => sessionStorage.getItem(k), null) ?? (getRemember() ? safe(() => localStorage.getItem(k), null) : null),
-  setItem: (k: string, v: string) => {
-    const keep = getRemember();
-    safe(() => (keep ? localStorage : sessionStorage).setItem(k, v), undefined);
-    safe(() => (keep ? sessionStorage : localStorage).removeItem(k), undefined);
-  },
-  removeItem: (k: string) => {
-    safe(() => localStorage.removeItem(k), undefined);
-    safe(() => sessionStorage.removeItem(k), undefined);
-  },
-};
+let store: SessionStore | null = null;
+/** Built on first use, so the native shell has injected Capacitor by then. */
+export function authStore(): SessionStore {
+  store ??= createSessionStore({
+    secure: keychainSlot(AUTH_STORAGE_KEY),
+    local: safe(() => localStorage, null),
+    session: safe(() => sessionStorage, null),
+    remember: getRemember,
+    onError: (op) => console.warn(`[gossoko] keychain ${op} failed`),
+  });
+  return store;
+}
 
 // Loose generics: there is no generated Database type, and the schema is 'gossoko'.
 type Client = SupabaseClient<any, any, any>;
@@ -51,8 +53,8 @@ export function supabase(): Client {
   client ??= createClient<any, any, any>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     db: { schema: 'gossoko' },
     auth: {
-      storage: authStorage,
-      storageKey: 'gossoko.auth',
+      storage: authStore(),
+      storageKey: AUTH_STORAGE_KEY,
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,

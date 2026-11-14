@@ -1,7 +1,8 @@
 // Session state for the whole app.
 //
-// Sign-in rule (every Sinsera app): Remember me keeps the refresh token in the
-// Keychain (native) and refreshes it automatically; after sign-in the app
+// Sign-in rule (every Sinsera app): Remember me keeps the session in the
+// Keychain on a phone/tablet (never the WebView's storage — see
+// supabase/sessionStore.ts) and refreshes it automatically; after sign-in the app
 // offers Face ID / Touch ID / Optic ID; with that on, reopening the app asks
 // for the biometric (device passcode as fallback) and, if that fails or is
 // cancelled, drops to a full sign-in.
@@ -11,9 +12,10 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { supabase, getRemember, setRemember, configured } from '@/lib/supabase/client';
-import { KEYCHAIN_SERVER } from '@/lib/env';
-import { nativePlugin, verifyOwner } from '@/lib/bio';
+import { supabase, getRemember, setRemember, configured, authStore, AUTH_STORAGE_KEY } from '@/lib/supabase/client';
+import { looksLikeSession } from '@/lib/supabase/sessionStore';
+import { keychainSlot, nativePlugin, verifyOwner } from '@/lib/bio';
+import { bootStep, passBiometricGate, signInWithRemember } from '@/lib/authFlow';
 import { ensureProfile } from '@/lib/api/auth';
 
 const BIO_KEY = 'gossoko.bio';
@@ -30,24 +32,10 @@ export function setBioEnabled(on: boolean): void {
 }
 export function markBioAsked(): void { ls()?.setItem(BIO_ASKED_KEY, '1'); }
 
-async function keychainSave(email: string, refreshToken: string): Promise<void> {
-  const p = nativePlugin();
-  if (!p) return;
-  try {
-    await p.setCredentials({ username: email, password: refreshToken, server: KEYCHAIN_SERVER });
-  } catch (e) {
-    console.warn('[gossoko] keychain save failed', e);
-  }
-}
-async function keychainRead(): Promise<{ username: string; password: string } | null> {
-  const p = nativePlugin();
-  if (!p) return null;
-  try { return await p.getCredentials({ server: KEYCHAIN_SERVER }); } catch { return null; }
-}
-async function keychainClear(): Promise<void> {
-  const p = nativePlugin();
-  if (!p) return;
-  try { await p.deleteCredentials({ server: KEYCHAIN_SERVER }); } catch { /* nothing stored */ }
+/** An older build kept a bare refresh token in the Keychain item; read it once so those installs stay signed in. */
+async function legacyKeychainToken(): Promise<string | null> {
+  const raw = await keychainSlot(AUTH_STORAGE_KEY)?.read(AUTH_STORAGE_KEY);
+  return raw && !looksLikeSession(raw) ? raw : null;
 }
 
 export type AuthStatus = 'loading' | 'locked' | 'out' | 'in';
@@ -72,27 +60,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const finishIn = useCallback((u: User) => { setUser(u); setStatus('in'); void enablePush(); }, []);
 
+  const restoreLegacy = useCallback(async () => {
+    const token = await legacyKeychainToken();
+    if (!token) return null;
+    const r = await supabase().auth.refreshSession({ refresh_token: token });
+    if (!r.data.session) await authStore().removeItem(AUTH_STORAGE_KEY);
+    return r.data.session;
+  }, []);
+
   const boot = useCallback(async () => {
     if (!configured()) { setStatus('out'); return; }
-    const sb = supabase();
-    const { data } = await sb.auth.getSession();
-    let session = data.session;
-
-    // The WebView's storage can be cleared while the Keychain survives.
-    if (!session && getRemember()) {
-      const saved = await keychainRead();
-      if (saved?.password) {
-        if (bioEnabled() && !(await verifyOwner('Open Gossoko'))) { setStatus('locked'); return; }
-        const r = await sb.auth.refreshSession({ refresh_token: saved.password });
-        session = r.data.session;
-        if (!session) await keychainClear();
-      }
-    } else if (session && bioEnabled() && nativePlugin()) {
-      setStatus('locked');
-      return;
+    const { data } = await supabase().auth.getSession();
+    const native = nativePlugin() !== null;
+    const legacy = !data.session && native && getRemember() ? await legacyKeychainToken() : null;
+    const step = bootStep({
+      hasSession: Boolean(data.session), native, bioOn: bioEnabled(), remember: getRemember(), legacyToken: Boolean(legacy),
+    });
+    if (step === 'in' && data.session) { finishIn(data.session.user); return; }
+    if (step === 'locked') { setStatus('locked'); return; }
+    if (step === 'legacy') {
+      if (bioEnabled() && !(await verifyOwner('Open Gossoko'))) { setStatus('locked'); return; }
+      const s = await restoreLegacy();
+      if (s) { finishIn(s.user); return; }
     }
-    if (session) finishIn(session.user); else setStatus('out');
-  }, [finishIn]);
+    setStatus('out');
+  }, [finishIn, restoreLegacy]);
 
   useEffect(() => {
     if (booted.current) return;
@@ -100,44 +92,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     boot().catch((e) => { console.error('[gossoko] boot failed', e); setStatus('out'); });
   }, [boot]);
 
-  // Keep the Keychain copy of the refresh token current, and follow sign-outs.
+  // Follow sign-outs. (The session store itself keeps the Keychain copy current.)
   useEffect(() => {
     if (!configured()) return;
     const { data: sub } = supabase().auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') { setUser(null); setStatus('out'); return; }
-      if (session && getRemember() && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) {
-        void keychainSave(session.user.email ?? '', session.refresh_token);
-      }
       if (event === 'PASSWORD_RECOVERY' && session) finishIn(session.user);
     });
     return () => sub.subscription.unsubscribe();
   }, [finishIn]);
 
   const unlock = useCallback(async () => {
-    if (!(await verifyOwner('Open Gossoko'))) return;
-    const { data } = await supabase().auth.getSession();
-    if (data.session) finishIn(data.session.user);
-    else await boot();
-  }, [boot, finishIn]);
+    const r = await passBiometricGate({
+      verify: verifyOwner,
+      currentSession: async () => (await supabase().auth.getSession()).data.session,
+      restoreLegacy,
+    });
+    if (r.result === 'in') finishIn(r.session.user);
+    else if (r.result === 'out') setStatus('out');
+  }, [finishIn, restoreLegacy]);
 
   const signInPassword = useCallback(async (email: string, password: string, remember: boolean) => {
-    // Decide where the session is stored before it is written.
-    setRemember(remember);
-    const { data, error } = await supabase().auth.signInWithPassword({ email, password });
-    if (error || !data.user || !data.session) {
-      return { error: error?.message ?? 'Invalid email or password' };
-    }
-    if (remember) await keychainSave(email, data.session.refresh_token);
-    else await keychainClear();
-    await ensureProfile(data.user);
-    finishIn(data.user);
+    const r = await signInWithRemember<User>({
+      setRemember,
+      signIn: async (em, pw) => {
+        const { data, error } = await supabase().auth.signInWithPassword({ email: em, password: pw });
+        return { user: data.session ? data.user : null, error: error?.message };
+      },
+      // Remember me off: the store already keeps this session in memory only; drop any older saved copy.
+      clearSaved: async () => { await keychainSlot(AUTH_STORAGE_KEY)?.clear(AUTH_STORAGE_KEY); },
+      ensureProfile,
+    }, email, password, remember);
+    if (r.error || !r.user) return { error: r.error ?? 'Invalid email or password' };
+    finishIn(r.user);
     return {};
   }, [finishIn]);
 
   const signOut = useCallback(async () => {
     await disablePush();
     await supabase().auth.signOut();
-    await keychainClear();
+    await authStore().removeItem(AUTH_STORAGE_KEY);
     ls()?.removeItem(BIO_KEY);
     setUser(null);
     setStatus('out');
@@ -146,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fullSignIn = useCallback(async () => {
     await disablePush();
     await supabase().auth.signOut();
-    await keychainClear();
+    await authStore().removeItem(AUTH_STORAGE_KEY);
     setUser(null);
     setStatus('out');
   }, []);
