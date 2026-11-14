@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <!-- gossoko:native-guard -->
+    <script type="module" src="/src/site/guard.ts"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Gossoko for venues — get the tradie crowd through your door</title>
     <meta name="description" content="List your café, bakery, servo, food truck or coffee van on Gossoko for free. Claim it, reply to reviews, post deals with redeem codes and see who's finding you. South-East Queensland." />
@@ -29,14 +30,14 @@
 
     <header class="head">
       <div class="wrap head__row">
-        <a class="head__brand" href="/gossoko/about/" aria-label="Gossoko home">
+        <a class="head__brand" href="/gossoko/" aria-label="Gossoko home">
           <img src="/src/assets/brand/gossoko-wordmark.svg" alt="Gossoko" width="120" height="26" />
         </a>
         <nav class="head__nav" aria-label="Site">
-          <a href="/gossoko/about/"><span class="hide-sm">For&nbsp;</span>tradies</a>
+          <a href="/gossoko/"><span class="hide-sm">For&nbsp;</span>tradies</a>
           <a href="/gossoko/business/" aria-current="page"><span class="hide-sm">For&nbsp;</span>venues</a>
         </nav>
-        <a class="btn" href="/gossoko/search">Claim<span class="hide-sm">&nbsp;your venue</span></a>
+        <a class="btn" href="/gossoko/admin/search">Claim<span class="hide-sm">&nbsp;your venue</span></a>
       </div>
     </header>
 
@@ -48,10 +49,10 @@
             <h1 class="display">Get the <em>tradie crowd</em> through your door.</h1>
             <p class="lede">Gossoko is where South-East Queensland tradies look for smoko, brekkie and lunch. Your listing is free. Claim it, answer your reviews, post a deal, and see who&rsquo;s finding you.</p>
             <div class="hero__ctas">
-              <a class="btn" href="/gossoko/search">Find &amp; claim your venue</a>
+              <a class="btn" href="/gossoko/admin/search">Find &amp; claim your venue</a>
               <a class="btn btn--ghost" href="#pricing">Free vs Pro</a>
             </div>
-            <p class="plan__note">Not on Gossoko yet? <a href="/gossoko/venue/new">Add your place</a> &mdash; it takes a minute.</p>
+            <p class="plan__note">New here? <a href="/gossoko/login/#shop">Create a shop account</a>. Not on Gossoko yet? <a href="/gossoko/admin/venue/new">Add your place</a> &mdash; it takes a minute.</p>
           </div>
 
           <figure class="mock" aria-label="An example of a venue's Gossoko dashboard">
@@ -130,7 +131,7 @@
             <li class="card"><h3>Tap Claim</h3><p>Sign in and tap Claim on your venue&rsquo;s page. We check you&rsquo;re the owner before it&rsquo;s approved.</p></li>
             <li class="card"><h3>Open your dashboard</h3><p>Edit your listing, add photos, post a deal, print your counter QR and reply to reviews.</p></li>
           </ol>
-          <p class="mt"><a class="btn" href="/gossoko/search">Find your venue</a></p>
+          <p class="mt"><a class="btn" href="/gossoko/admin/search">Find your venue</a></p>
         </div>
       </section>
 
@@ -154,7 +155,7 @@
                 <li>Counter QR to print</li>
                 <li>Views, saves and new reviews, <b>last 7 days</b></li>
               </ul>
-              <a class="btn btn--ghost" href="/gossoko/search">Claim for free</a>
+              <a class="btn btn--ghost" href="/gossoko/admin/search">Claim for free</a>
             </div>
             <div class="card plan plan--pro">
               <span class="ribbon">Founding 10: 90 days free</span>
@@ -168,7 +169,7 @@
                 <li>Stats going back <b>90 days</b></li>
               </ul>
               <p class="plan__note">Pay from your dashboard on the website, never inside the phone app. Until card payments switch on, tap Ask for Pro in your dashboard and we&rsquo;ll set you up.</p>
-              <a class="btn" href="/gossoko/search">Get Pro</a>
+              <a class="btn" href="/gossoko/admin/search">Get Pro</a>
             </div>
           </div>
           <div class="plans mt" id="featured">
@@ -285,7 +286,7 @@
           <h2 class="h2" id="go">Put your place <em>on the map</em>.</h2>
           <p class="sub" style="margin-top:0">__CONTACT_LABEL__</p>
           <div class="hero__ctas" style="justify-content:center">
-            <a class="btn" href="/gossoko/search">Claim your venue</a>
+            <a class="btn" href="/gossoko/admin/search">Claim your venue</a>
             <a class="btn btn--ghost" href="__CONTACT_HREF__">__CONTACT_CTA__</a>
           </div>
         </div>
@@ -295,12 +296,12 @@
     <footer class="foot">
       <div class="wrap">
         <div class="foot__row">
-          <a class="foot__brand" href="/gossoko/about/" aria-label="Gossoko home"><img src="/src/assets/brand/gossoko-wordmark.svg" alt="Gossoko" width="100" height="22" /></a>
+          <a class="foot__brand" href="/gossoko/" aria-label="Gossoko home"><img src="/src/assets/brand/gossoko-wordmark.svg" alt="Gossoko" width="100" height="22" /></a>
           <nav aria-label="Footer">
-            <a href="/gossoko/">Open the app</a>
-            <a href="/gossoko/search">Find your venue</a>
-            <a href="/gossoko/venue/new">Add a venue</a>
-            <a href="/gossoko/about/">For tradies</a>
+            <a href="/gossoko/admin/">Open the app</a>
+            <a href="/gossoko/admin/search">Find your venue</a>
+            <a href="/gossoko/admin/venue/new">Add a venue</a>
+            <a href="/gossoko/">For tradies</a>
             <a href="/gossoko/privacy/">Privacy</a>
             <a href="/gossoko/terms/">Terms</a>
           </nav>

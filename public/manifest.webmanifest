@@ -2,7 +2,7 @@
   "name": "Gossoko",
   "short_name": "Gossoko",
   "description": "Find the best tradie feed near the site.",
-  "start_url": "/gossoko/",
+  "start_url": "/gossoko/admin/",
   "scope": "/gossoko/",
   "display": "standalone",
   "orientation": "any",
@@ -15,8 +15,8 @@
     { "src": "/gossoko/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Open Now", "short_name": "Open", "url": "/gossoko/nearby" },
-    { "name": "Top Rated", "short_name": "Top", "url": "/gossoko/rankings" },
-    { "name": "Search", "short_name": "Search", "url": "/gossoko/search" }
+    { "name": "Open Now", "short_name": "Open", "url": "/gossoko/admin/nearby" },
+    { "name": "Top Rated", "short_name": "Top", "url": "/gossoko/admin/rankings" },
+    { "name": "Search", "short_name": "Search", "url": "/gossoko/admin/search" }
   ]
 }

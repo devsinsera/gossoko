@@ -134,9 +134,9 @@ export default function FounderPage() {
       <section className="section">
         <div className="section-title"><h2>Run it</h2></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Row href="/admin/moderation" label="Moderation" hint={d ? `${d.reviews_pending + d.venues_pending} waiting · ${d.reports_open} reports` : ''} />
-          <Row href="/admin/business" label="Business" hint={d ? `${d.claims_pending} claims · ${d.pro_venues} Pro` : ''} />
-          <Row href="/admin/users" label="People" hint="Roles, suspensions" />
+          <Row href="/staff/moderation" label="Moderation" hint={d ? `${d.reviews_pending + d.venues_pending} waiting · ${d.reports_open} reports` : ''} />
+          <Row href="/staff/business" label="Business" hint={d ? `${d.claims_pending} claims · ${d.pro_venues} Pro` : ''} />
+          <Row href="/staff/users" label="People" hint="Roles, suspensions" />
         </div>
       </section>
 

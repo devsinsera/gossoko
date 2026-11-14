@@ -1,12 +1,19 @@
-# Gossoko SPA — serve index.html for any route that is not a real file.
+# Gossoko (Peta, 14 Nov 2026): /gossoko/ = the website, /gossoko/admin/ = the app, /gossoko/login/ = sign-in.
 AddType application/manifest+json .webmanifest
 
 RewriteEngine On
 RewriteBase /gossoko/
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /gossoko/index.html [L]
+# Real files and folders (the website, assets, about/business/privacy/terms, login/, admin/) as they are.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+# The old About address is the website's front page now.
+RewriteRule ^about/?$ /gossoko/ [R=301,L]
+# Any app route: serve the app.
+RewriteRule ^admin/ /gossoko/admin/index.html [L]
+# Old staff pages lived at /gossoko/admin/<page>; old app links (emails, alerts, bookmarks, the
+# installed phone apps) lived at /gossoko/<route>. Send them into the app; the #hash survives.
+RewriteRule ^(.+)$ /gossoko/admin/$1 [R=302,L,QSA]
 
 <IfModule mod_headers.c>
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tiles.openfreemap.org; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"

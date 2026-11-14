@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
   const { data: owns } = await asUser.rpc('is_venue_owner', { p_venue: venueId });
   if (!owns) return json({ error: 'Only the verified owner can do that.' }, 403);
   // Return only to our own site.
-  const back = body.return_url?.startsWith(`${SITE}/`) ? body.return_url : `${SITE}/gossoko/manage`;
+  const back = body.return_url?.startsWith(`${SITE}/`) ? body.return_url : `${SITE}/gossoko/admin/manage`;
 
   try {
     if (body.action === 'checkout') {

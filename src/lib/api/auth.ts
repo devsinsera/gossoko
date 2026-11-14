@@ -35,7 +35,11 @@ export function isValidUsername(username: string): boolean {
   return re.test(username) && username.length >= 3 && username.length <= 32;
 }
 
-export async function signupUser(email: string, password: string, username: string): Promise<SignupResult> {
+/** What the person signed up as. A label only: it grants nothing. A shop account gets its tools
+ *  when a moderator approves its claim on a venue (venue_claims), never from this field. */
+export type AccountType = 'customer' | 'shop';
+
+export async function signupUser(email: string, password: string, username: string, accountType: AccountType = 'customer'): Promise<SignupResult> {
   if (!isValidEmail(email)) return { success: false, errors: ['Invalid email format'] };
   const cleanUsername = normalizeUsername(username);
   if (!isValidUsername(cleanUsername)) {
@@ -54,7 +58,7 @@ export async function signupUser(email: string, password: string, username: stri
     email,
     password,
     options: {
-      data: { username: cleanUsername },
+      data: { username: cleanUsername, account_type: accountType === 'shop' ? 'shop' : 'customer' },
       emailRedirectTo: `${siteUrl()}/auth/confirm`,
     },
   });

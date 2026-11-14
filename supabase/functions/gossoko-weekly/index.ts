@@ -16,7 +16,7 @@ const SMTP = {
   user: Deno.env.get('SMTP_USER') ?? '', pass: Deno.env.get('SMTP_PASS') ?? '', from: Deno.env.get('SMTP_FROM') ?? '',
 };
 const enabled = Boolean(SECRET && SMTP.host && SMTP.user && SMTP.pass && SMTP.from);
-const SITE = 'https://sinsera.co/gossoko';
+const SITE = 'https://sinsera.co/gossoko/admin';
 
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { 'Content-Type': 'application/json' } });
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);

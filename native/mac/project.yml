@@ -1,5 +1,5 @@
 # Gossoko for Mac: a native SwiftUI app (Peta 14 Nov 2026: Mac apps are native, never Electron).
-# A WKWebView shell around https://sinsera.co/gossoko/ (same site the phones load).
+# A WKWebView shell around https://sinsera.co/gossoko/admin/ (same site the phones load).
 #   cd native/mac && xcodegen generate && xcodebuild -scheme Gossoko -configuration Release build
 name: Gossoko
 options:

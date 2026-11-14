@@ -6,6 +6,7 @@ import { nativeGuardScript } from './src/site/native';
 import { contactLink, legalTokens } from './src/config/site';
 
 const BASE = '/gossoko/';
+const APP_HOME = '/gossoko/admin/';
 const GUARD_MARK = '<!-- gossoko:native-guard -->';
 
 /**
@@ -23,7 +24,7 @@ function nativeGuard(): Plugin {
       for (const [k, v] of Object.entries(legalTokens())) out = out.split(k).join(v);
       if (!out.includes(GUARD_MARK)) return out;
       return out
-        .replace(GUARD_MARK, `<script>${nativeGuardScript(BASE)}</script>`)
+        .replace(GUARD_MARK, `<script>${nativeGuardScript(APP_HOME)}</script>`)
         .split('__CONTACT_HREF__').join(contact.href)
         .split('__CONTACT_CTA__').join(contact.cta)
         .split('__CONTACT_LABEL__').join(contact.label);
@@ -31,6 +32,8 @@ function nativeGuard(): Plugin {
   };
 }
 
+// Layout (Peta, 14 Nov 2026): /gossoko/ = the website (index.html), /gossoko/admin/ = the app
+// (admin/index.html, router basename /gossoko/admin), /gossoko/login/ = sign-in (moves on to the app).
 // Served from sinsera.co/gossoko/ — the deploy script derives its remote
 // directory from this same base, so upload target and asset paths cannot drift.
 // The app (index.html), the web-only sales site (about/, business/) and the legal pages
@@ -46,8 +49,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        app: fileURLToPath(new URL('./index.html', import.meta.url)),
-        about: fileURLToPath(new URL('./about/index.html', import.meta.url)),
+        home: fileURLToPath(new URL('./index.html', import.meta.url)),
+        app: fileURLToPath(new URL('./admin/index.html', import.meta.url)),
+        login: fileURLToPath(new URL('./login/index.html', import.meta.url)),
         business: fileURLToPath(new URL('./business/index.html', import.meta.url)),
         privacy: fileURLToPath(new URL('./privacy/index.html', import.meta.url)),
         terms: fileURLToPath(new URL('./terms/index.html', import.meta.url)),

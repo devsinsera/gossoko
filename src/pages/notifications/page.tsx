@@ -53,7 +53,7 @@ export default function NotificationsPage() {
               const style = { display: 'block', padding: '12px 14px', background: COLORS.surface, textDecoration: 'none', borderRadius: 12,
                 border: `1.5px solid ${n.is_read ? COLORS.border : COLORS.orange}` } as const;
               // Staff alerts (held reviews, reports, claims, new venues) open the moderation queue.
-              if (n.type.startsWith('staff_')) return <Link key={n.id} href="/admin/moderation" style={style}>{inner}</Link>;
+              if (n.type.startsWith('staff_')) return <Link key={n.id} href="/staff/moderation" style={style}>{inner}</Link>;
               return n.venue_slug
                 ? <Link key={n.id} href={n.type === 'review' || n.type === 'claim' ? '/manage' : `/venue/${n.venue_slug}`} style={style}>{inner}</Link>
                 : <div key={n.id} style={style}>{inner}</div>;

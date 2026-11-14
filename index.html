@@ -1,27 +1,215 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-AU">
   <head>
     <meta charset="utf-8" />
+    <!-- gossoko:native-guard -->
+    <script type="module" src="/src/site/guard.ts"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#FF7A00" />
-    <meta name="description" content="Community reviews of cafés, coffee vans, servos and food trucks — rated for what matters on a worksite: speed, feed size, ute parking, and an early open." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Gossoko" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Gossoko — Find the best tradie feed near the site</title>
+    <meta name="description" content="Gossoko is where South-East Queensland tradies find and rate smoko, brekkie and lunch spots — cafés, bakeries, servos, food trucks and coffee vans — on coffee strength, feed size, bang for buck, speed, ute parking and an early open. Free for tradies." />
+    <link rel="canonical" href="https://sinsera.co/gossoko/" />
+    <meta name="theme-color" content="#0a0908" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/gossoko/icon-192.png" />
-    <link rel="apple-touch-icon" href="/gossoko/apple-touch-icon.png" />
-    <link rel="manifest" href="/gossoko/manifest.webmanifest" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Gossoko" />
-    <meta property="og:title" content="Gossoko — Find the best tradie feed near the site." />
+    <meta property="og:locale" content="en_AU" />
+    <meta property="og:title" content="Gossoko — Find the best tradie feed near the site" />
+    <meta property="og:description" content="Smoko, brekkie and lunch spots across South-East Queensland, rated by tradies on what matters before 7am. Free, and works in your browser today." />
+    <meta property="og:url" content="https://sinsera.co/gossoko/" />
     <meta property="og:image" content="https://sinsera.co/gossoko/og-gossoko.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Gossoko coffee-pin logo and wordmark: Find the best tradie feed near the site." />
     <meta name="twitter:card" content="summary_large_image" />
-    <title>Gossoko — Find the best tradie feed near the site.</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="/gossoko/icon-192.png" />
+    <link rel="apple-touch-icon" href="/gossoko/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/src/site/site.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="head">
+      <div class="wrap head__row">
+        <a class="head__brand" href="/gossoko/" aria-label="Gossoko home">
+          <img src="/src/assets/brand/gossoko-wordmark.svg" alt="Gossoko" width="120" height="26" />
+        </a>
+        <nav class="head__nav" aria-label="Site">
+          <a href="/gossoko/" aria-current="page"><span class="hide-sm">For&nbsp;</span>tradies</a>
+          <a href="/gossoko/business/"><span class="hide-sm">For&nbsp;</span>venues</a>
+        </nav>
+        <a class="btn" href="/gossoko/login/" data-login>Log in</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="wrap hero__grid">
+          <div class="hero__copy">
+            <span class="eyebrow">South-East Queensland, starting around Brisbane</span>
+            <h1 class="display">Find the best <em>feed</em> near the site.</h1>
+            <p class="lede">Cafés, bakeries, servos, food trucks and coffee vans, rated by tradies on what actually matters before 7am: a strong coffee, a decent feed, and somewhere to park the ute.</p>
+            <div class="hero__ctas">
+              <a class="btn" href="/gossoko/login/#start">Get started free</a>
+              <a class="btn btn--ghost" href="/gossoko/admin/">Browse without an account</a>
+              <a class="btn btn--ghost" href="/gossoko/admin/nearby">What&rsquo;s open near me</a>
+            </div>
+            <div class="stores" aria-label="Phone apps">
+              <div class="store">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+                <span><small>Coming soon to the</small><b>App Store</b></span>
+              </div>
+              <div class="store">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+                <span><small>Coming soon to</small><b>Google Play</b></span>
+              </div>
+            </div>
+          </div>
+
+          <figure class="mock" aria-label="An example of how a spot looks in Gossoko">
+            <img class="mock__pin" src="/src/assets/brand/gossoko-pin.svg" alt="" width="96" height="134" />
+            <div class="mock__card">
+              <span class="mock__tag">Example listing</span>
+              <div class="mock__name">The Smoko Stop</div>
+              <div class="mock__meta"><span class="mock__open">Open now</span><span aria-hidden="true">·</span><span>Coffee van</span><span aria-hidden="true">·</span><span>Opens 5:00am</span></div>
+              <dl class="bars">
+                <div class="bar"><dt>Speed</dt><dd><i style="width:90%"></i></dd><output>4.5</output></div>
+                <div class="bar"><dt>Feed size</dt><dd><i style="width:80%"></i></dd><output>4.0</output></div>
+                <div class="bar"><dt>Coffee</dt><dd><i style="width:96%"></i></dd><output>4.8</output></div>
+                <div class="bar"><dt>Bang for buck</dt><dd><i style="width:84%"></i></dd><output>4.2</output></div>
+                <div class="bar"><dt>Ute parking</dt><dd><i style="width:100%"></i></dd><output>5.0</output></div>
+                <div class="bar"><dt>Early open</dt><dd><i style="width:94%"></i></dd><output>4.7</output></div>
+              </dl>
+              <div class="mock__deal"><span>Pie + coffee before 7</span><code>GS-7KQ2</code></div>
+            </div>
+            <figcaption class="sr">Illustration only: the venue, scores and deal are examples, not a real listing.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="band" id="shops" aria-labelledby="shops-title" hidden>
+        <div class="wrap">
+          <div class="band__head">
+            <span class="eyebrow">Straight from the app</span>
+            <h2 class="h2" id="shops-title" style="margin-top:12px">Featured shops</h2>
+            <p class="sub">Real spots and real scores from tradies. Tap one to see its reviews, hours and deals.</p>
+          </div>
+          <div class="grid grid--3" id="shops-list"></div>
+          <p style="margin-top:20px"><a class="btn btn--ghost" href="/gossoko/admin/rankings">See the full rankings</a></p>
+        </div>
+      </section>
+
+      <section class="band band--crema" aria-labelledby="rated">
+        <div class="wrap">
+          <div class="band__head">
+            <span class="eyebrow">Seven quick scores</span>
+            <h2 class="h2 mt" id="rated" style="margin-top:12px">Rated on what matters <em>on a worksite</em>.</h2>
+            <p class="sub">Not &ldquo;ambience&rdquo;. Every review scores the same seven things, so you can compare a servo with a bakery at a glance.</p>
+          </div>
+          <div class="axes">
+            <div class="axis"><b>Coffee strength</b><span>Will it actually wake you up.</span></div>
+            <div class="axis"><b>Feed size</b><span>Does it fill a hole till lunch.</span></div>
+            <div class="axis"><b>Bang for buck</b><span>What you get for the money.</span></div>
+            <div class="axis"><b>Speed</b><span>In and out on a 15-minute smoko.</span></div>
+            <div class="axis"><b>Ute parking</b><span>Room for the ute and the trailer.</span></div>
+            <div class="axis"><b>Early open</b><span>Open when you&rsquo;re on your way in.</span></div>
+            <div class="axis"><b>Service</b><span>Friendly, and gets the order right.</span></div>
+            <div class="axis" style="background:transparent;border-style:dashed"><b>One overall</b><span>Plus a star rating and a few words.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="how">
+        <div class="wrap">
+          <div class="band__head">
+            <span class="eyebrow">How it works</span>
+            <h2 class="h2" id="how" style="margin-top:12px">Find it. <em>Grab a deal.</em> Rate it.</h2>
+          </div>
+          <ol class="steps">
+            <li class="card">
+              <h3>Find a spot</h3>
+              <p>The Nearby map shows what&rsquo;s close and what&rsquo;s open right now. Filter by type, sort by the score you care about, and tap Directions.</p>
+            </li>
+            <li class="card">
+              <h3>Grab a deal code</h3>
+              <p>Venues post deals like &ldquo;pie and coffee before 7&rdquo;. Tap Get code, show the GS-code at the counter, done.</p>
+            </li>
+            <li class="card">
+              <h3>Rate it</h3>
+              <p>Seven quick scores and a line or two. Your reviews help the next crew, and the place can reply.</p>
+            </li>
+          </ol>
+
+          <div class="grid grid--3 mt">
+            <div class="card">
+              <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+              <h3>Rankings</h3>
+              <p>Top spots overall, plus the fastest, the biggest feed, the best value and the earliest open.</p>
+            </div>
+            <div class="card">
+              <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+              <h3>Saved spots</h3>
+              <p>Keep your regulars and the ones near next week&rsquo;s job in one list.</p>
+            </div>
+            <div class="card">
+              <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div>
+              <h3>Alerts</h3>
+              <p>Hear when a venue replies to your review, on your phone or in the app. You choose what you get.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band--crema" aria-labelledby="soon-h">
+        <div class="wrap">
+          <div class="soon">
+            <span class="soon__tag">Coming soon</span>
+            <h3 id="soon-h">Check in, and a heads-up when you pull up</h3>
+            <p>Check in at a spot when you&rsquo;re there, and if you switch it on, get a quick note with the place&rsquo;s rating and top review when you arrive. It&rsquo;s off unless you turn it on, it asks before it uses your location, and your position stays on your phone.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="free">
+        <div class="wrap grid grid--2" style="align-items:center;gap:32px">
+          <div>
+            <span class="eyebrow">Free for tradies</span>
+            <h2 class="h2" id="free" style="margin-top:12px">No paywall. <em>Ever.</em></h2>
+            <p class="sub">Reading, reviewing and grabbing deals cost nothing. Gossoko is paid for by the venues that want to be found, never by the people looking for a feed.</p>
+          </div>
+          <div class="card" style="border-color:var(--border-strong)">
+            <h3>Run a café, van or servo?</h3>
+            <p>List it free, claim it, post deals and see who&rsquo;s finding you.</p>
+            <p style="margin-top:16px"><a class="btn" href="/gossoko/business/">Gossoko for venues</a></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band--crema" aria-labelledby="go">
+        <div class="wrap closer">
+          <img class="closer__pin" src="/src/assets/brand/gossoko-pin.svg" alt="" width="64" height="90" />
+          <h2 class="h2" id="go">Smoko&rsquo;s at <em>nine</em>.</h2>
+          <p class="sub" style="margin-top:0">Gossoko works in your phone&rsquo;s browser right now. Add it to your home screen and it opens like an app.</p>
+          <a class="btn" href="/gossoko/admin/">Find a feed</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap">
+        <div class="foot__row">
+          <a class="foot__brand" href="/gossoko/" aria-label="Gossoko home"><img src="/src/assets/brand/gossoko-wordmark.svg" alt="Gossoko" width="100" height="22" /></a>
+          <nav aria-label="Footer">
+            <a href="/gossoko/admin/">Open the app</a>
+            <a href="/gossoko/admin/nearby">Nearby</a>
+            <a href="/gossoko/admin/rankings">Rankings</a>
+            <a href="/gossoko/business/">For venues</a>
+            <a href="/gossoko/privacy/">Privacy</a>
+            <a href="/gossoko/terms/">Terms</a>
+          </nav>
+        </div>
+        <p>Gossoko is made in Queensland by Sinsera, starting around Brisbane.</p>
+      </div>
+    </footer>
+    <script type="module" src="/src/site/home.ts"></script>
   </body>
 </html>

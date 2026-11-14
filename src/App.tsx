@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, type ReactNode } from 'react';
+import { APP_BASE } from '@/lib/env';
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { OPEN_EVENT } from '@/lib/push';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -30,10 +31,10 @@ const FounderPage = lazy(() => import('./pages/founder/page'));
 const DealsPage = lazy(() => import('./pages/deals/page'));
 const ManageIndexPage = lazy(() => import('./pages/manage/page'));
 const ManageVenuePage = lazy(() => import('./pages/manage/[slug]/page'));
-const AdminBusinessPage = lazy(() => import('./pages/admin/business/page'));
-const AdminLayout = lazy(() => import('./pages/admin/layout'));
-const ModerationPage = lazy(() => import('./pages/admin/moderation/page'));
-const AdminUsersPage = lazy(() => import('./pages/admin/users/page'));
+const AdminBusinessPage = lazy(() => import('./pages/staff/business/page'));
+const AdminLayout = lazy(() => import('./pages/staff/layout'));
+const ModerationPage = lazy(() => import('./pages/staff/moderation/page'));
+const AdminUsersPage = lazy(() => import('./pages/staff/users/page'));
 
 /** Sections that use the full tablet width; the rest (detail pages, forms) keep a readable column. */
 const WIDE_SECTIONS = new Set(['feed', 'nearby', 'search', 'deals', 'founder', 'manage']);
@@ -89,7 +90,7 @@ function Gate({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+    <BrowserRouter basename={APP_BASE.replace(/\/$/, '')}>
       <BrandIntro />
       <AuthProvider>
         <DistanceProvider>
@@ -119,8 +120,9 @@ export default function App() {
                 <Route path="auth/forgot" element={<Bare><ForgotPage /></Bare>} />
                 <Route path="auth/reset" element={<Bare><ResetPage /></Bare>} />
                 <Route path="auth/confirm" element={<Bare><ConfirmPage /></Bare>} />
-                <Route path="admin" element={<AdminLayout />}>
-                  <Route index element={<Navigate to="/admin/moderation" replace />} />
+                <Route path="moderation" element={<Navigate to="/staff/moderation" replace />} />
+                <Route path="staff" element={<AdminLayout />}>
+                  <Route index element={<Navigate to="/staff/moderation" replace />} />
                   <Route path="moderation" element={<ModerationPage />} />
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="business" element={<AdminBusinessPage />} />

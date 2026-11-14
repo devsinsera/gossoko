@@ -6,7 +6,7 @@ export type ClaimOutcome = 'submitted' | 'exists' | 'owner' | 'taken' | 'error' 
 
 // Lets a signed-in user claim ownership of a venue: inserts a pending
 // venue_claims row (RLS allows an own-claim insert). An admin approves or
-// rejects it in /admin/moderation.
+// rejects it in /staff/moderation.
 export async function claimVenue(venueId: string): Promise<ClaimOutcome> {
   if (!venueId) return 'error';
   const user = await getCurrentUser();

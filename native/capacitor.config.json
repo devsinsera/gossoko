@@ -3,7 +3,7 @@
   "appName": "Gossoko",
   "webDir": "www",
   "server": {
-    "url": "https://sinsera.co/gossoko/",
+    "url": "https://sinsera.co/gossoko/admin/",
     "errorPath": "offline.html",
     "allowNavigation": [
       "sinsera.co",

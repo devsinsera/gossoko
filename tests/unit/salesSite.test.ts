@@ -6,7 +6,7 @@ import { contactLink, legalTokens, LEGAL_ENTITY, ABN } from '@/config/site';
 import config from '../../vite.config';
 
 const read = (p: string) => readFileSync(fileURLToPath(new URL(`../../${p}`, import.meta.url)), 'utf8');
-const PAGES = ['about/index.html', 'business/index.html'];
+const PAGES = ['index.html', 'business/index.html'];   // the website's front page was about/ until 14 Nov 2026
 const ios: ShellGlobals = { Capacitor: { isNativePlatform: () => true, getPlatform: () => 'ios' } };
 const android: ShellGlobals = { Capacitor: { getPlatform: () => 'android' } };
 const web: ShellGlobals = { Capacitor: { isNativePlatform: () => false, getPlatform: () => 'web' } };
@@ -57,7 +57,7 @@ describe('native guard script (inlined into the sales pages)', () => {
 describe('sales routes', () => {
   it('builds the static page paths under the app base', () => {
     expect(salesHref('business', '/gossoko/')).toBe('/gossoko/business/');
-    expect(salesHref('about', '/gossoko')).toBe('/gossoko/about/');
+    expect(salesHref('about', '/gossoko')).toBe('/gossoko/');
   });
   it('in-app /business and /about load the static page on the web, go to the feed in the apps', () => {
     expect(salesRouteTarget('business', false, '/gossoko/')).toEqual({ kind: 'load', href: '/gossoko/business/' });
@@ -76,9 +76,10 @@ describe('sales routes', () => {
   });
   it('the build has the app, both sales pages and both legal pages', () => {
     const input = (config as { build?: { rollupOptions?: { input?: Record<string, string> } } }).build?.rollupOptions?.input ?? {};
-    expect(Object.keys(input).sort()).toEqual(['about', 'app', 'business', 'privacy', 'terms']);
+    expect(Object.keys(input).sort()).toEqual(['app', 'business', 'home', 'login', 'privacy', 'terms']);
     expect(input.business).toMatch(/business\/index\.html$/);
-    expect(input.about).toMatch(/about\/index\.html$/);
+    expect(input.home).toMatch(/gossoko[^/]*\/index\.html$|\/index\.html$/);
+    expect(input.app).toMatch(/admin\/index\.html$/);
   });
 });
 
@@ -224,7 +225,7 @@ describe('coverage wording', () => {
   it('never promises the Gold Coast or Sunshine Coast; says South-East Queensland starting around Brisbane', () => {
     for (const p of [...PAGES, ...LEGAL]) expect(read(p), p).not.toMatch(/gold coast|sunshine coast/i);
     for (const p of PAGES) expect(read(p), p).toMatch(/South-East Queensland/);
-    expect(read('about/index.html')).toMatch(/starting around Brisbane/);
+    expect(read('index.html')).toMatch(/starting around Brisbane/);
     expect(read('business/index.html')).toMatch(/starting around Brisbane/);
     expect(read('business/index.html')).toMatch(/Brisbane, Logan and Moreton Bay/);
   });

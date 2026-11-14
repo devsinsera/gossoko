@@ -2,7 +2,7 @@ import SwiftUI
 import WebKit
 
 let gossokoBackground = Color(red: 10 / 255, green: 9 / 255, blue: 8 / 255)   // #0a0908, the site's background
-let gossokoStart = URL(string: "https://sinsera.co/gossoko/")!
+let gossokoStart = URL(string: "https://sinsera.co/gossoko/admin/")!
 
 @MainActor
 final class ShellModel: ObservableObject {

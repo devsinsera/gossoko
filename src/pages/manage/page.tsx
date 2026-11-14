@@ -18,7 +18,8 @@ export default function ManageIndex() {
       <section className="section">
         {data.length === 0 ? (
           <p style={{ color: COLORS.textSecondary, lineHeight: 1.55 }}>
-            You don&apos;t manage a venue yet. Open your venue&apos;s page and tap <strong>Claim this venue</strong> —
+            You don&apos;t manage a venue yet. <Link href="/search" style={{ color: COLORS.orange }}>Find your venue</Link> (or{' '}
+            <Link href="/venue/new" style={{ color: COLORS.orange }}>add it</Link>), open its page and tap <strong>Claim this venue</strong> —
             once an admin verifies you, your dashboard shows up here.
           </p>
         ) : data.map((v) => (

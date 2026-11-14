@@ -43,7 +43,7 @@ export function nativeGuardScript(appHome: string): string {
 }
 
 /** The sales pages, by their folder under the app base. */
-export const SALES_PAGES = { about: 'about/', business: 'business/' } as const;
+export const SALES_PAGES = { about: '', business: 'business/' } as const;
 export type SalesPage = keyof typeof SALES_PAGES;
 
 /**

@@ -353,3 +353,9 @@ p { margin: 0; }
 .doc__toc a { display: inline-flex; align-items: center; min-height: 32px; }
 .doc__upcoming { border: 1px dashed var(--border-strong); border-radius: 14px; padding: 4px 16px 6px; margin: 12px 0; }
 .doc__upcoming > .soon__tag { display: inline-block; margin: 12px 0 0; }
+
+/* Front page: shops from the app */
+a.shop { display: block; text-decoration: none; color: inherit; }
+a.shop:hover { border-color: var(--orange); }
+.shop__where { font-size: 14px !important; text-transform: capitalize; margin-bottom: 6px; }
+.shop__score { margin-top: 10px; color: var(--orange) !important; font-weight: 700; font-size: 15px !important; }

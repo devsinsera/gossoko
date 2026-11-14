@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
 import { COLORS } from '@/lib/theme';
 
-/** Wraps /admin/*: signed-in with view_moderation_queue, otherwise bounced out. */
+/** Wraps /staff/*: signed-in with view_moderation_queue, otherwise bounced out. */
 export default function AdminLayout() {
   const { user } = useAuth();
   const loc = useLocation();
@@ -33,16 +33,16 @@ export default function AdminLayout() {
         </Link>
         <strong style={{ fontSize: 14, letterSpacing: 0.5 }}>ADMIN</strong>
         <nav style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 14 }}>
-          <Link href="/admin/moderation" style={{ color: COLORS.text, textDecoration: 'none' }}>
+          <Link href="/staff/moderation" style={{ color: COLORS.text, textDecoration: 'none' }}>
             Moderation
           </Link>
           {canManageUsers && (
-            <Link href="/admin/business" style={{ color: COLORS.text, textDecoration: 'none' }}>
+            <Link href="/staff/business" style={{ color: COLORS.text, textDecoration: 'none' }}>
               Business
             </Link>
           )}
           {canManageUsers && (
-            <Link href="/admin/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
+            <Link href="/staff/users" style={{ color: COLORS.text, textDecoration: 'none' }}>
               Users
             </Link>
           )}
