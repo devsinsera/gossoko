@@ -13,6 +13,7 @@ import { SavedSpots } from './SavedSpots';
 import { AlertsToggle } from './AlertsToggle';
 import { BiometricToggle } from './BiometricToggle';
 import { DeleteAccount } from './DeleteAccount';
+import { LegalLinks } from '@/components/LegalLinks';
 import { unreadCount } from '@/lib/queries/notifications';
 import { getAllVenues } from '@/lib/queries/venues';
 import { getManagedVenues, getSavedVenueIds } from '@/lib/queries/business';
@@ -449,6 +450,8 @@ export default function ProfilePage() {
           </div>
         )}
       </section>
+
+      <LegalLinks style={{ marginTop: 20 }} />
 
       <div className="brand-rule" style={{ marginTop: 28 }} />
     </>

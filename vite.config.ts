@@ -3,7 +3,7 @@ import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 import { nativeGuardScript } from './src/site/native';
-import { contactLink } from './src/config/site';
+import { contactLink, legalTokens } from './src/config/site';
 
 const BASE = '/gossoko/';
 const GUARD_MARK = '<!-- gossoko:native-guard -->';
@@ -17,8 +17,12 @@ function nativeGuard(): Plugin {
   return {
     name: 'gossoko-native-guard',
     transformIndexHtml(html) {
-      if (!html.includes(GUARD_MARK)) return html;
-      return html
+      // Legal pages (privacy/, terms/) carry no price and must open inside the apps, so they get
+      // the entity tokens but NOT the native guard.
+      let out = html;
+      for (const [k, v] of Object.entries(legalTokens())) out = out.split(k).join(v);
+      if (!out.includes(GUARD_MARK)) return out;
+      return out
         .replace(GUARD_MARK, `<script>${nativeGuardScript(BASE)}</script>`)
         .split('__CONTACT_HREF__').join(contact.href)
         .split('__CONTACT_CTA__').join(contact.cta)
@@ -29,8 +33,8 @@ function nativeGuard(): Plugin {
 
 // Served from sinsera.co/gossoko/ — the deploy script derives its remote
 // directory from this same base, so upload target and asset paths cannot drift.
-// Three pages: the app (index.html) and the web-only sales site (about/, business/),
-// which build to dist/about/index.html and dist/business/index.html.
+// The app (index.html), the web-only sales site (about/, business/) and the legal pages
+// (privacy/, terms/ — shown in the apps too), each built to dist/<name>/index.html.
 export default defineConfig({
   plugins: [react(), nativeGuard()],
   base: '/gossoko/',
@@ -45,6 +49,8 @@ export default defineConfig({
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
         about: fileURLToPath(new URL('./about/index.html', import.meta.url)),
         business: fileURLToPath(new URL('./business/index.html', import.meta.url)),
+        privacy: fileURLToPath(new URL('./privacy/index.html', import.meta.url)),
+        terms: fileURLToPath(new URL('./terms/index.html', import.meta.url)),
       },
     },
   },

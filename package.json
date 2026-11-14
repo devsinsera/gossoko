@@ -11,7 +11,8 @@
     "test": "vitest run",
     "icons": "python3 scripts/make_icons.py",
     "sim": "sim/run.sh",
-    "deploy": "npm test && npm run build && python3 scripts/deploy.py"
+    "deploy": "npm test && npm run build && python3 scripts/deploy.py",
+    "release-check": "RELEASE_CHECK=1 vitest run tests/unit/legalRelease.test.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",

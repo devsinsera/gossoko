@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link, safeNext, useQuery } from '@/lib/nav';
 import { COLORS, SPACE } from '@/lib/theme';
+import { LegalLinks } from '@/components/LegalLinks';
 import { signupUser } from '@/lib/api/auth';
 import { AuthShell, Field, SubmitButton, ErrorBanner } from '../_auth/AuthShell';
 
@@ -54,6 +55,8 @@ export default function SignupPage() {
         />
         <SubmitButton busy={busy}>Create account</SubmitButton>
       </form>
+
+      <LegalLinks prefix="By creating an account you agree to the " style={{ marginTop: SPACE.md, textAlign: 'left' }} />
 
       <p style={{ marginTop: SPACE.lg, fontSize: 13, color: COLORS.textSecondary }}>
         Already on the queue?{' '}

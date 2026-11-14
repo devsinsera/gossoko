@@ -333,3 +333,23 @@ p { margin: 0; }
 .center { text-align: center; }
 .mt { margin-top: 28px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Legal pages (privacy/, terms/): plain reading layout, no prices, shown in the apps too */
+.doc { padding: 40px 0 72px; }
+.doc__wrap { max-width: 760px; }
+.doc h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1; text-transform: uppercase; margin: 12px 0 10px; }
+.doc__updated { color: var(--text-muted); font-size: 15px; margin-bottom: 24px; }
+.doc__draft { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; padding: 12px 16px; color: var(--text-secondary); font-size: 15px; margin-bottom: 24px; }
+.doc__short { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--orange); border-radius: 16px; padding: 18px 20px; margin-bottom: 8px; }
+.doc .doc__short h2 { margin-top: 0; }
+.doc h2 { font-size: clamp(22px, 3.4vw, 28px); text-transform: uppercase; color: var(--text); margin: 36px 0 10px; line-height: 1.1; }
+.doc h3 { font-family: var(--font-body); font-size: 17px; font-weight: 800; color: var(--text); margin: 20px 0 6px; letter-spacing: 0; }
+.doc p { color: var(--text-secondary); margin: 0 0 12px; }
+.doc ul { margin: 0 0 14px; padding-left: 22px; color: var(--text-secondary); }
+.doc li { margin: 6px 0; }
+.doc li b, .doc p b { color: var(--text); font-weight: 700; }
+.doc a { overflow-wrap: anywhere; }
+.doc__toc { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 15px; }
+.doc__toc a { display: inline-flex; align-items: center; min-height: 32px; }
+.doc__upcoming { border: 1px dashed var(--border-strong); border-radius: 14px; padding: 4px 16px 6px; margin: 12px 0; }
+.doc__upcoming > .soon__tag { display: inline-block; margin: 12px 0 0; }
