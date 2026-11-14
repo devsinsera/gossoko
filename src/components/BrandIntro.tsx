@@ -139,12 +139,12 @@ export function BrandIntro() {
     const pinTrack: Keyframe[] = [
       // 0 to 0.8s: drop in from above, bounce to rest.
       { offset: 0, transform: hero(1, -vh * 0.6), easing: 'ease-out' },
-      { offset: at(T.dropEnd * 0.9), transform: hero(1, 0), easing: 'ease-in' },
+      { offset: at(T.dropEnd * 0.9), transform: hero(1, 0), easing: 'cubic-bezier(.5,0,.9,.6)' },
       { offset: at(T.dropEnd + 60), transform: hero(1, -vh * 0.035), easing: 'ease-in' },
       { offset: at(T.dropEnd + 130), transform: hero(1, 0), easing: 'ease-out' },
       // 0.8 to 1.3s: small pulse (peak = scale(1), the layout size).
-      { offset: at((T.dropEnd + T.pulseEnd) / 2), transform: hero(1.08, 0), easing: 'ease-in-out' },
-      { offset: at(T.pulseEnd), transform: hero(1, 0), easing: 'cubic-bezier(.6,0,.3,1)' },
+      { offset: at((T.dropEnd + T.pulseEnd) / 2), transform: hero(1.08, 0), easing: 'cubic-bezier(.37,0,.63,1)' },
+      { offset: at(T.pulseEnd), transform: hero(1, 0), easing: 'cubic-bezier(.65,0,.35,1)' },
       // 1.3 to 1.7s: shrink into the second O, then sit there while the letters come out.
       { offset: at(T.shrinkEnd), transform: `translate(${endDx}px, ${endDy}px) scale(${1 / peak})` },
       { offset: 1, transform: `translate(${endDx}px, ${endDy}px) scale(${1 / peak})` },
@@ -174,7 +174,7 @@ export function BrandIntro() {
       }));
       // Pops visible while still tucked behind the pin.
       anims.push(leg.img.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: 70, delay, fill: 'both',
+        duration: 110, delay, fill: 'both',
       }));
     }
     // Hand over to the static wordmark (same art, same pixels) once every
@@ -212,7 +212,7 @@ export function BrandIntro() {
       anims.push(group.animate([
         { transform: 'translate(0px, 0px) scale(1)' },
         { transform: `translate(${t.x}px, ${t.y}px) scale(${t.scale})` },
-      ], { duration: flipDur, easing: 'cubic-bezier(.6,0,.3,1)', fill: 'forwards' }));
+      ], { duration: flipDur, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' }));
       anims.push(overlay.animate([
         { background: 'rgba(10,9,8,1)' },
         { background: 'rgba(10,9,8,0)' },
@@ -245,7 +245,7 @@ export function BrandIntro() {
     >
       {/* zIndex 0 makes the group its own stacking context, so the letters'
           z-order stays inside it and the pin (zIndex 1) is always on top. */}
-      <div ref={groupRef} style={{ position: 'absolute', transformOrigin: '0 0', zIndex: 0 }}>
+      <div ref={groupRef} style={{ position: 'absolute', transformOrigin: '0 0', zIndex: 0, willChange: 'transform' }}>
         <img
           ref={wordRef}
           src={wordmarkUrl}
@@ -269,6 +269,7 @@ export function BrandIntro() {
                 height: `${(l.h / VB.h) * 100}%`,
                 transformOrigin: 'center 60%',
                 zIndex: LETTER_Z[l.index],
+                willChange: 'transform, opacity',
                 opacity: 0,
               }}
             />
@@ -280,7 +281,7 @@ export function BrandIntro() {
         src={pinUrl}
         alt=""
         draggable={false}
-        style={{ position: 'absolute', transformOrigin: 'center center', pointerEvents: 'none', zIndex: 1 }}
+        style={{ position: 'absolute', transformOrigin: 'center center', pointerEvents: 'none', zIndex: 1, willChange: 'transform' }}
       />
       <span
         data-intro-skip
