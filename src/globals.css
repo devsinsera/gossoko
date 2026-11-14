@@ -582,3 +582,6 @@ input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
     box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
   }
 }
+
+/* Signed out: the floating Log in button sits top-right, so top bars leave room for it. */
+.app-frame[data-out] .top-bar { padding-right: 96px; }

@@ -23,7 +23,13 @@ struct ShellView: View {
     var body: some View {
         ZStack {
             gossokoBackground.ignoresSafeArea()
-            WebShell(model: model).ignoresSafeArea()
+            WebShell(model: model)
+                .padding(.top, 28)                      // page starts below the window buttons
+                .ignoresSafeArea(edges: [.bottom, .horizontal])
+            WindowDragStrip()                           // the top 28 pt moves the window
+                .frame(height: 28)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
             if lock.locked {
                 gossokoBackground.ignoresSafeArea()
                 VStack(spacing: 14) {
@@ -60,4 +66,11 @@ struct ShellView: View {
         .containerBackground(gossokoBackground, for: .window)
         .onAppear { lock.lockIfNeeded(enabled: requireBiometrics) }
     }
+}
+
+/// Transparent strip that drags the window (the web view fills the rest of it).
+struct WindowDragStrip: NSViewRepresentable {
+    final class DragView: NSView { override var mouseDownCanMoveWindow: Bool { true } }
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
