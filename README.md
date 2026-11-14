@@ -45,7 +45,8 @@ npm run open:android         # needs a JDK + Android SDK
 The shells point at the live site (`capacitor.config.json` -> `server.url`), so a
 web deploy updates every app. `native/www/offline.html` is the no-network page.
 Icons come from one drawing: `python3 scripts/make_icons.py` writes
-`public/*`, `native/icon.png`, the iOS AppIcon and the Android launcher icons.
+`public/*`, `native/icon.png`, the iOS AppIcon, the Android launcher icons (adaptive
+foreground pin + map background) and the Mac app icon (`native/electron/icon.png`/`.icns`).
 
 ## Sign-in (Sinsera rule)
 
