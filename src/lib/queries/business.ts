@@ -1,6 +1,6 @@
 // Queries behind deals, saved spots, promoted placement, owner replies and the owner dashboard.
 import { supabase as getSupabase } from '@/lib/supabase/client';
-import { CLOCK_SKEW_MS, dealState } from '@/lib/deals';
+import { dealState } from '@/lib/deals';
 import { withSchedule } from './dealSchema';
 
 export interface Deal {
@@ -49,7 +49,7 @@ export async function getLiveDeals(venueId?: string): Promise<Deal[]> {
       .from('venue_specials')
       .select(dealCols(withDays))
       .is('deleted_at', null)
-      .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
+      .lte('start_date', nowIso)
       .gt('end_date', nowIso)
       .order('end_date', { ascending: true })
       .limit(60);

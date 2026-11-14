@@ -8,8 +8,8 @@
 --     window overlaps another deal's window on a shared weekday. A scheduled next deal that starts
 --     after the current one ends (or runs on other days) is allowed. Same rule for edits.
 --  3. A deal can't be claimed before its start or on a day it doesn't run (claim_deal).
---  4. An owner changing the venue's name or address goes live, and staff get an alert to check it
---     (the claim was approved for the old name/place).
+--  4. An owner changing the venue's name, address or pin goes live, and staff get an alert to check
+--     it (the claim was approved for the old name/place). Owners can't move the pin outside SEQ.
 --
 -- Additive (one nullable column + function bodies + one trigger). Undo: see the end of the file.
 set lock_timeout = '4s';
@@ -25,7 +25,8 @@ exception when duplicate_object then null; end $$;
 
 -- Does the deal run at time t (Brisbane weekday)?
 create or replace function gossoko.deal_runs_at(p_start timestamptz, p_end timestamptz, p_days smallint[], p_at timestamptz)
-returns boolean language sql stable as $$
+returns boolean language sql stable
+set search_path = pg_catalog as $$
   select p_start <= p_at and p_end > p_at
      and (p_days is null or extract(isodow from p_at at time zone 'Australia/Brisbane')::smallint = any(p_days))
 $$;
@@ -159,9 +160,9 @@ create or replace function gossoko.staff_alert_listing_change()
 returns trigger language plpgsql security definer set search_path = gossoko, pg_catalog as $$
 begin
   if gossoko.is_moderator() then return null; end if;
-  if (new.name, new.address, new.suburb, new.postcode) is not distinct from (old.name, old.address, old.suburb, old.postcode)
-     and abs(coalesce(new.latitude, 0) - coalesce(old.latitude, 0)) < 0.002
-     and abs(coalesce(new.longitude, 0) - coalesce(old.longitude, 0)) < 0.002 then
+  -- ANY change to the name, address or pin (no "small move" allowance: small moves add up).
+  if (new.name, new.address, new.suburb, new.postcode, new.latitude, new.longitude)
+     is not distinct from (old.name, old.address, old.suburb, old.postcode, old.latitude, old.longitude) then
     return null;
   end if;
   perform gossoko.notify_staff('staff_venue', 'Listing changed: ' || new.name,
@@ -172,6 +173,23 @@ begin
 exception when others then return null;  -- never block the owner's save
 end $$;
 revoke all on function gossoko.staff_alert_listing_change() from public, anon, authenticated;
+-- An owner can only move the pin within South-East Queensland (staff and service calls can go anywhere).
+create or replace function gossoko.venues_owner_place_guard()
+returns trigger language plpgsql security definer set search_path = gossoko, pg_catalog as $$
+begin
+  if gossoko.guard_bypass() or gossoko.is_moderator() then return new; end if;
+  if (new.latitude, new.longitude) is distinct from (old.latitude, old.longitude)
+     and not (new.latitude between -28.7 and -25.5 and new.longitude between 151.5 and 153.7) then
+    raise exception 'That map position is outside South-East Queensland. Check the address, or ask us to move it.'
+      using errcode = 'P0001', hint = 'outside_seq';
+  end if;
+  return new;
+end $$;
+revoke all on function gossoko.venues_owner_place_guard() from public, anon, authenticated;
+drop trigger if exists venues_owner_place_guard on gossoko.venues;
+create trigger venues_owner_place_guard before update of latitude, longitude on gossoko.venues
+  for each row execute function gossoko.venues_owner_place_guard();
+
 drop trigger if exists venues_listing_change_alert on gossoko.venues;
 create trigger venues_listing_change_alert after update of name, address, suburb, postcode, latitude, longitude on gossoko.venues
   for each row execute function gossoko.staff_alert_listing_change();
@@ -179,6 +197,8 @@ create trigger venues_listing_change_alert after update of name, address, suburb
 notify pgrst, 'reload schema';
 
 -- down:
+--   drop trigger if exists venues_owner_place_guard on gossoko.venues;
+--   drop function if exists gossoko.venues_owner_place_guard();
 --   drop trigger if exists venues_listing_change_alert on gossoko.venues;
 --   drop function if exists gossoko.staff_alert_listing_change();
 --   (specials_guard: re-run its body from 20261115000001_audit_week_fixes.sql;

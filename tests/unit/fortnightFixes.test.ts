@@ -1,6 +1,6 @@
 // Fixes from the 15 Nov two-week sim (Jess's bakery fortnight, ~/.sinsera/fortnight-sim-1115/gossoko).
 import { describe, expect, it, vi } from 'vitest';
-import { brisbaneDow, brisbaneLocalToIso, daysLabel, dealRunsAt, dealState, isoToBrisbaneLocal } from '@/lib/deals';
+import { CLOCK_SKEW_MS, brisbaneDow, brisbaneLocalToIso, daysLabel, dealRunsAt, dealState, isoToBrisbaneLocal } from '@/lib/deals';
 import { parseNear } from '@/lib/geo';
 import { geocodeAddress, geocodeQuery } from '@/lib/geocode';
 import { readFileSync } from 'node:fs';
@@ -52,6 +52,11 @@ describe('deal schedule migration', () => {
     expect(sql).toMatch(/hint = 'not_started'/);
     expect(sql).toMatch(/hint = 'not_today'/);
   });
+  it('owners can\'t move the pin outside SEQ; any name/address/pin change alerts staff; pinned search_path', () => {
+    expect(sql).toMatch(/hint = 'outside_seq'/);
+    expect(sql).not.toMatch(/< 0\.002/);
+    expect(sql).toMatch(/deal_runs_at[\s\S]*?set search_path = pg_catalog/);
+  });
   it('is additive with a down block', () => {
     expect(sql).toMatch(/add column if not exists days_of_week/);
     expect(sql).toMatch(/^-- down:/m);
@@ -100,11 +105,11 @@ describe('sim/ui-smoke.mjs uses the 14 Nov layout', () => {
 });
 
 describe('clock skew', () => {
-  it('a deal posted "now" by a server a minute ahead is still live on the phone', () => {
+  it('a deal posted "now" by a server a minute ahead is still live on the owner\'s dashboard', () => {
     const now = MON_7AM;
     const d = { start_date: new Date(now + 60_000).toISOString(), end_date: new Date(now + 86400_000).toISOString() };
-    expect(dealState(d, now)).toBe('live');
-    expect(dealState({ ...d, start_date: new Date(now + 3600_000).toISOString() }, now)).toBe('scheduled');
+    expect(dealState(d, now, CLOCK_SKEW_MS)).toBe('live');
+    expect(dealState({ ...d, start_date: new Date(now + 3600_000).toISOString() }, now, CLOCK_SKEW_MS)).toBe('scheduled');
   });
 });
 
@@ -138,5 +143,21 @@ describe('deploy-safe before migration 20261115000002', async () => {
     const r = await withSchedule(async () => ({ data: [2], error: null }));
     expect(r.data).toEqual([2]);
     expect(scheduleSupported()).toBe(true);
+  });
+});
+
+describe('web CSP lets Find on map reach OpenStreetMap', () => {
+  it('connect-src lists nominatim.openstreetmap.org (the phone/Mac apps load the same site)', () => {
+    const ht = readFileSync('public/.htaccess', 'utf8');
+    const connect = /connect-src ([^;]*)/.exec(ht)?.[1] ?? '';
+    expect(connect).toContain('https://nominatim.openstreetmap.org');
+  });
+});
+
+describe('Get code never shows before the start', () => {
+  it('customer view has no clock-skew allowance; owner view does', () => {
+    const d = { start_date: new Date(MON_7AM + 60_000).toISOString(), end_date: new Date(MON_7AM + 86400_000).toISOString() };
+    expect(dealState(d, MON_7AM)).toBe('scheduled');
+    expect(dealState(d, MON_7AM, 2 * 60_000)).toBe('live');
   });
 });

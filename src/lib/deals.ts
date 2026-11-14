@@ -44,9 +44,11 @@ export type DealState = 'live' | 'scheduled' | 'not-today' | 'finished';
 export const CLOCK_SKEW_MS = 2 * 60_000;
 
 /** live = can be claimed now; scheduled = starts later; not-today = in its window but today is a day off. */
-export function dealState(d: DealWindow, now: number = Date.now()): DealState {
+/** `skewMs`: only the owner's dashboard passes CLOCK_SKEW_MS (a deal they just posted shows as live);
+ *  customer lists use 0, so Get code never shows before the server says the deal has started. */
+export function dealState(d: DealWindow, now: number = Date.now(), skewMs = 0): DealState {
   if (d.deleted_at || Date.parse(d.end_date) <= now) return 'finished';
-  if (Date.parse(d.start_date) > now + CLOCK_SKEW_MS) return 'scheduled';
+  if (Date.parse(d.start_date) > now + skewMs) return 'scheduled';
   return dealRunsAt(d, Math.max(now, Date.parse(d.start_date))) ? 'live' : 'not-today';
 }
 

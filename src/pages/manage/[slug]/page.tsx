@@ -12,7 +12,7 @@ import { ReplyBox } from '../../_business/ReplyBox';
 import { createDeal, endDeal, MAX_SCHEDULE_DAYS, redeemDealCode, requestPro, saveVenueDetails, saveWeekHours } from '../../_business/actions';
 import { hoursOn, WEEK_ORDER, WEEKDAY_NAMES } from '@/lib/hours';
 import { scheduleSupported } from '@/lib/queries/dealSchema';
-import { brisbaneLocalToIso, daysLabel, dealState, isoToBrisbaneLocal, WEEKDAYS, type DealState } from '@/lib/deals';
+import { CLOCK_SKEW_MS, brisbaneLocalToIso, daysLabel, dealState, isoToBrisbaneLocal, WEEKDAYS, type DealState } from '@/lib/deals';
 import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
 import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
@@ -177,7 +177,7 @@ const blankDeal = { title: '', description: '', terms: '', kind: 'other' as 'per
 
 function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: Awaited<ReturnType<typeof getDealsForOwner>> }) {
   const now = Date.now();
-  const states = new Map(deals.map((d) => [d.id, dealState(d, now)] as const));
+  const states = new Map(deals.map((d) => [d.id, dealState(d, now, CLOCK_SKEW_MS)] as const));
   // "One deal at a time" = one LIVE at a time; scheduled deals wait their turn.
   const live = deals.filter((d) => states.get(d.id) === 'live');
   const upcoming = deals.filter((d) => states.get(d.id) === 'scheduled' || states.get(d.id) === 'not-today');
@@ -264,9 +264,9 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
             {f.kind !== 'other' && <input aria-label="Amount" type="number" min={1} step={f.kind === 'amount' ? 0.5 : 1} value={f.value} onChange={(e) => setF({ ...f, value: Number(e.target.value) })} style={{ ...input, width: 90 }} />}
           </div>
           {!scheduling && (
-            <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 12.5 }}>Scheduling needs an update: picking weekdays{full ? ' and booking the next deal while one is live' : ''} will work once it&apos;s live.</p>
+            <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 12.5 }}>Scheduling needs an update: picking weekdays{pro ? '' : ' and a later start date'} will work once it&apos;s live. This deal starts now.</p>
           )}
-          {(scheduling || !full) && <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
+          {(scheduling || pro) && <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: COLORS.textSecondary }}>
             Starts (leave empty to start now)
             <input aria-label="Starts" type="datetime-local" value={f.start} min={isoToBrisbaneLocal(now)} max={isoToBrisbaneLocal(now + MAX_SCHEDULE_DAYS * 86400_000)}
               onChange={(e) => setF({ ...f, start: e.target.value })} style={input} />
@@ -322,9 +322,10 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
   const [locating, setLocating] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const placeChanged = f.name.trim() !== venue.name || f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb
-    || f.postcode.trim() !== (venue.postcode ?? '') || pin !== null;
-  const addressChanged = f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb;
+  const placeEdits = scheduleSupported() === true;
+  const placeChanged = placeEdits && (f.name.trim() !== venue.name || f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb
+    || f.postcode.trim() !== (venue.postcode ?? '') || pin !== null);
+  const addressChanged = placeEdits && (f.address.trim() !== (venue.address ?? '') || f.suburb.trim() !== venue.suburb);
 
   async function findOnMap() {
     setLocating(true); setMsg(null);
@@ -366,6 +367,8 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
     <section className="section">
       <div className="section-title"><h2>Your listing</h2></div>
       <form onSubmit={save} style={{ ...card, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Name/address edits need migration 20261115000002 (staff alert + SEQ bound); hidden until it's live. */}
+        {placeEdits && (<>
         <input aria-label="Venue name" placeholder="Venue name" maxLength={80} required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} style={input} />
         <input aria-label="Street address" placeholder="Street address" maxLength={200} required value={f.address} onChange={(e) => { setF({ ...f, address: e.target.value }); setPin(null); }} style={input} />
         <div style={{ display: 'flex', gap: 8 }}>
@@ -379,7 +382,8 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
             {pin ? `New pin: ${pin.label.split(',').slice(0, 3).join(',')} (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)})` : `Pin: ${venue.lat.toFixed(5)}, ${venue.lng.toFixed(5)}`}
           </span>
         </div>
-        {placeChanged && <p style={{ ...small, margin: 0 }}>A new name or address goes live straight away.</p>}
+        {placeChanged && <p style={{ ...small, margin: 0 }}>A new name or address goes live straight away, and our team gets a note to check it.</p>}
+        </>)}
         <input aria-label="Tagline" placeholder="One line that sells it" maxLength={120} value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} style={input} />
         <textarea aria-label="About" rows={3} maxLength={600} placeholder="About the place" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} style={{ ...input, resize: 'vertical' }} />
         <input aria-label="Phone" type="tel" placeholder="Phone (shows a Call button)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} style={input} />

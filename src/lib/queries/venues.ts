@@ -6,7 +6,7 @@
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
 import { brisbaneWeekday, hoursOn, isOpenWeek, type DayHours } from '@/lib/hours';
-import { CLOCK_SKEW_MS, dealState, type DealWindow } from '@/lib/deals';
+import { dealState, type DealWindow } from '@/lib/deals';
 import { withSchedule } from './dealSchema';
 
 type VenueRow = {
@@ -145,7 +145,7 @@ async function liveDealVenueIds(): Promise<Set<string> | null> {
     .from('venue_specials')
     .select(withDays ? 'venue_id, start_date, end_date, days_of_week' : 'venue_id, start_date, end_date')
     .is('deleted_at', null)
-    .lte('start_date', new Date(Date.now() + CLOCK_SKEW_MS).toISOString())
+    .lte('start_date', nowIso)
     .gt('end_date', nowIso)
     .limit(2000));
   if (error) {
