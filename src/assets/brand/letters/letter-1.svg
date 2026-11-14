@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="215.43 -36 290.23 306">
+<defs>
+<linearGradient id="face" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="200">
+  <stop offset="0" stop-color="#fff7ec"/>
+  <stop offset=".6" stop-color="#f5f1ec"/>
+  <stop offset="1" stop-color="#e2cfb8"/>
+</linearGradient>
+<filter id="wshadow" x="-30%" y="-20%" width="160%" height="150%">
+  <feGaussianBlur stdDeviation="16"/>
+</filter>
+<path id="g" d="M251.42974079126878 100.13642564802183Q251.42974079126878 51.15961800818553 278.7148703956344 23.87448840381991Q306.0 -3.4106412005457116 354.70395634379264 -3.4106412005457116Q404.6357435197817 -3.4106412005457116 431.6480218281037 23.396998635743515Q458.6603001364257 50.20463847203274 458.6603001364257 98.49931787175989Q458.6603001364257 133.5607094133697 446.85948158253757 156.00272851296043Q435.0586630286494 178.44474761255117 412.7530695770805 190.92769440654843Q390.44747612551157 203.4106412005457 357.15961800818553 203.4106412005457Q323.3260572987722 203.4106412005457 301.15688949522513 192.63301500682127Q278.9877216916781 181.85538881309685 265.2087312414734 158.52660300136426Q251.42974079126878 135.19781718963165 251.42974079126878 100.13642564802183ZM313.2305593451569 100.40927694406548Q313.2305593451569 130.69577080491132 324.4856753069577 143.92905866302866Q335.7407912687585 157.162346521146 355.1132332878581 157.162346521146Q375.031377899045 157.162346521146 385.94542974079127 144.2019099590723Q396.85948158253757 131.24147339699863 396.85948158253757 97.68076398362892Q396.85948158253757 69.44065484311051 385.46793997271493 56.41200545702593Q374.07639836289223 43.383356070941346 354.5675306957708 43.383356070941346Q335.87721691678036 43.383356070941346 324.55388813096863 56.61664392905867Q313.2305593451569 69.84993178717599 313.2305593451569 100.40927694406548Z"/>
+</defs>
+<g fill="#000" opacity=".7" filter="url(#wshadow)" transform="translate(0 14)"><use href="#g"/><use href="#g" transform="translate(11 20)"/></g>
+<g><use href="#g" fill="#a8490c" transform="translate(11 20)"/><use href="#g" fill="#a8490c" transform="translate(10.45 19)"/><use href="#g" fill="#a8490c" transform="translate(9.9 18)"/><use href="#g" fill="#a8490c" transform="translate(9.35 17)"/><use href="#g" fill="#a8490c" transform="translate(8.8 16)"/><use href="#g" fill="#a8490c" transform="translate(8.25 15)"/><use href="#g" fill="#a8490c" transform="translate(7.7 14)"/><use href="#g" fill="#a8490c" transform="translate(7.15 13)"/><use href="#g" fill="#a8490c" transform="translate(6.6 12)"/><use href="#g" fill="#a8490c" transform="translate(6.05 11)"/><use href="#g" fill="#a8490c" transform="translate(5.5 10)"/><use href="#g" fill="#a8490c" transform="translate(4.95 9)"/><use href="#g" fill="#a8490c" transform="translate(4.4 8)"/><use href="#g" fill="#a8490c" transform="translate(3.85 7)"/><use href="#g" fill="#a8490c" transform="translate(3.3 6)"/><use href="#g" fill="#a8490c" transform="translate(2.75 5)"/><use href="#g" fill="#a8490c" transform="translate(2.2 4)"/><use href="#g" fill="#a8490c" transform="translate(1.65 3)"/><use href="#g" fill="#a8490c" transform="translate(1.1 2)"/><use href="#g" fill="#a8490c" transform="translate(0.55 1)"/></g>
+<use href="#g" fill="url(#face)"/>
+</svg>

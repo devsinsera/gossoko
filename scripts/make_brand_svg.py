@@ -175,6 +175,7 @@ def write_wordmark():
     defs = []
     body = []
     ink = []  # (letter index, x0, x1) of each glyph's ink, for pin placement
+    letters = []  # (index, char, path d, ink x0, ink x1) for the per-letter intro SVGs
     for i, ch in enumerate(WORD):
         gname = cmap[ord(ch)]
         adv = hmtx[gname][0] * s
@@ -189,6 +190,7 @@ def write_wordmark():
         tpen = TransformPen(pen, (s, 0, 0, -s, x, baseline))
         gs[gname].draw(tpen)
         defs.append(f'<path id="g{i}" d="{pen.getCommands()}"/>')
+        letters.append((i, ch, pen.getCommands(), x + bx0 * s, x + bx1 * s))
         x += adv + track
     width = x - track
 
@@ -256,6 +258,8 @@ def write_wordmark():
         fh.write(svg)
     print("wrote", path, f"viewBox {f(vb_w)}x{f(vb_h)}")
 
+    letter_boxes = write_letters(letters, steps, shadow_pad)
+
     # Where the pin-only SVG sits inside the wordmark, so the intro can fly the
     # pin into the slot and hand over with no jump. Same maths as pin_tf above:
     # the pin SVG box is 240x336 units with its origin at the pin centre.
@@ -267,8 +271,59 @@ def write_wordmark():
             "// Units: the wordmark SVG viewBox.\n"
             f"export const WORDMARK_VIEWBOX = {{ x: {f(vb_x0)}, y: {f(vb_y0)}, w: {f(vb_w)}, h: {f(vb_h)} }} as const;\n"
             f"export const WORDMARK_PIN_SLOT = {{ x: {f(slot[0])}, y: {f(slot[1])}, w: {f(slot[2])}, h: {f(slot[3])} }} as const;\n"
+            "// One box per letter SVG in src/assets/brand/letters/ (the pin is not a letter).\n"
+            "// Each letter SVG's viewBox is exactly its box, so it can be laid over the\n"
+            "// wordmark at this position and matches it pixel for pixel.\n"
+            "export const WORDMARK_LETTERS = [\n"
+            + "".join(
+                f"  {{ index: {i}, char: '{ch}', x: {f(b[0])}, y: {f(b[1])}, w: {f(b[2])}, h: {f(b[3])} }},\n"
+                for i, ch, b in letter_boxes
+            )
+            + "] as const;\n"
         )
     print("wrote", geo)
+
+
+def write_letters(letters, steps, shadow_pad):
+    """One SVG per letter (face + extrude + its own blurred shadow silhouette),
+    for the opening animation, where each letter springs out from behind the
+    pin on its own. Same art and units as the wordmark; the viewBox is the
+    letter's own box so the intro can place it with WORDMARK_LETTERS."""
+    d = os.path.join(OUT, "letters")
+    os.makedirs(d, exist_ok=True)
+    depth_x = steps * 0.55
+    boxes = []
+    for i, ch, path, x0, x1 in letters:
+        bx = x0 - shadow_pad
+        by = -shadow_pad
+        bw = (x1 - x0) + depth_x + shadow_pad * 2
+        bh = CAP + steps + CAP * 0.07 + shadow_pad * 2
+        extrude = "".join(
+            f'<use href="#g" fill="{EXTRUDE}" transform="translate({f(t*0.55)} {f(t)})"/>'
+            for t in range(steps, 0, -1)
+        )
+        svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="{f(bx)} {f(by)} {f(bw)} {f(bh)}">
+<defs>
+<linearGradient id="face" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="{f(CAP)}">
+  <stop offset="0" stop-color="#fff7ec"/>
+  <stop offset=".6" stop-color="{CREAM}"/>
+  <stop offset="1" stop-color="#e2cfb8"/>
+</linearGradient>
+<filter id="wshadow" x="-30%" y="-20%" width="160%" height="150%">
+  <feGaussianBlur stdDeviation="{f(CAP*0.08)}"/>
+</filter>
+<path id="g" d="{path}"/>
+</defs>
+<g fill="#000" opacity=".7" filter="url(#wshadow)" transform="translate(0 {f(CAP*0.07)})"><use href="#g"/><use href="#g" transform="translate({f(depth_x)} {f(steps)})"/></g>
+<g>{extrude}</g>
+<use href="#g" fill="url(#face)"/>
+</svg>
+"""
+        with open(os.path.join(d, f"letter-{i}.svg"), "w") as fh:
+            fh.write(svg)
+        boxes.append((i, ch, (bx, by, bw, bh)))
+    print("wrote", len(boxes), "letter SVGs to", d)
+    return boxes
 
 
 def pin_group_defs(prefix):

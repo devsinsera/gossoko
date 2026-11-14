@@ -3,6 +3,8 @@ import {
   INTRO,
   INTRO_SESSION_KEY,
   flipTransform,
+  letterEmergeDelay,
+  letterSpring,
   markIntroPlayed,
   shouldPlayIntro,
   type IntroStorage,
@@ -48,13 +50,75 @@ describe('shouldPlayIntro', () => {
 });
 
 describe('INTRO timeline', () => {
-  it('keeps the sequence in order and under the 2.5s cap', () => {
+  it('keeps the sequence in order and under the 2.8s cap', () => {
     expect(INTRO.dropEnd).toBeLessThan(INTRO.pulseEnd);
+    expect(INTRO.pulseEnd).toBeLessThan(INTRO.shrinkEnd);
+    expect(INTRO.shrinkEnd).toBeLessThan(INTRO.revealEnd);
     expect(INTRO.pulseEnd).toBeLessThan(INTRO.revealEnd);
     expect(INTRO.revealEnd).toBeLessThanOrEqual(INTRO.holdEnd);
     expect(INTRO.holdEnd).toBeLessThan(INTRO.flipEnd);
     expect(INTRO.flipEnd).toBeLessThanOrEqual(INTRO.hardCap);
-    expect(INTRO.hardCap).toBeLessThanOrEqual(2500);
+    expect(INTRO.hardCap).toBeLessThanOrEqual(2800);
+  });
+
+  it('lets the farthest letter settle by the end of the reveal', () => {
+    // Letters start emerging while the pin is still shrinking (so they come
+    // out from behind it), and the last one has finished before the hold.
+    expect(INTRO.emergeStart).toBeGreaterThan(INTRO.pulseEnd);
+    expect(INTRO.emergeStart).toBeLessThan(INTRO.shrinkEnd);
+    expect(INTRO.emergeStart + INTRO.emergeSpread + INTRO.emergeDur).toBeLessThanOrEqual(INTRO.revealEnd);
+  });
+});
+
+describe('letter bounce', () => {
+  it('brings the nearest letters out first', () => {
+    const near = letterEmergeDelay(40, 40, 170);
+    const mid = letterEmergeDelay(100, 40, 170);
+    const far = letterEmergeDelay(170, 40, 170);
+    expect(near).toBe(INTRO.emergeStart);
+    expect(near).toBeLessThan(mid);
+    expect(mid).toBeLessThan(far);
+    expect(far).toBe(INTRO.emergeStart + INTRO.emergeSpread);
+    // Degenerate span: everyone together, never NaN.
+    expect(letterEmergeDelay(5, 5, 5)).toBe(INTRO.emergeStart);
+  });
+
+  const scales = (kf: Keyframe[]) =>
+    kf.flatMap((k) => {
+      const m = /scale\(([^,]+), ([^)]+)\)/.exec(String(k.transform));
+      return m ? [Number(m[1]), Number(m[2])] : [];
+    });
+  const translate = (k: Keyframe) => {
+    const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(String(k.transform))!;
+    return [Number(m[1]), Number(m[2])];
+  };
+
+  it('starts at the pin centre and ends exactly at rest', () => {
+    const kf = letterSpring(120, -6, 12);
+    expect(translate(kf[0])).toEqual([120, -6]);
+    expect(kf[kf.length - 1].transform).toBe('translate(0px, 0px) scale(1, 1)');
+    expect(kf.map((k) => k.offset)).toEqual([...kf.map((k) => k.offset)].sort());
+  });
+
+  it('overshoots outwards (away from the pin), then settles', () => {
+    // Letter left of the pin: pin is at +dx, so outwards is -x.
+    const left = letterSpring(150, 0, 10);
+    expect(translate(left[1])[0]).toBeCloseTo(-10);
+    expect(translate(left[2])[0]).toBeGreaterThan(0); // swings back past rest
+    // Letter right of the pin: outwards is +x.
+    const right = letterSpring(-80, 0, 10);
+    expect(translate(right[1])[0]).toBeCloseTo(10);
+  });
+
+  it('never scales a letter above 1 (crisp on iOS: downsample only)', () => {
+    for (const kf of [letterSpring(150, 4, 14), letterSpring(-40, -3, 9)]) {
+      const s = scales(kf);
+      expect(s.length).toBeGreaterThan(0);
+      expect(Math.max(...s)).toBeLessThanOrEqual(1);
+      expect(Math.min(...s)).toBeGreaterThan(0);
+      // Transform only: no filters or clip paths in the letter track.
+      for (const k of kf) expect(Object.keys(k).sort()).toEqual(['easing', 'offset', 'transform'].filter((p) => p in k));
+    }
   });
 });
 

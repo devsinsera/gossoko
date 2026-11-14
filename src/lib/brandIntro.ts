@@ -9,11 +9,49 @@ export const INTRO_SESSION_KEY = 'gossoko.intro.v1';
 export const INTRO = {
   dropEnd: 800,      // pin drops in from above, bounces to rest at centre
   pulseEnd: 1300,    // small pulse at centre
-  revealEnd: 2000,   // pin shrinks into the O; letters reveal outwards
-  holdEnd: 2150,     // logo holds briefly
-  flipEnd: 2400,     // logo flies to the header spot (FLIP)
-  hardCap: 2500,     // never longer than this, whatever is loaded
+  shrinkEnd: 1700,   // pin shrinks into the second O
+  emergeStart: 1380, // first (nearest) letters start springing out from behind the pin
+  emergeSpread: 220, // the farthest letter (G) starts this much later
+  emergeDur: 580,    // each letter's spring, start to settled
+  revealEnd: 2180,   // last letter settled; static wordmark takes over
+  holdEnd: 2300,     // logo holds briefly
+  flipEnd: 2550,     // logo flies to the header spot (FLIP)
+  hardCap: 2700,     // never longer than this, whatever is loaded
 } as const;
+
+/**
+ * Stagger for the letter bounce: nearest letters to the pin come out first.
+ * `dist` is the letter's distance from the pin centre; dmin/dmax are the
+ * nearest and farthest letters. Returns the delay in ms from intro start.
+ */
+export function letterEmergeDelay(dist: number, dmin: number, dmax: number): number {
+  const span = dmax - dmin;
+  const t = span > 0 ? Math.min(1, Math.max(0, (dist - dmin) / span)) : 0;
+  return Math.round(INTRO.emergeStart + t * INTRO.emergeSpread);
+}
+
+/**
+ * One letter's spring out from behind the pin, as Web Animations keyframes
+ * (transform only). (dx, dy) is the pin centre relative to the letter's
+ * resting centre, in px; `over` is the overshoot in px past the resting spot.
+ * The letter starts small at the pin centre, shoots out past its spot with a
+ * little horizontal squash, swings back, settles. Every scale is <= 1 so a
+ * letter laid out at its final size is only ever downsampled (stays crisp).
+ */
+export function letterSpring(dx: number, dy: number, over: number): Keyframe[] {
+  const len = Math.hypot(dx, dy) || 1;
+  // Unit vector pointing outwards (from the pin towards the letter's spot).
+  const ux = -dx / len;
+  const uy = -dy / len;
+  const at = (k: number) => `${(ux * over * k).toFixed(2)}px, ${(uy * over * k).toFixed(2)}px`;
+  return [
+    { offset: 0, transform: `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(0.5, 0.5)`, easing: 'cubic-bezier(.25,.8,.35,1)' },
+    { offset: 0.46, transform: `translate(${at(1)}) scale(0.9, 1)`, easing: 'ease-in-out' },
+    { offset: 0.7, transform: `translate(${at(-0.32)}) scale(1, 0.95)`, easing: 'ease-in-out' },
+    { offset: 0.86, transform: `translate(${at(0.1)}) scale(0.98, 1)`, easing: 'ease-out' },
+    { offset: 1, transform: 'translate(0px, 0px) scale(1, 1)' },
+  ];
+}
 
 /** Minimal storage shape so tests can pass a fake. */
 export type IntroStorage = Pick<Storage, 'getItem' | 'setItem'>;

@@ -2,3 +2,14 @@
 // Units: the wordmark SVG viewBox.
 export const WORDMARK_VIEWBOX = { x: -36, y: -44, w: 1695.26, h: 370.41 } as const;
 export const WORDMARK_PIN_SLOT = { x: 885, y: -28.72, w: 248.68, h: 348.15 } as const;
+// One box per letter SVG in src/assets/brand/letters/ (the pin is not a letter).
+// Each letter SVG's viewBox is exactly its box, so it can be laid over the
+// wordmark at this position and matches it pixel for pixel.
+export const WORDMARK_LETTERS = [
+  { index: 0, char: 'G', x: -23.18, y: -36, w: 286.68, h: 306 },
+  { index: 1, char: 'O', x: 215.43, y: -36, w: 290.23, h: 306 },
+  { index: 2, char: 'S', x: 451.17, y: -36, w: 264.45, h: 306 },
+  { index: 3, char: 'S', x: 658.94, y: -36, w: 264.45, h: 306 },
+  { index: 5, char: 'K', x: 1116.51, y: -36, w: 295.01, h: 306 },
+  { index: 6, char: 'O', x: 1347.2, y: -36, w: 290.23, h: 306 },
+] as const;
