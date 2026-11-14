@@ -24,7 +24,7 @@ export default function AdminLayout() {
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text }}>
       <header style={{
-        position: 'sticky', top: 0, zIndex: 10,
+        position: 'sticky', top: 'var(--safe-top, 0px)', zIndex: 10,
         background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}`,
         padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16,
       }}>

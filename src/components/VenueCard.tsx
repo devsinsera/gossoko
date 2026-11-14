@@ -6,6 +6,7 @@ import { COLORS, RADIUS } from '@/lib/theme';
 import { StarIcon, ClockIcon, MapPinIcon, FlameIcon, ZapIcon, VerifiedIcon, CoffeeIcon, TruckIcon, HardHatIcon } from './icons';
 import { VenueDistance } from './VenueDistance';
 import { displayScore, reviewCountLabel } from '@/lib/ranking';
+import { hoursLabel, isOpen24h } from '@/lib/hours';
 
 function venueIcon(type: Venue['venue_type']) {
   if (type === 'gossoko_van') return HardHatIcon;
@@ -145,7 +146,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
                 <VenueDistance lat={venue.lat} lng={venue.lng} />
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <ClockIcon size={12} /> {venue.opens_at}
+                <ClockIcon size={12} /> {isOpen24h(venue.opens_at, venue.closes_at) && !isCompact ? 'Open 24 hours' : hoursLabel(venue.opens_at, venue.closes_at, 'short')}
               </span>
             </p>
           </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { deleteMyAccount } from '@/lib/api/admin';
 import { COLORS, RADIUS } from '@/lib/theme';
 
-/** Permanently deletes the account: profile, reviews, comments, saved spots, codes. Asks for the word DELETE. */
+/** Permanently deletes the account: profile, reviews, comments, photos (files too), saved spots, codes. Asks for the word DELETE. */
 export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
   const [open, setOpen] = useState(false);
   const [word, setWord] = useState('');
@@ -24,7 +24,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
   return (
     <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: RADIUS.md, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <p style={{ margin: 0, color: COLORS.text, fontSize: 13.5, lineHeight: 1.5 }}>
-        This permanently deletes your account, reviews, comments, saved spots and deal codes. It can&apos;t be undone.
+        This permanently deletes your account, reviews, comments, photos, saved spots and deal codes. It can&apos;t be undone.
         Venues you added stay on Gossoko.
       </p>
       <input aria-label="Type DELETE to confirm" placeholder="Type DELETE" value={word} onChange={(e) => setWord(e.target.value)} autoCapitalize="characters" autoComplete="off"

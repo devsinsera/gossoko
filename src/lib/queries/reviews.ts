@@ -200,6 +200,15 @@ export async function getReviewByUserAndVenue(userId: string, venueId: string): 
   return data ? rowToReview(data as unknown as ReviewRow) : null;
 }
 
+/** The venue page's review button: "Edit your review" once the signed-in user has one (it opens in edit). */
+export function reviewCta(venueSlug: string, mine: { id: string } | null | undefined): { href: string; label: string; editing: boolean } {
+  return {
+    href: `/review/new?venue=${encodeURIComponent(venueSlug)}`,
+    label: mine ? 'Edit your review' : 'Write a review',
+    editing: Boolean(mine),
+  };
+}
+
 export interface RecentReview extends VenueReview {
   venue_slug: string;
   venue_name: string;

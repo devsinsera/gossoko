@@ -5,6 +5,7 @@
 
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
+import { isOpenAt } from '@/lib/hours';
 
 type VenueRow = {
   id: string;
@@ -70,7 +71,7 @@ function rowToVenue(r: VenueRow): Venue {
     postcode: r.postcode ?? '',
     lat: Number(r.latitude),
     lng: Number(r.longitude),
-    open_now: isOpenNow(r.opens_at, r.closes_at),
+    open_now: isOpenAt(r.opens_at, r.closes_at),
     opens_at: r.opens_at ?? '',
     closes_at: r.closes_at ?? '',
     price_level: (r.price_level ?? 2) as 1 | 2 | 3,
@@ -92,19 +93,6 @@ function rowToVenue(r: VenueRow): Venue {
     tags: r.tags ?? [],
     signature: r.signature ?? '',
   };
-}
-
-function isOpenNow(opens: string | null, closes: string | null): boolean {
-  if (!opens || !closes) return false;
-  // "00:00" + "23:59" → 24h venue
-  if (opens === '00:00' && closes === '23:59') return true;
-  const now = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const [oH, oM] = opens.split(':').map(Number);
-  const [cH, cM] = closes.split(':').map(Number);
-  const o = oH * 60 + oM;
-  const c = cH * 60 + cM;
-  return c > o ? mins >= o && mins < c : mins >= o || mins < c;
 }
 
 const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until, pro_until, deal_until, save_count, phone';

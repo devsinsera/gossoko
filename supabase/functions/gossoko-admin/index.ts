@@ -5,12 +5,13 @@
 //   queue_report  put the caller's own report into the moderation queue
 //   audit         write an audit_logs row for a moderation decision
 //   set_role      change another user's role (+ audit)
-//   delete_account  the caller deletes their own account and everything attached to it
+//   delete_account  the caller deletes their own account, everything attached to it, and their photo files
 //
 // Deploy: supabase functions deploy gossoko-admin --project-ref lkhtgkmivqwgnvzmjbhr
 // (slug is app-prefixed on purpose: one project hosts every app's functions.)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { removeAccountFiles, type FilesClient } from './accountFiles.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -128,12 +129,20 @@ Deno.serve(async (req) => {
     }
 
     case 'delete_account': {
-      // The caller deletes their OWN account. profiles has no foreign key to auth.users, so the
-      // profile row is removed first (it cascades to their reviews, comments, likes, saved spots,
-      // deal codes, claims and requests), then the login. Venues they added stay, un-owned.
+      // The caller deletes their OWN account. Their photo files are removed from storage, then the
+      // profile row (profiles has no foreign key to auth.users; it cascades to their reviews, comments,
+      // likes, saved spots, deal codes, claims, requests and photo rows), then the login. Venues they
+      // added stay, un-owned.
       if (body.confirm !== 'DELETE') return json({ error: 'confirm' }, 400);
       const { data: me } = await admin.from('profiles').select('id, role').eq('id', user.id).maybeSingle();
       if (me && me.role !== 'user' && me.role !== 'business') return json({ error: 'staff' }, 400); // demote first
+      // Their uploaded photo files first: the photos rows (which record the paths) cascade away with
+      // the profile, and the bucket isn't cleaned by the database. Stop if this fails, so a retry can finish it.
+      try {
+        await removeAccountFiles(admin as unknown as FilesClient, user.id);
+      } catch (e) {
+        return json({ error: 'files_delete_failed', detail: e instanceof Error ? e.message : String(e) }, 500);
+      }
       if (me) {
         const { error: delErr } = await admin.from('profiles').delete().eq('id', user.id);
         if (delErr) return json({ error: 'delete_failed', detail: delErr.message }, 500);
