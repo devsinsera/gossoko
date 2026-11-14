@@ -53,7 +53,7 @@ function Frame() {
   const manageIndex = pathname.replace(/\/$/, '') === '/manage';
   const width = WIDE_SECTIONS.has(section) && (section !== 'manage' || manageIndex) ? 'wide' : 'read';
   return (
-    <div className="app-frame" data-width={width} key={section}>
+    <div className="app-frame" data-width={width} data-out={!user && status === 'out' ? '1' : undefined} key={section}>
       {!user && status === 'out' && (
         <Link to="/login" aria-label="Log in" style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 10px)', right: 14, zIndex: 60, minHeight: 40, display: 'inline-flex', alignItems: 'center', padding: '0 18px', borderRadius: 999, background: COLORS.text, color: COLORS.bg, fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 6px 18px rgba(0,0,0,.35)' }}>Log in</Link>
       )}
