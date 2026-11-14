@@ -1,5 +1,6 @@
 # Gossoko (Peta, 14 Nov 2026): /gossoko/ = the website, /gossoko/admin/ = the app, /gossoko/login/ = sign-in.
 AddType application/manifest+json .webmanifest
+AddType application/vnd.android.package-archive .apk
 
 RewriteEngine On
 RewriteBase /gossoko/
