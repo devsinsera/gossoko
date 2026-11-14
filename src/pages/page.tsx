@@ -10,6 +10,7 @@ import { applyFilter, type FilterId } from '@/lib/filters';
 import { haversineKm } from '@/lib/geo';
 import { SponsorSlot } from '@/components/SponsorSlot';
 import { FilterChips } from '@/components/FilterChips';
+import { salesHref, salesLinksVisible } from '@/site/native';
 import { getAllVenues } from '@/lib/queries/venues';
 import { getRecentReviews } from '@/lib/queries/reviews';
 import { useLoad } from '@/lib/useLoad';
@@ -229,6 +230,14 @@ export default function FeedPage() {
           ))}
         </div>
       </section>
+
+      {/* Web only: the apps never link to the sales site (it shows the Pro price). Plain <a>: a static page. */}
+      {salesLinksVisible() && (
+        <p style={{ margin: '24px 0 0', textAlign: 'center', fontSize: 13.5, color: COLORS.textSecondary }}>
+          Run a café, van or servo?{' '}
+          <a href={salesHref('business', import.meta.env.BASE_URL)} style={{ color: COLORS.orange, fontWeight: 700, display: 'inline-block', padding: '12px 4px' }}>Gossoko for venues →</a>
+        </p>
+      )}
 
       <div className="brand-rule" style={{ marginTop: 28 }} />
     </>
