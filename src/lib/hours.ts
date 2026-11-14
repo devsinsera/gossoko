@@ -56,3 +56,46 @@ export function hoursLabel(opens: string | null | undefined, closes: string | nu
   if (o && c) return `${o}–${c}`;
   return o ? `Opens ${o}` : '';
 }
+
+// ── Hours by weekday (Peta, 15 Nov 2026: "closed Sundays" must be possible) ──────────────────────
+// A venue has its usual hours (opens/closes) and may override any weekday, including "closed".
+// A weekday with no override uses the usual hours. All in Queensland time.
+
+/** One weekday's override. day: 0 = Sunday … 6 = Saturday (as stored in gossoko.venue_hours). */
+export interface DayHours { day: number; opens: string | null; closes: string | null; closed: boolean }
+
+export const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+/** Monday first, the way a shop writes its hours. */
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+
+/** 0 = Sunday … 6 = Saturday, in Brisbane. */
+export function brisbaneWeekday(at: Date): number {
+  return new Date(at.getTime() + 10 * 3600_000).getUTCDay();
+}
+
+/** The hours that apply on a weekday: its override, else the usual hours. */
+export function hoursOn(day: number, week: DayHours[] | null | undefined, opens: string | null | undefined, closes: string | null | undefined):
+  { opens: string; closes: string; closed: boolean } {
+  const o = week?.find((d) => d.day === day);
+  if (o) return o.closed ? { opens: '', closes: '', closed: true } : { opens: o.opens ?? '', closes: o.closes ?? '', closed: false };
+  return { opens: opens ?? '', closes: closes ?? '', closed: false };
+}
+
+/** Open right now, by weekday hours: today's window, or last night's window that runs past midnight. */
+export function isOpenWeek(week: DayHours[] | null | undefined, opens: string | null | undefined, closes: string | null | undefined, at: Date = new Date()): boolean {
+  if (!week?.length) return isOpenAt(opens, closes, at);
+  const wd = brisbaneWeekday(at);
+  const now = brisbaneMinutes(at);
+  const today = hoursOn(wd, week, opens, closes);
+  if (!today.closed) {
+    if (isOpen24h(today.opens, today.closes)) return true;
+    const o = toMinutes(today.opens), c = toMinutes(today.closes);
+    if (o != null && c != null && (c > o ? now >= o && now < c : now >= o)) return true;
+  }
+  const y = hoursOn((wd + 6) % 7, week, opens, closes);
+  if (!y.closed && !isOpen24h(y.opens, y.closes)) {
+    const o = toMinutes(y.opens), c = toMinutes(y.closes);
+    if (o != null && c != null && c < o && now < c) return true;
+  }
+  return false;
+}

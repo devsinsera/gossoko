@@ -6,7 +6,7 @@ import { getReviewByUserAndVenue, getReviewsByVenueId, getUserLikedReviewIds, re
 import { getCommentsByReviewIds } from '@/lib/queries/comments';
 import { useAuth } from '@/lib/auth';
 import { useLoad } from '@/lib/useLoad';
-import { hoursLabel, isOpen24h } from '@/lib/hours';
+import { hoursLabel, hoursOn, isOpen24h, WEEK_ORDER, WEEKDAY_NAMES, type DayHours } from '@/lib/hours';
 import { useQuery } from '@/lib/nav';
 import { VenuePhotos } from '@/components/VenuePhotos';
 import { supabase as getSupabase } from '@/lib/supabase/client';
@@ -216,12 +216,14 @@ export default function VenueDetailPage() {
             <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orange} />
             <Stat label="Reviews" value={String(venue.review_count)} />
             <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
-            {isOpen24h(venue.opens_at, venue.closes_at) ? (
+            {venue.closed_today ? (
+              <Stat label="Today" value="Closed" />
+            ) : isOpen24h(venue.today_opens, venue.today_closes) ? (
               <Stat label="Hours" value="Open 24 hours" />
             ) : (
               <>
-                <Stat label="Opens" value={hoursLabel(venue.opens_at, venue.closes_at, 'short') || '—'} />
-                <Stat label="Closes" value={venue.closes_at ? venue.closes_at.slice(0, 5) : '—'} />
+                <Stat label="Opens" value={hoursLabel(venue.today_opens, venue.today_closes, 'short') || '—'} />
+                <Stat label="Closes" value={venue.today_closes ? venue.today_closes.slice(0, 5) : '—'} />
               </>
             )}
           </div>
@@ -386,7 +388,7 @@ export default function VenueDetailPage() {
         <InfoBlock
           icon={<ClockIcon size={18} />}
           label="Hours"
-          value={hoursLabel(venue.opens_at, venue.closes_at) || 'Not listed'}
+          value={venue.week ? weekLines(venue) : hoursLabel(venue.opens_at, venue.closes_at) || 'Not listed'}
         />
         <InfoBlock
           icon={<StarIcon size={18} filled />}
@@ -725,6 +727,24 @@ function Pill({ children, color, bg, border }: { children: React.ReactNode; colo
       {children}
     </span>
   );
+}
+
+/** "Mon–Fri 05:00–14:00 · Sat 06:00–11:00 · Sun closed": the week, Monday first, runs of equal days joined. */
+function weekLines(v: { week: DayHours[] | null; opens_at: string; closes_at: string }): string {
+  const short = (d: number) => WEEKDAY_NAMES[d].slice(0, 3);
+  const label = (d: number) => {
+    const h = hoursOn(d, v.week, v.opens_at, v.closes_at);
+    return h.closed ? 'closed' : hoursLabel(h.opens, h.closes) || 'not listed';
+  };
+  const out: string[] = [];
+  for (let i = 0; i < WEEK_ORDER.length;) {
+    let j = i;
+    while (j + 1 < WEEK_ORDER.length && label(WEEK_ORDER[j + 1]) === label(WEEK_ORDER[i])) j++;
+    const days = i === j ? short(WEEK_ORDER[i]) : `${short(WEEK_ORDER[i])}–${short(WEEK_ORDER[j])}`;
+    out.push(`${days} ${label(WEEK_ORDER[i])}`);
+    i = j + 1;
+  }
+  return out.join(' · ');
 }
 
 function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {

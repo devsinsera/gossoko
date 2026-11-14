@@ -6,7 +6,8 @@ export type FilterId =
 
 /** Hour a venue opens ("04:30" → 4.5), or null when it hasn't said. */
 function opensHour(v: Venue): number | null {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(v.opens_at ?? '');
+  if (v.closed_today) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(v.today_opens || v.opens_at || '');
   return m ? Number(m[1]) + Number(m[2]) / 60 : null;
 }
 

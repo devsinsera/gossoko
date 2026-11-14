@@ -142,6 +142,19 @@ export async function saveVenueDetails(venueId: string, d: VenueDetails): Promis
   return { ok: true };
 }
 
+/** Weekday hours (0 = Sunday). An empty list = the usual hours every day. */
+export async function saveWeekHours(venueId: string, days: { day: number; opens: string; closes: string; closed: boolean }[]): Promise<Result> {
+  for (const d of days) {
+    if (!d.closed && !(/^\d{2}:\d{2}$/.test(d.opens) && /^\d{2}:\d{2}$/.test(d.closes))) {
+      return { ok: false, error: 'Give each open day an opening and closing time (HH:MM), or tick Closed.' };
+    }
+  }
+  const { error } = await supabase().rpc('set_venue_hours', { p_venue: venueId, p_days: days });
+  if (error) return fail(error, 'Couldn\'t save the hours. Try again.');
+  invalidate();
+  return { ok: true };
+}
+
 // ── Pro plan ────────────────────────────────────────────────────────────────
 export async function requestPro(venueId: string, note: string): Promise<Result> {
   const { error } = await supabase().rpc('request_pro', { p_venue: venueId, p_note: note });

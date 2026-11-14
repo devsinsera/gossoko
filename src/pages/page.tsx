@@ -296,7 +296,7 @@ function FeaturedVenue({ venue }: { venue: Venue }) {
           <Stat label="Overall" value={displayScore(venue) ?? '—'} accent={COLORS.orangeBright} />
           <Stat label="Reviews" value={String(venue.review_count)} />
           <Stat label="Distance" value={<VenueDistance lat={venue.lat} lng={venue.lng} />} />
-          <Stat label={isOpen24h(venue.opens_at, venue.closes_at) ? 'Hours' : 'Opens'} value={hoursLabel(venue.opens_at, venue.closes_at, 'short') || '—'} />
+          <Stat label={venue.closed_today || isOpen24h(venue.today_opens, venue.today_closes) ? 'Today' : 'Opens'} value={venue.closed_today ? 'Closed' : hoursLabel(venue.today_opens, venue.today_closes, 'short') || '—'} />
         </div>
       </div>
     </Link>

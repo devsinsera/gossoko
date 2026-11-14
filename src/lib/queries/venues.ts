@@ -5,7 +5,7 @@
 
 import { supabase as getSupabase } from '@/lib/supabase/client';
 import type { Venue, RatingAxis } from '@/lib/types';
-import { isOpenAt } from '@/lib/hours';
+import { brisbaneWeekday, hoursOn, isOpenWeek, type DayHours } from '@/lib/hours';
 
 type VenueRow = {
   id: string;
@@ -22,6 +22,7 @@ type VenueRow = {
   longitude: number;
   opens_at: string | null;
   closes_at: string | null;
+  venue_hours?: { day_of_week: number; opens_at: string | null; closes_at: string | null; is_closed: boolean | null }[] | null;
   price_level: number | null;
   is_verified: boolean;
   trending: boolean;
@@ -52,6 +53,10 @@ const AXES: RatingAxis[] = [
 ];
 
 function rowToVenue(r: VenueRow): Venue {
+  const week: DayHours[] | null = r.venue_hours?.length
+    ? r.venue_hours.map((h) => ({ day: h.day_of_week, opens: h.opens_at?.slice(0, 5) ?? null, closes: h.closes_at?.slice(0, 5) ?? null, closed: Boolean(h.is_closed) }))
+    : null;
+  const today = hoursOn(brisbaneWeekday(new Date()), week, r.opens_at, r.closes_at);
   const reviewed = (r.review_count ?? 0) > 0;
   const overall = reviewed ? Number(r.rating) || 0 : 0;
   const ratings = AXES.reduce<Record<RatingAxis, number>>((acc, axis) => {
@@ -71,9 +76,13 @@ function rowToVenue(r: VenueRow): Venue {
     postcode: r.postcode ?? '',
     lat: Number(r.latitude),
     lng: Number(r.longitude),
-    open_now: isOpenAt(r.opens_at, r.closes_at),
+    open_now: isOpenWeek(week, r.opens_at, r.closes_at),
     opens_at: r.opens_at ?? '',
     closes_at: r.closes_at ?? '',
+    week,
+    today_opens: today.opens,
+    today_closes: today.closes,
+    closed_today: today.closed,
     price_level: (r.price_level ?? 2) as 1 | 2 | 3,
     verified: r.is_verified,
     trending: r.trending_until != null && Date.parse(r.trending_until) > Date.now(),
@@ -95,7 +104,7 @@ function rowToVenue(r: VenueRow): Venue {
   };
 }
 
-const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until, pro_until, deal_until, save_count, phone';
+const VENUE_COLS = 'id, slug, name, type, tagline, description, suburb, address, state, postcode, latitude, longitude, opens_at, closes_at, price_level, is_verified, trending, distance_km, rating, review_count, hero_color, hero_accent, tags, signature, coffee_strength_avg, feed_size_avg, bang_for_buck_avg, speed_avg, ute_parking_avg, early_open_avg, service_avg, trending_until, pro_until, deal_until, save_count, phone, venue_hours ( day_of_week, opens_at, closes_at, is_closed )';
 
 const PAGE = 500;
 

@@ -146,7 +146,7 @@ export function VenueCard({ venue, variant = 'full' }: { venue: Venue; variant?:
                 <VenueDistance lat={venue.lat} lng={venue.lng} />
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <ClockIcon size={12} /> {isOpen24h(venue.opens_at, venue.closes_at) && !isCompact ? 'Open 24 hours' : hoursLabel(venue.opens_at, venue.closes_at, 'short')}
+                <ClockIcon size={12} /> {venue.closed_today ? 'Closed today' : isOpen24h(venue.today_opens, venue.today_closes) && !isCompact ? 'Open 24 hours' : hoursLabel(venue.today_opens, venue.today_closes, 'short')}
               </span>
             </p>
           </div>

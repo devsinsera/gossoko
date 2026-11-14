@@ -32,8 +32,15 @@ export interface Venue {
   lat: number;
   lng: number;
   open_now: boolean;
+  /** The usual hours (every day without its own row in `week`). */
   opens_at: string;
   closes_at: string;
+  /** Weekday overrides (0 = Sunday), or null when the usual hours apply every day. */
+  week: import('@/lib/hours').DayHours[] | null;
+  /** Today's hours in Queensland (closed_today = this weekday is marked closed). */
+  today_opens: string;
+  today_closes: string;
+  closed_today: boolean;
   price_level: 1 | 2 | 3;
   verified: boolean;
   trending: boolean;

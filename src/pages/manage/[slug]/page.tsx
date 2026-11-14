@@ -9,7 +9,8 @@ import {
   dealBadge, getDealsForOwner, getManagedVenues, getRepliesByReviewIds, getVenueStats, type VenueStats,
 } from '@/lib/queries/business';
 import { ReplyBox } from '../../_business/ReplyBox';
-import { createDeal, endDeal, redeemDealCode, requestPro, saveVenueDetails } from '../../_business/actions';
+import { createDeal, endDeal, redeemDealCode, requestPro, saveVenueDetails, saveWeekHours } from '../../_business/actions';
+import { hoursOn, WEEK_ORDER, WEEKDAY_NAMES } from '@/lib/hours';
 import { billingEnabled, openBillingPortal, startCheckout } from '@/lib/api/billing';
 import { isNative } from '@/lib/bio';
 import { FREE_DEAL_LIMIT, PRO_DEAL_LIMIT, PRO_PRICE_TEXT } from '@/config/plans';
@@ -235,12 +236,20 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
 
 function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>>['venue']> }) {
   const [f, setF] = useState({ tagline: venue.tagline, description: venue.description, phone: venue.phone ?? '', opens_at: venue.opens_at, closes_at: venue.closes_at });
+  // Weekday hours (Peta, 15 Nov 2026): off = the usual hours every day.
+  const [byDay, setByDay] = useState(Boolean(venue.week?.length));
+  const [days, setDays] = useState(() => WEEK_ORDER.map((d) => {
+    const h = hoursOn(d, venue.week, venue.opens_at, venue.closes_at);
+    return { day: d, opens: h.opens.slice(0, 5), closes: h.closes.slice(0, 5), closed: h.closed };
+  }));
+  const setDay = (i: number, patch: Partial<(typeof days)[number]>) => setDays(days.map((d, k) => (k === i ? { ...d, ...patch } : d)));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const res = await saveVenueDetails(venue.id, f);
+    let res = await saveVenueDetails(venue.id, f);
+    if (res.ok) res = await saveWeekHours(venue.id, byDay ? days : []);
     setBusy(false);
     setMsg(res.ok ? { ok: true, text: 'Saved.' } : { ok: false, text: res.error });
   }
@@ -255,6 +264,20 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
           <input aria-label="Opens" type="time" value={f.opens_at} onChange={(e) => setF({ ...f, opens_at: e.target.value })} style={input} />
           <input aria-label="Closes" type="time" value={f.closes_at} onChange={(e) => setF({ ...f, closes_at: e.target.value })} style={input} />
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: COLORS.textSecondary }}>
+          <input type="checkbox" checked={byDay} onChange={(e) => setByDay(e.target.checked)} />
+          Different hours on some days (e.g. closed Sundays)
+        </label>
+        {byDay && days.map((d, i) => (
+          <div key={d.day} style={{ display: 'grid', gridTemplateColumns: '44px 1fr 1fr auto', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: COLORS.textSecondary }}>{WEEKDAY_NAMES[d.day].slice(0, 3)}</span>
+            <input aria-label={`${WEEKDAY_NAMES[d.day]} opens`} type="time" value={d.opens} disabled={d.closed} onChange={(e) => setDay(i, { opens: e.target.value })} style={{ ...input, opacity: d.closed ? 0.4 : 1 }} />
+            <input aria-label={`${WEEKDAY_NAMES[d.day]} closes`} type="time" value={d.closes} disabled={d.closed} onChange={(e) => setDay(i, { closes: e.target.value })} style={{ ...input, opacity: d.closed ? 0.4 : 1 }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: COLORS.textSecondary }}>
+              <input type="checkbox" checked={d.closed} onChange={(e) => setDay(i, { closed: e.target.checked })} /> Closed
+            </label>
+          </div>
+        ))}
         <button type="submit" disabled={busy} style={{ ...primary, alignSelf: 'flex-start', opacity: busy ? 0.7 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
         {msg && <p role="status" style={{ margin: 0, color: msg.ok ? COLORS.green : COLORS.red, fontSize: 13 }}>{msg.text}</p>}
       </form>
