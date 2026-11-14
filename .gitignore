@@ -58,3 +58,8 @@ native/android/capacitor-cordova-android-plugins/
 .env.local
 sim/report.json
 sim/shots/
+
+# Native Mac app (native/mac)
+native/mac/Gossoko.xcodeproj/xcuserdata/
+native/mac/Gossoko.xcodeproj/project.xcworkspace/xcuserdata/
+native/build/

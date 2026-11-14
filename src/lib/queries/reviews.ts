@@ -2,6 +2,7 @@
 // render seed reviews (Review type from lib/seed/types).
 
 import { supabase as getSupabase } from '@/lib/supabase/client';
+import { getBlockedUserIds } from '@/lib/blocks';
 import type { RatingAxis, Ratings } from '@/lib/types';
 
 const REVIEW_COLS = `
@@ -97,11 +98,14 @@ function rowToReview(r: ReviewRow): VenueReview {
 
 export async function getReviewsByVenueId(venueId: string, limit = 25): Promise<VenueReview[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  const blocked = await getBlockedUserIds();
+  let query = supabase
     .from('reviews')
     .select(REVIEW_COLS)
     .eq('venue_id', venueId)
-    .is('deleted_at', null)
+    .is('deleted_at', null);
+  if (blocked.length) query = query.not('user_id', 'in', `(${blocked.join(',')})`);
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -208,11 +212,14 @@ export interface RecentReview extends VenueReview {
 /** Newest public reviews across all venues, for the feed's "Latest from the Crew". */
 export async function getRecentReviews(limit = 4): Promise<RecentReview[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  const blocked = await getBlockedUserIds();
+  let query = supabase
     .from('reviews')
     .select(`${REVIEW_COLS}, venue:venues ( slug, name )`)
     .eq('moderation_status', 'approved')
-    .is('deleted_at', null)
+    .is('deleted_at', null);
+  if (blocked.length) query = query.not('user_id', 'in', `(${blocked.join(',')})`);
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(limit);
 

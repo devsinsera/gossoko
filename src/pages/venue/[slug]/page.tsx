@@ -28,6 +28,7 @@ import { getLiveDeals, getMyActiveCodes, getRepliesByReviewIds, getSavedVenueIds
 import { VenueCard } from '@/components/VenueCard';
 import { VenueDistance } from '@/components/VenueDistance';
 import { ReportButton } from '../../_report/ReportButton';
+import { BlockButton } from '../../_report/BlockButton';
 import { displayScore } from '@/lib/ranking';
 import {
   StarIcon, ClockIcon, MapPinIcon, VerifiedIcon, ChevronLeftIcon,
@@ -522,6 +523,7 @@ export default function VenueDetailPage() {
                       isSignedIn={!!currentUser}
                     />
                     <ReportButton reportableType="review" reportableId={r.id} back={`/venue/${venue.slug}`} />
+                    <BlockButton userId={r.user_id} isSelf={!!currentUser && currentUser.id === r.user_id} />
                   </div>
                 </footer>
                 <ReplyBox reviewId={r.id} reply={replies.get(r.id)} venueName={venue.name} isOwner={ownsVenue} />

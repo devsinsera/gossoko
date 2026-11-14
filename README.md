@@ -46,7 +46,7 @@ The shells point at the live site (`capacitor.config.json` -> `server.url`), so 
 web deploy updates every app. `native/www/offline.html` is the no-network page.
 Icons come from one drawing: `python3 scripts/make_icons.py` writes
 `public/*`, `native/icon.png`, the iOS AppIcon, the Android launcher icons (adaptive
-foreground pin + map background) and the Mac app icon (`native/electron/icon.png`/`.icns`).
+foreground pin + map background) and the Mac app icon (`native/mac/Sources/Assets.xcassets/AppIcon.appiconset`).
 
 ## Sign-in (Sinsera rule)
 
