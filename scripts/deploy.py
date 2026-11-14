@@ -62,7 +62,14 @@ if f"{REMOTE}/assets/" not in index.read_text():
 
 
 def tls12():
-    ctx = ssl._create_stdlib_context()
+    # The FTPS certificate is VERIFIED (CA chain + name). Hostgator presents its shared
+    # *.hostgator.com certificate, not one for ftp.sinsera.co, so the name checked is that one
+    # (SINSERA_FTP_CERT_NAME overrides it) on the control AND data connections. Never an
+    # unverified context: the FTP login can rewrite all of sinsera.co.
+    ctx = ssl.create_default_context()
+    _cert_name = os.environ.get("SINSERA_FTP_CERT_NAME", "*.hostgator.com").replace("*", "ftp", 1)
+    _wrap = ctx.wrap_socket
+    ctx.wrap_socket = lambda sock, *a, server_hostname=None, **k: _wrap(sock, *a, server_hostname=_cert_name, **k)
     ctx.maximum_version = ssl.TLSVersion.TLSv1_2
     return ctx
 
