@@ -34,7 +34,8 @@ export default function ResetPage() {
     const r = await resetPassword(password);
     setBusy(false);
     if (!r.success) { setError(r.errors?.join(' · ') ?? 'Reset failed'); return; }
-    await supabase().auth.signOut();
+    // A new password ends every session everywhere (global, on purpose): whoever knew the old one is out.
+    await supabase().auth.signOut({ scope: 'global' });
     navigate('/login?notice=' + encodeURIComponent('Password updated. Sign in with your new password.'), { replace: true });
   }
 

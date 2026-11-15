@@ -148,23 +148,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   }, [finishIn]);
 
-  const signOut = useCallback(async () => {
-    await disablePush();
-    await stopVisits();
-    await supabase().auth.signOut();
-    await authStore().removeItem(AUTH_STORAGE_KEY);
-    ls()?.removeItem(BIO_KEY);
+  // Sign out of THIS device only ("local"). supabase-js defaults to a global sign-out, which ends the
+  // sinsera.co login everywhere it is used: every other Sinsera app, every other device, and the fleet
+  // daemons that share the owner login. Always leaves this device signed out, even offline or when a
+  // step fails: supabase-js keeps the stored session if the request errors, so it is removed here too.
+  const endLocalSession = useCallback(async () => {
+    const quiet = async (what: string, fn: () => Promise<unknown>) => {
+      try { await fn(); } catch (e) { console.warn(`[gossoko] sign-out: ${what} failed; clearing this device anyway`, e); }
+    };
+    await quiet('push release', async () => { await disablePush(); });
+    await quiet('request', async () => {
+      const { error } = await supabase().auth.signOut({ scope: 'local' });
+      if (error) throw error;
+    });
+    await quiet('saved session', async () => { await authStore().removeItem(AUTH_STORAGE_KEY); });
     setUser(null);
     setStatus('out');
+    statusRef.current = 'out';
   }, []);
 
-  const fullSignIn = useCallback(async () => {
-    await disablePush();
-    await supabase().auth.signOut();
-    await authStore().removeItem(AUTH_STORAGE_KEY);
-    setUser(null);
-    setStatus('out');
-  }, []);
+  const signOut = useCallback(async () => {
+    try { await stopVisits(); } catch (e) { console.warn('[gossoko] sign-out: stopping check-ins failed', e); }
+    ls()?.removeItem(BIO_KEY);
+    await endLocalSession();
+  }, [endLocalSession]);
+
+  const fullSignIn = useCallback(async () => { await endLocalSession(); }, [endLocalSession]);
 
   const value = useMemo(
     () => ({ status, user, unlock, signInPassword, signOut, fullSignIn }),
