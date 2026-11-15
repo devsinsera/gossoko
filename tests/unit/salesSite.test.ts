@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { isNativeShell, nativeGuardScript, legalHref, SALES_PAGES, salesHref, salesLinksVisible, salesRouteTarget, type ShellGlobals } from '@/site/native';
 import { contactLink, legalTokens, LEGAL_ENTITY, ABN } from '@/config/site';
-import config from '../../vite.config';
+import viteConfig from '../../vite.config';
+// The config is a function now (it refuses a build without the Supabase keys); read it as the dev server would.
+const config = typeof viteConfig === 'function' ? viteConfig({ command: 'serve', mode: 'test' }) : viteConfig;
 
 const read = (p: string) => readFileSync(fileURLToPath(new URL(`../../${p}`, import.meta.url)), 'utf8');
 const PAGES = ['index.html', 'business/index.html'];   // the website's front page was about/ until 14 Nov 2026

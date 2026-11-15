@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { loadEnv } from 'vite';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
@@ -38,7 +39,16 @@ function nativeGuard(): Plugin {
 // directory from this same base, so upload target and asset paths cannot drift.
 // The app (index.html), the web-only sales site (about/, business/) and the legal pages
 // (privacy/, terms/ — shown in the apps too), each built to dist/<name>/index.html.
-export default defineConfig({
+export default defineConfig(({ command, mode }) => {
+  // A build without the Supabase keys cannot sign in ("Gossoko is not configured") and `npm run deploy`
+  // would put it live: tests pass without them. It happens when building from a git worktree, which has
+  // no .env.local (Callout's Mac app, 15 Nov). Refuse instead of shipping it — same guard as Callout.
+  if (command === 'build' && !process.env.VITEST) {
+    const env = loadEnv(mode, process.cwd(), 'VITE_');
+    const missing = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'].filter((k) => !env[k]);
+    if (missing.length) throw new Error(`Refusing to build Gossoko without ${missing.join(' and ')} — copy .env.local from the main Gossoko checkout.`);
+  }
+  return {
   plugins: [react(), nativeGuard()],
   base: '/gossoko/',
   server: { port: 4780, host: '127.0.0.1' },
@@ -63,4 +73,5 @@ export default defineConfig({
     globals: true,
     include: ['tests/**/*.test.ts'],
   },
+};
 });
