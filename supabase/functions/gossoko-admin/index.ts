@@ -5,7 +5,8 @@
 //   queue_report  put the caller's own report into the moderation queue
 //   audit         write an audit_logs row for a moderation decision
 //   set_role      change another user's role (+ audit)
-//   delete_account  the caller deletes their own account, everything attached to it, and their photo files
+//   delete_account  the caller deletes their own Gossoko account, everything attached to it, their photo files,
+//                   and their login only when no other Sinsera app uses it
 //
 // Deploy: supabase functions deploy gossoko-admin --project-ref lkhtgkmivqwgnvzmjbhr
 // (slug is app-prefixed on purpose: one project hosts every app's functions.)
@@ -152,9 +153,14 @@ Deno.serve(async (req) => {
         const { error: delErr } = await admin.from('profiles').delete().eq('id', user.id);
         if (delErr) return json({ error: 'delete_failed', detail: delErr.message }, 500);
       }
+      // ⚑ One login serves every Sinsera app (15 Nov 2026). Delete it only when no other app holds data
+      // for it; otherwise their Gossoko account is gone and their login stays for the other apps.
+      const { data: elsewhere, error: useErr } = await admin.rpc('login_used_elsewhere', { p_user: user.id });
+      if (useErr) return json({ error: 'login_check_failed', detail: useErr.message }, 500);
+      if (Array.isArray(elsewhere) && elsewhere.length) return json({ ok: true, login_kept: true });
       const { error: authErr } = await admin.auth.admin.deleteUser(user.id);
       if (authErr) return json({ error: 'auth_delete_failed', detail: authErr.message }, 500);
-      return json({ ok: true });
+      return json({ ok: true, login_kept: false });
     }
 
     default:

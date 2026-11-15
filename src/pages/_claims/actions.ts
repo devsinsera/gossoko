@@ -2,13 +2,16 @@ import { supabase } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth/permissions';
 import { invalidate } from '@/lib/useLoad';
 
-export type ClaimOutcome = 'submitted' | 'exists' | 'owner' | 'taken' | 'error' | 'unauthenticated';
+export type ClaimOutcome = 'submitted' | 'exists' | 'owner' | 'taken' | 'phone' | 'error' | 'unauthenticated';
 
 // Lets a signed-in user claim ownership of a venue: inserts a pending
 // venue_claims row (RLS allows an own-claim insert). An admin approves or
 // rejects it in /staff/moderation.
-export async function claimVenue(venueId: string): Promise<ClaimOutcome> {
+export async function claimVenue(venueId: string, phone = ''): Promise<ClaimOutcome> {
   if (!venueId) return 'error';
+  // The shop's phone: staff ring it to check the claim (15 Nov 2026). The database insists too.
+  const digits = phone.replace(/\D/g, '').length;
+  if (digits < 8 || digits > 15) return 'phone';
   const user = await getCurrentUser();
   if (!user) return 'unauthenticated';
 
@@ -23,7 +26,8 @@ export async function claimVenue(venueId: string): Promise<ClaimOutcome> {
   // is_verified = an admin already approved someone else's claim on this venue.
   if (venue?.is_verified) return 'taken';
 
-  const { error } = await sb.from('venue_claims').insert({ venue_id: venueId, user_id: user.id, status: 'pending' });
+  const { error } = await sb.from('venue_claims').insert({ venue_id: venueId, user_id: user.id, status: 'pending', contact_phone: phone.trim() });
+  if (error?.hint === 'phone') return 'phone';
   if (error) {
     console.error('[gossoko] claimVenue insert failed:', error.message);
     return 'error';

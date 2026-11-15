@@ -765,7 +765,7 @@ test('Gossoko — six months of operation', async () => {
     for (const o of people.filter((p) => p.kind === 'owner' && p.joined === day)) {
       await as(o);
       const target = pick(sqlRows(`select id from gossoko.venues where moderation_status='approved' and deleted_at is null`))[0];
-      const out = await app.claim(target);
+      const out = await app.claim(target, '07 3000 ' + String(1000 + Math.floor(rnd() * 8999)));
       if (out === 'error') issue('venue claim failed', target, day);
       if (out === 'taken') metrics.claimsBlockedAsTaken = (metrics.claimsBlockedAsTaken ?? 0) + 1;
       metrics.claims = (metrics.claims ?? 0) + (out === 'submitted' ? 1 : 0);

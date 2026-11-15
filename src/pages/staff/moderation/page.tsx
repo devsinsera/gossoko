@@ -62,7 +62,8 @@ type PendingComment = {
 type PendingClaim = {
   id: string;
   created_at: string;
-  venue: { name: string; slug: string } | null;
+  contact_phone: string | null;
+  venue: { name: string; slug: string; phone: string | null } | null;
   profile: { username: string | null; full_name: string | null } | null;
 };
 
@@ -112,8 +113,8 @@ async function loadModeration() {
     supabase
       .from('venue_claims')
       .select(`
-        id, created_at,
-        venue:venues ( name, slug ),
+        id, created_at, contact_phone,
+        venue:venues ( name, slug, phone ),
         profile:profiles!venue_claims_user_id_fkey ( username, full_name )
       `)
       .eq('status', 'pending')
@@ -382,6 +383,12 @@ export default function ModerationPage() {
                   {' · '}{new Date(c.created_at).toLocaleString()}
                 </span>
               </div>
+              <p style={{ margin: `0 0 ${SPACE.sm}px`, fontSize: 13, color: COLORS.textSecondary }}>
+                {c.contact_phone
+                  ? <>Ring the shop: <a href={`tel:${c.contact_phone.replace(/[^\d+]/g, '')}`} style={{ color: COLORS.orange, fontWeight: 700 }}>{c.contact_phone}</a></>
+                  : <>No phone given (claimed before 15 Nov) — check another way.</>}
+                {c.venue?.phone ? <> · number on the listing: {c.venue.phone}</> : null}
+              </p>
               <div style={{ display: 'flex', gap: SPACE.sm, flexWrap: 'wrap' }}>
                 <ActionForm action={resolveVenueClaim}>
                   <input type="hidden" name="id" value={c.id} />

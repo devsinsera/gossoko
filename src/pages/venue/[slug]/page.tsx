@@ -1,5 +1,5 @@
 import { Link } from '@/lib/nav';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getVenueBySlug, getAllVenues } from '@/lib/queries/venues';
 import { getReviewByUserAndVenue, getReviewsByVenueId, getUserLikedReviewIds, reviewCta } from '@/lib/queries/reviews';
@@ -54,6 +54,7 @@ const CLAIM_BANNER: Record<string, { color: string; text: string }> = {
   exists:    { color: COLORS.gold, text: 'You already have a claim pending review for this venue.' },
   owner:     { color: COLORS.green, text: 'You already manage this venue.' },
   taken:     { color: COLORS.gold, text: 'This venue already has a verified owner. If that’s wrong, report it and an admin will sort it out.' },
+  phone:     { color: COLORS.gold, text: 'Add the shop’s phone number — we ring it to check the claim.' },
   error:     { color: COLORS.red,         text: 'Something went wrong saving your claim. Try again.' },
 };
 
@@ -97,6 +98,7 @@ async function loadVenuePage(slug: string, userId: string | null) {
 export default function VenueDetailPage() {
   const { slug = '' } = useParams();
   const { report, review, claim } = useQuery('report', 'review', 'claim');
+  const [claimPhone, setClaimPhone] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
   const currentUser = user;
@@ -631,9 +633,20 @@ export default function VenueDetailPage() {
             <>
               <p style={{ margin: 0, color: COLORS.textSecondary, fontSize: 13, lineHeight: 1.5 }}>
                 Run this gossoko van, food truck or café? Claim it and an admin will verify you as the owner.
+                We ring the shop's number to check it's you.
               </p>
+              <input
+                aria-label="Shop phone number"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="Shop phone number"
+                value={claimPhone}
+                onChange={(e) => setClaimPhone(e.target.value)}
+                style={{ background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14, maxWidth: 280 }}
+              />
               <ActionForm
-                action={() => claimVenue(venue.id)}
+                action={() => claimVenue(venue.id, claimPhone)}
                 onDone={(outcome) => navigate(`/venue/${venue.slug}?claim=${String(outcome)}`)}
                 style={{ alignSelf: 'flex-start' }}
               >

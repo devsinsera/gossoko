@@ -139,11 +139,11 @@ test('Gossoko — one launch week of operations (live settings)', async () => {
   for (const [i, o] of owners.entries()) {
     await as(o);
     const v = { id: venues[i][0], name: venues[i][1], slug: venues[i][2] };
-    const out = await app.claim(v.id);
+    const out = await app.claim(v.id, '07 3000 12' + String(10 + i));
     if (out !== 'submitted') fault(6, 'claims', `${o.username} could not claim ${v.name}: ${out}`);
     ownerVenue.set(o.id, v);
   }
-  note(6, 'claims', 'a claim asks for nothing (no ABN, phone, photo or note); Peta has to ring each shop to check — the staff page shows only name + venue');
+  note(6, 'claims', 'each claim carries the shop phone; the staff page shows it beside the listing number to ring');
 
   // Monday 05:00–07:00: first reviews, all held by pre-moderation.
   let rev = 0;
@@ -204,7 +204,11 @@ test('Gossoko — one launch week of operations (live settings)', async () => {
   await as(sam);
   const s = await app.biz.saveVenueDetails(samVenue.id, { tagline: 'Early start, strong brew', description: 'Closed Sundays.', phone: '07 3000 1234', opens_at: '04:30', closes_at: '13:00' });
   if (!s.ok) fault(54, 'listing', `Sam could not save his hours: ${s.error}`);
-  else note(54, 'listing', 'hours are ONE daily window: "closed Sundays" or "Sat 6–11" can only go in the description; the app still says "Open now" on Sunday at 05:00');
+  else {
+    const w = await app.biz.saveWeekHours(samVenue.id, [{ day: 0, opens: '', closes: '', closed: true }]);
+    if (!w.ok) fault(54, 'listing', `Sam could not close Sundays: ${w.error}`);
+    else ok(54, 'listing', 'Sam marked Sundays closed (weekday hours)');
+  }
 
   // ── Thursday: a fair 2-star review on Kel's place; Kel's mates report it. ──
   const kel = owners[2], kelVenue = ownerVenue.get(kel.id)!;
@@ -260,7 +264,7 @@ test('Gossoko — one launch week of operations (live settings)', async () => {
   if (!del.ok) fault(130, 'accounts', `account deletion failed: ${del.error}`);
   else {
     const left = sql(`select (select count(*) from gossoko.profiles where id = '${leaver.id}') + (select count(*) from auth.users where id = '${leaver.id}')`);
-    if (left === '0') note(130, 'accounts', 'deleting a Gossoko account deletes the shared sinsera.co login (auth.users) — the same login their other Sinsera apps use');
+    note(130, 'accounts', left === '0' ? 'Gossoko-only login: profile and login deleted' : 'profile deleted; login kept (other apps use it)');
   }
 
   // ── Sunday: the Monday 7am digest. ──

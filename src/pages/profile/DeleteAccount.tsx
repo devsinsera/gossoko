@@ -25,7 +25,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
     <div style={{ border: `1px solid ${COLORS.red}`, borderRadius: RADIUS.md, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <p style={{ margin: 0, color: COLORS.text, fontSize: 13.5, lineHeight: 1.5 }}>
         This permanently deletes your account, reviews, comments, photos, saved spots and deal codes. It can&apos;t be undone.
-        Venues you added stay on Gossoko.
+        Venues you added stay on Gossoko. If you use the same login in other Sinsera apps, the login itself stays for them.
       </p>
       <input aria-label="Type DELETE to confirm" placeholder="Type DELETE" value={word} onChange={(e) => setWord(e.target.value)} autoCapitalize="characters" autoComplete="off"
         style={{ background: COLORS.bg, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, padding: '10px 12px', fontSize: 14 }} />
