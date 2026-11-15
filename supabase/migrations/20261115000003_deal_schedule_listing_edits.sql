@@ -1,6 +1,7 @@
 -- Gossoko — deal scheduling + owner listing edits (15 Nov 2026 fortnight sim).
 -- PREPARED, NOT APPLIED. Needs 20261115000001_audit_week_fixes.sql first (it builds on that
--- file's specials_guard).
+-- file's specials_guard). Independent of 20261115000002_day_hours_no_review_autohide.sql (that one
+-- touches reports_autohide + set_venue_hours only; nothing here redefines them, or they this).
 --
 --  1. Deals can start later and can run on chosen weekdays only (e.g. Mon–Wed):
 --     venue_specials.days_of_week (ISO 1 = Mon … 7 = Sun; null = every day).

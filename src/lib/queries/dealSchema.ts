@@ -1,4 +1,4 @@
-// Deal scheduling (venue_specials.days_of_week, migration 20261115000002) may not be on the database
+// Deal scheduling (venue_specials.days_of_week, migration 20261115000003) may not be on the database
 // yet: the web can ship before the migration. Every read that wants the new column goes through
 // withSchedule(), which falls back to the old columns when the database says the column isn't there,
 // so the deal list, Get code and the owner dashboard keep working either way.

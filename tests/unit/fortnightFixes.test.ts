@@ -43,7 +43,7 @@ describe('deal schedule (start date + weekdays)', () => {
 });
 
 describe('deal schedule migration', () => {
-  const sql = readFileSync('supabase/migrations/20261115000002_deal_schedule_listing_edits.sql', 'utf8');
+  const sql = readFileSync('supabase/migrations/20261115000003_deal_schedule_listing_edits.sql', 'utf8');
   it('Free cap counts overlapping windows on shared days, not every unexpired deal', () => {
     expect(sql).toMatch(/end_date > new\.start_date and start_date < new\.end_date/);
     expect(sql).toMatch(/days_of_week && new\.days_of_week/);
@@ -121,7 +121,7 @@ describe('ended deals', () => {
   });
 });
 
-describe('deploy-safe before migration 20261115000002', async () => {
+describe('deploy-safe before migration 20261115000003', async () => {
   const { withSchedule, isMissingColumn, scheduleSupported, resetScheduleSupport } = await import('@/lib/queries/dealSchema');
   it('recognises "no such column" from a select and an insert', () => {
     expect(isMissingColumn({ code: '42703', message: 'column venue_specials.days_of_week does not exist' })).toBe(true);

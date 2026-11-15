@@ -182,7 +182,7 @@ function Deals({ venueId, pro, deals }: { venueId: string; pro: boolean; deals: 
   const live = deals.filter((d) => states.get(d.id) === 'live');
   const upcoming = deals.filter((d) => states.get(d.id) === 'scheduled' || states.get(d.id) === 'not-today');
   const limit = pro ? PRO_DEAL_LIMIT : FREE_DEAL_LIMIT;
-  // Weekdays + booking the next deal while one is live need migration 20261115000002. Until it's on the
+  // Weekdays + booking the next deal while one is live need migration 20261115000003. Until it's on the
   // database, the controls that would fail are hidden (the deal list itself loaded without them).
   const scheduling = scheduleSupported() !== false;
   const full = live.length >= limit;
@@ -367,7 +367,7 @@ function Details({ venue }: { venue: NonNullable<Awaited<ReturnType<typeof load>
     <section className="section">
       <div className="section-title"><h2>Your listing</h2></div>
       <form onSubmit={save} style={{ ...card, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Name/address edits need migration 20261115000002 (staff alert + SEQ bound); hidden until it's live. */}
+        {/* Name/address edits need migration 20261115000003 (staff alert + SEQ bound); hidden until it's live. */}
         {placeEdits && (<>
         <input aria-label="Venue name" placeholder="Venue name" maxLength={80} required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} style={input} />
         <input aria-label="Street address" placeholder="Street address" maxLength={200} required value={f.address} onChange={(e) => { setF({ ...f, address: e.target.value }); setPin(null); }} style={input} />
