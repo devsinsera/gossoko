@@ -8,6 +8,7 @@ import { FilterChips } from '@/components/FilterChips';
 import { NearbyList } from './NearbyList';
 import { PromotedSpots } from '@/components/PromotedSpots';
 import { useNear } from '@/components/DistanceProvider';
+import { CheckInHere } from '@/components/CheckIn';
 
 export default function NearbyPage() {
   const { data, loading } = useLoad(getAllVenues, []);
@@ -31,6 +32,8 @@ export default function NearbyPage() {
           <button type="button" onClick={clearNear} style={{ background: 'none', border: 'none', padding: 0, color: '#FF8A1A', cursor: 'pointer', fontSize: 13, textDecoration: 'underline' }}>Use my location</button>
         </p>
       )}
+
+      <CheckInHere venues={ALL} />
 
       <FilterChips onChange={setFilter} />
 

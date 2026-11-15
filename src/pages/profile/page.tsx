@@ -11,6 +11,8 @@ import { DeleteReviewButton } from './DeleteReviewButton';
 import { ProfileEditor } from './ProfileEditor';
 import { SavedSpots } from './SavedSpots';
 import { AlertsToggle } from './AlertsToggle';
+import { VisitsSettings } from './VisitsSettings';
+import { myCheckInVenueIds } from '@/lib/visits';
 import { BiometricToggle } from './BiometricToggle';
 import { DeleteAccount } from './DeleteAccount';
 import { LegalLinks } from '@/components/LegalLinks';
@@ -53,8 +55,8 @@ export default function ProfilePage() {
     if (!authUser) return null;
     const profile = await getOwnProfile(authUser.id);
     const reviews = profile ? await getReviewsByUserId(profile.id) : [];
-    const [venues, savedIds, managed, unread] = await Promise.all([getAllVenues(), getSavedVenueIds(authUser.id), getManagedVenues(authUser.id), unreadCount()]);
-    return { profile, reviews, saved: venues.filter((v) => savedIds.has(v.id)), managed, unread };
+    const [venues, savedIds, managed, unread, checkedIn] = await Promise.all([getAllVenues(), getSavedVenueIds(authUser.id), getManagedVenues(authUser.id), unreadCount(), myCheckInVenueIds(authUser.id)]);
+    return { profile, reviews, saved: venues.filter((v) => savedIds.has(v.id)), managed, unread, checkedIn };
   }, [authUser?.id]);
   if (loading && authUser) return <div style={{ padding: 16 }}><Skeleton width={200} height={26} /></div>;
 
@@ -83,7 +85,8 @@ export default function ProfilePage() {
       stats: {
         reviews: profile.reviews_count || realReviews.length,
         helpful_marks: realReviews.reduce((sum, r) => sum + r.helpful_count, 0),
-        venues_visited: new Set(realReviews.map((r) => r.venue_id)).size,
+        // Venues = places you reviewed or checked in at.
+        venues_visited: new Set([...realReviews.map((r) => r.venue_id), ...(data?.checkedIn ?? [])]).size,
         streak_days: savedVenues.length,
       },
       badges: profile.is_verified ? [{ code: 'verified', label: 'Verified', color: COLORS.orange }] : [],
@@ -251,6 +254,7 @@ export default function ProfilePage() {
           {founder && <ActionTile href="/founder" icon={<TrophyIcon size={20} />} label="Founder" hint="Owner tools" />}
         </div>
         {authUser && <div style={{ marginTop: 12 }}><AlertsToggle userId={authUser.id} /></div>}
+        {authUser && <VisitsSettings userId={authUser.id} />}
         {authUser && profile && (
           <div style={{ marginTop: 12 }}>
             <ProfileEditor userId={authUser.id} initial={{ username: profile.username, full_name: profile.full_name, bio: profile.bio, trade: profile.trade_type ?? 'tradie' }} />

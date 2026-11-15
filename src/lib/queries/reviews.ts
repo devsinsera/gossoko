@@ -9,7 +9,7 @@ const REVIEW_COLS = `
   id, created_at, venue_id, user_id,
   coffee_strength_rating, feed_size_rating, bang_for_buck_rating,
   speed_rating, ute_parking_rating, early_open_rating, service_rating,
-  overall_rating, title, body, helpful_count,
+  overall_rating, title, body, helpful_count, verified_visit,
   profile:profiles!reviews_user_id_fkey ( username, full_name, avatar_url, trade_type )
 `;
 
@@ -29,6 +29,7 @@ type ReviewRow = {
   title: string | null;
   body: string | null;
   helpful_count: number;
+  verified_visit?: boolean | null;
   profile: {
     username: string | null;
     full_name: string | null;
@@ -54,6 +55,8 @@ export interface VenueReview {
   overall: number;
   posted_at: string;
   helpful_count: number;
+  /** The author checked in there in the 24 h before writing it (set by the server). */
+  verified_visit: boolean;
 }
 
 const AXIS_TO_COL: Record<RatingAxis, keyof ReviewRow> = {
@@ -93,6 +96,7 @@ function rowToReview(r: ReviewRow): VenueReview {
     overall: Number(r.overall_rating ?? 0),
     posted_at: r.created_at,
     helpful_count: r.helpful_count ?? 0,
+    verified_visit: r.verified_visit === true,
   };
 }
 

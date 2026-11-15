@@ -8,6 +8,7 @@
 // cancelled, drops to a full sign-in.
 
 import { enablePush, disablePush } from '@/lib/push';
+import { syncVisits, stopVisits } from '@/lib/visits';
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
@@ -58,7 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const booted = useRef(false);
 
-  const finishIn = useCallback((u: User) => { setUser(u); setStatus('in'); void enablePush(); }, []);
+  const finishIn = useCallback((u: User) => { setUser(u); setStatus('in'); void enablePush(); void syncVisits(u.id); }, []);
+
+  // Back in front: upload visits the phone saw while closed and refresh the venues it watches.
+  useEffect(() => {
+    if (!user) return;
+    const onShow = () => { if (document.visibilityState === 'visible') void syncVisits(user.id); };
+    document.addEventListener('visibilitychange', onShow);
+    return () => document.removeEventListener('visibilitychange', onShow);
+  }, [user]);
 
   const restoreLegacy = useCallback(async () => {
     const token = await legacyKeychainToken();
@@ -141,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await disablePush();
+    await stopVisits();
     await supabase().auth.signOut();
     await authStore().removeItem(AUTH_STORAGE_KEY);
     ls()?.removeItem(BIO_KEY);

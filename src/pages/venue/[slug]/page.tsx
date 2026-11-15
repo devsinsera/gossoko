@@ -21,6 +21,7 @@ import { COLORS, RADIUS, SPACE, BRAND_GRADIENT } from '@/lib/theme';
 import pinUrl from '@/assets/brand/gossoko-pin.svg';
 import { RatingBars } from '@/components/RatingBars';
 import { SaveShare } from '@/components/SaveShare';
+import { CheckInCard } from '@/components/CheckIn';
 import { DealCard } from '@/components/DealCard';
 import { ReplyBox } from '../../_business/ReplyBox';
 import { directionsUrl } from '@/lib/geo';
@@ -97,7 +98,7 @@ async function loadVenuePage(slug: string, userId: string | null) {
 
 export default function VenueDetailPage() {
   const { slug = '' } = useParams();
-  const { report, review, claim } = useQuery('report', 'review', 'claim');
+  const { report, review, claim, checkin } = useQuery('report', 'review', 'claim', 'checkin');
   const [claimPhone, setClaimPhone] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -146,6 +147,9 @@ export default function VenueDetailPage() {
         </Link>
         <SaveShare venueId={venue.id} slug={venue.slug} name={venue.name} initialSaved={saved} signedIn={!!currentUser} />
       </div>
+
+      {/* At the venue (or opened from the arrival alert): check in */}
+      <CheckInCard venue={venue} force={checkin === '1'} />
 
       {/* Hero block */}
       <section style={{
@@ -484,8 +488,15 @@ export default function VenueDetailPage() {
                     {r.user.initials}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: COLORS.text }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: COLORS.text, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       @{r.user.username}
+                      {r.verified_visit && (
+                        <span title="Checked in here before writing this" style={{
+                          fontFamily: 'var(--font-label)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em',
+                          textTransform: 'uppercase', color: COLORS.green, border: `1px solid ${COLORS.green}`,
+                          borderRadius: 999, padding: '1px 8px',
+                        }}>Verified visit</span>
+                      )}
                     </div>
                     <div style={{
                       fontSize: 11,

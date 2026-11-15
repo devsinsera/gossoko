@@ -25,7 +25,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Gossoko uses Face ID so you can open the app without typing your password. Your face never leaves your phone.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Gossoko uses your location to show how far each venue is from the site you are on.</string>
+	<string>Gossoko uses your location to show how far each venue is from the site you are on, and to check you in when you are at one.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>If you turn on Nearby alerts, Gossoko notices when you stop at a venue, even with the app closed, and offers to check you in or asks how it was. Your position stays on your phone.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

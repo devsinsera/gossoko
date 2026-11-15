@@ -7,7 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Check-ins + arrival alerts: start before anything else so a background relaunch for a
+        // region event (Gossoko closed) is handled (VisitsPlugin.swift).
+        VisitsEngine.shared.boot()
         return true
     }
 
