@@ -4,7 +4,8 @@
   "version": "0.2.0",
   "description": "Gossoko phone, tablet and owner Mac shell around https://sinsera.co/gossoko/",
   "scripts": {
-    "sync": "cap sync",
+    "postinstall": "node scripts/patch-plugins.mjs",
+    "sync": "node scripts/patch-plugins.mjs && cap sync",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
     "build:ios-sim": "cd ios/App && xcodebuild -scheme App -project App.xcodeproj -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ../../build/ios-sim CODE_SIGNING_ALLOWED=NO build"
