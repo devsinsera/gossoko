@@ -12,9 +12,10 @@ struct GossokoApp: App {
         WindowGroup {
             ShellView(model: shell)
                 .environmentObject(shell)
-                .frame(minWidth: 640, minHeight: 480)   // never above the 1000×640 first-launch size
+                .frame(minWidth: 640, minHeight: 480)   // minimum stays small (rule: ≤ 640×480)
+                .background(MacWindowSizer())           // opens at 7/9 of the screen, centred (MacWindowSize.swift)
         }
-        .defaultSize(width: 1000, height: 640)           // every Sinsera Mac app opens at 1000×640
+        .defaultSize(width: 1000, height: 640)           // fallback only: MacWindowSizer sets the real opening size
         .windowStyle(.hiddenTitleBar)                     // transparent top bar: the page runs up behind the buttons
         .commands {
             CommandGroup(replacing: .newItem) {}

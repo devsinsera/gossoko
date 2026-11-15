@@ -12,11 +12,13 @@
 		6EA5649F3598363FF6FC6003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97A88BB0F1302D4C63CAFB4E /* Assets.xcassets */; };
 		A4F711835ACF2ADC3506FCC5 /* ShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B1A25273F1C0837041A5AC /* ShellView.swift */; };
 		ABE760925537E9AC52758268 /* WebShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F534B66131060D1C70A71F /* WebShell.swift */; };
+		FB6DA24C07D1E2507240C622 /* MacWindowSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DA11145D6D7C68BF70191F /* MacWindowSize.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		26B1A25273F1C0837041A5AC /* ShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellView.swift; sourceTree = "<group>"; };
 		71D8D616C0A5867CA76B9B49 /* GossokoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GossokoApp.swift; sourceTree = "<group>"; };
+		81DA11145D6D7C68BF70191F /* MacWindowSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacWindowSize.swift; sourceTree = "<group>"; };
 		97A88BB0F1302D4C63CAFB4E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9FB2AE1CCFCC6E4F66DE58B6 /* AppLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLock.swift; sourceTree = "<group>"; };
 		B2F534B66131060D1C70A71F /* WebShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebShell.swift; sourceTree = "<group>"; };
@@ -38,6 +40,7 @@
 				9FB2AE1CCFCC6E4F66DE58B6 /* AppLock.swift */,
 				97A88BB0F1302D4C63CAFB4E /* Assets.xcassets */,
 				71D8D616C0A5867CA76B9B49 /* GossokoApp.swift */,
+				81DA11145D6D7C68BF70191F /* MacWindowSize.swift */,
 				26B1A25273F1C0837041A5AC /* ShellView.swift */,
 				B2F534B66131060D1C70A71F /* WebShell.swift */,
 			);
@@ -125,6 +128,7 @@
 			files = (
 				0B8BE014B81C1EFDD303D81D /* AppLock.swift in Sources */,
 				2616B74B94854F3C97776616 /* GossokoApp.swift in Sources */,
+				FB6DA24C07D1E2507240C622 /* MacWindowSize.swift in Sources */,
 				A4F711835ACF2ADC3506FCC5 /* ShellView.swift in Sources */,
 				ABE760925537E9AC52758268 /* WebShell.swift in Sources */,
 			);
@@ -168,7 +172,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 3R7FM9TSMX;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -279,7 +283,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 3R7FM9TSMX;
 				ENABLE_NS_ASSERTIONS = NO;
