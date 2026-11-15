@@ -112,16 +112,44 @@ async function reviewedRecently(userId: string): Promise<Set<string>> {
   return new Set((data ?? []).map((r: { venue_id: string }) => r.venue_id));
 }
 
-/** Upload the visits the phone saw while Gossoko was closed. Ones that fail the server's checks are dropped. */
-async function uploadVisits(p: VisitsPlugin): Promise<number> {
+type QueuedVisit = { venueId: string; lat: number; lng: number; accuracy: number; at: number; leftAt?: number | null };
+const PENDING_KEY = (userId: string) => `gossoko.visits.pending.${userId}`;
+function readPending(userId: string): QueuedVisit[] {
+  try { const v = JSON.parse(localStorage.getItem(PENDING_KEY(userId)) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+function writePending(userId: string, list: QueuedVisit[]): void {
+  try {
+    if (list.length) localStorage.setItem(PENDING_KEY(userId), JSON.stringify(list.slice(-200)));
+    else localStorage.removeItem(PENDING_KEY(userId));
+  } catch { /* storage unavailable: nothing kept */ }
+}
+/** No answer from the server at all (no signal), as opposed to the server refusing the visit. */
+export function noAnswer(error: { code?: string; message?: string } | null): boolean {
+  return !!error && !error.code && /fetch|network|load failed|timed? ?out/i.test(error.message ?? '');
+}
+
+/**
+ * Upload the visits the phone saw while Gossoko was closed. The phone hands its queue over once (and
+ * empties it), so the visits are kept here, per account, until the server has answered for each: one
+ * that fails the server's checks is dropped; one that got no answer (no signal) waits for next time.
+ */
+async function uploadVisits(p: VisitsPlugin, userId: string): Promise<number> {
   const { visits } = await p.takeVisits();
+  let waiting: QueuedVisit[] = [...readPending(userId), ...(visits as QueuedVisit[])];
+  writePending(userId, waiting);
   let saved = 0;
-  for (const v of visits) {
-    const { error } = await getSupabase().rpc('check_in', {
-      p_venue: v.venueId, p_lat: v.lat, p_lng: v.lng, p_accuracy: Math.round(v.accuracy), p_source: 'auto',
-      p_at: new Date(v.at).toISOString(), p_left_at: v.leftAt ? new Date(v.leftAt).toISOString() : null,
-    });
+  for (const v of [...waiting]) {
+    let error: { code?: string; message?: string } | null = null;
+    try {
+      ({ error } = await getSupabase().rpc('check_in', {
+        p_venue: v.venueId, p_lat: v.lat, p_lng: v.lng, p_accuracy: Math.round(v.accuracy), p_source: 'auto',
+        p_at: new Date(v.at).toISOString(), p_left_at: v.leftAt ? new Date(v.leftAt).toISOString() : null,
+      }));
+    } catch (e) { error = { message: e instanceof Error ? e.message : 'network' }; }
+    if (noAnswer(error)) break;   // no signal: keep this one and the rest
     if (!error) saved++;
+    waiting = waiting.filter((x) => x !== v);
+    writePending(userId, waiting);
   }
   return saved;
 }
@@ -147,7 +175,7 @@ export function syncVisits(userId: string | null): Promise<void> {
       }
       const s = loadSettings();
       if (!userId || !s.enabled) { await p.stop(); return; }
-      await uploadVisits(p);
+      await uploadVisits(p, userId);
       const [venues, reviewed] = await Promise.all([getAllVenues(), reviewedRecently(userId)]);
       // Send the nearest 200 to where the phone is now (or all, if there's no fix); it re-picks as you move.
       let pool = venues;
@@ -178,7 +206,16 @@ export function syncVisits(userId: string | null): Promise<void> {
 }
 
 /** Signing out: stop watching (the next person on the phone hasn't said yes). */
+/**
+ * Sign-out: stop watching, throw away visits the phone still holds (they were this person's — the next
+ * account to sign in on this phone must not upload them as its own) and switch check-ins off, so the next
+ * account opts in for itself.
+ */
 export async function stopVisits(): Promise<void> {
-  try { await nativeVisits()?.stop(); } catch { /* old build */ }
+  const p = nativeVisits();
+  try { await p?.stop(); } catch { /* old build */ }
+  try { await p?.takeVisits(); } catch { /* old build */ }
+  const s = loadSettings();
+  if (s.enabled) saveSettings({ ...s, enabled: false });
 }
 

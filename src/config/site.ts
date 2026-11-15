@@ -46,7 +46,7 @@ export const MAILBOX_CONFIRMED = false;
 export const POSTAL: string | null = null;
 
 /** The date at the top of the privacy policy and terms. Change it whenever their wording changes. */
-export const LEGAL_UPDATED = '14 November 2026';
+export const LEGAL_UPDATED = '16 November 2026';
 
 /** Everything the legal pages need, as the tokens the build fills in. */
 export function legalTokens(): Record<string, string> {

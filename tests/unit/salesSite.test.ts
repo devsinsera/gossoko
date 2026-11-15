@@ -216,7 +216,9 @@ describe('legal pages: privacy + terms', () => {
     expect(priv).toMatch(/under 16/);
     expect(priv).toMatch(/Delete my account/);
     expect(priv).toMatch(/If you turn on check-ins/);
-    expect(priv).toMatch(/not in the app yet/i);
+    // Check-ins went live on 15 Nov: the policy must describe them as they work, not as "coming soon".
+    expect(priv).not.toMatch(/not in the app yet/i);
+    expect(priv).toMatch(/We store the venue and the time, not your position/);
     const terms = read('terms/index.html');
     expect(terms).toMatch(/Australian Consumer Law/);
     expect(terms).toMatch(/laws of Queensland/);
