@@ -15,9 +15,12 @@ export function LockScreen() {
   const [busy, setBusy] = useState(false);
   const asked = useRef(false);
 
+  const asking = useRef(false);
   const tryUnlock = async () => {
+    if (asking.current) return;   // one prompt at a time
+    asking.current = true;
     setBusy(true);
-    try { await unlock(); } finally { setBusy(false); }
+    try { await unlock(); } finally { asking.current = false; setBusy(false); }
   };
 
   useEffect(() => {
@@ -25,6 +28,15 @@ export function LockScreen() {
     if (asked.current) return;
     asked.current = true;
     void tryUnlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Still locked when the app comes back to the front (the first check was cancelled, or the phone was
+  // put down): ask again by itself, so nobody has to tap Unlock — same as Callout's lock screen.
+  useEffect(() => {
+    const onShow = () => { if (document.visibilityState === 'visible') void tryUnlock(); };
+    document.addEventListener('visibilitychange', onShow);
+    return () => document.removeEventListener('visibilitychange', onShow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
