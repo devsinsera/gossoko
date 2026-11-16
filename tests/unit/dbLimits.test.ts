@@ -12,7 +12,7 @@ describe('20261116000002', () => {
     expect(sql).toMatch(/r\.status = 'pending' and r\.reviewed_at is null/);
   });
   it('limits match the form limits', () => {
-    expect(sql).toMatch(/title[^)]*<= 120[\s\S]*body[^)]*<= 2000/);
+    expect(sql).toMatch(/length\(coalesce\(title, ''\)\) <= 120 and length\(coalesce\(body, ''\)\) <= 2000/);
     expect(sql).toMatch(/length\(body\) <= 1000/);
     expect(sql).toMatch(/discount_percentage between 1 and 99/);
   });
