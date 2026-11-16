@@ -41,7 +41,9 @@ struct WebShell: NSViewRepresentable {
             guard let url = action.request.url else { decisionHandler(.cancel); return }
             if url.scheme == "about" || url.scheme == "blob" { decisionHandler(.allow); return }
             if inApp(url) { decisionHandler(.allow); return }
-            if action.navigationType == .linkActivated || action.targetFrame == nil {
+            // A page leaving the app in the main frame goes to the browser: a link, a new window, or a script
+            // (Go Pro / Manage billing set `location` to Stripe, which used to be cancelled silently: "Opening…").
+            if action.navigationType == .linkActivated || action.targetFrame == nil || action.targetFrame?.isMainFrame == true {
                 if url.scheme == "https" || url.scheme == "http" || url.scheme == "mailto" {
                     NSWorkspace.shared.open(url)
                 }
